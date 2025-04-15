@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,12 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// Fire department color scheme
+				"fire-red": "#FF3A2F",
+				"fire-dark-blue": "#0A2342",
+				"fire-light-gray": "#F5F5F5",
+				"fire-dark-gray": "#333333"
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
