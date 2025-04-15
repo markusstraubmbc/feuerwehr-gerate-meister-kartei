@@ -9,7 +9,131 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      equipment: {
+        Row: {
+          created_at: string
+          id: string
+          last_maintenance_date: string | null
+          manufacturer: string | null
+          model: string | null
+          name: string
+          next_maintenance_date: string | null
+          purchase_date: string | null
+          serial_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_maintenance_date?: string | null
+          manufacturer?: string | null
+          model?: string | null
+          name: string
+          next_maintenance_date?: string | null
+          purchase_date?: string | null
+          serial_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_maintenance_date?: string | null
+          manufacturer?: string | null
+          model?: string | null
+          name?: string
+          next_maintenance_date?: string | null
+          purchase_date?: string | null
+          serial_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inventory: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          item_name: string
+          item_number: string | null
+          location: string | null
+          minimum_quantity: number
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          item_name: string
+          item_number?: string | null
+          location?: string | null
+          minimum_quantity?: number
+          quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          item_name?: string
+          item_number?: string | null
+          location?: string | null
+          minimum_quantity?: number
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      maintenance_records: {
+        Row: {
+          created_at: string
+          description: string | null
+          due_date: string
+          equipment_id: string
+          id: string
+          maintenance_type: string
+          notes: string | null
+          performed_at: string | null
+          performed_by: string | null
+          status: Database["public"]["Enums"]["maintenance_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          due_date: string
+          equipment_id: string
+          id?: string
+          maintenance_type: string
+          notes?: string | null
+          performed_at?: string | null
+          performed_by?: string | null
+          status?: Database["public"]["Enums"]["maintenance_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          due_date?: string
+          equipment_id?: string
+          id?: string
+          maintenance_type?: string
+          notes?: string | null
+          performed_at?: string | null
+          performed_by?: string | null
+          status?: Database["public"]["Enums"]["maintenance_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_records_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +142,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      maintenance_status: "pending" | "in_progress" | "completed" | "overdue"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +257,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      maintenance_status: ["pending", "in_progress", "completed", "overdue"],
+    },
   },
 } as const

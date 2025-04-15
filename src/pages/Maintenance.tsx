@@ -1,18 +1,9 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { 
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { MaintenanceTable } from "@/components/maintenance/MaintenanceTable";
 import { 
   FileText, 
   Calendar,
@@ -66,24 +57,7 @@ const Maintenance = () => {
                   />
                 </div>
               </div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Gerät</TableHead>
-                    <TableHead>Art der Wartung</TableHead>
-                    <TableHead>Letzte Prüfung</TableHead>
-                    <TableHead>Nächste Prüfung</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
-                      Keine Wartungen vorhanden
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+              <MaintenanceTable />
             </CardContent>
           </Card>
         </TabsContent>
