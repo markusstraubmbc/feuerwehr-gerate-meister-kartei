@@ -3,15 +3,17 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
-  Home, 
+  Barcode,
+  ClipboardCheck,
   Package, 
-  FileSearch, 
+  FileSpreadsheet, 
   Settings, 
   LayoutDashboard, 
   Menu, 
   X, 
-  CircleAlert, 
-  ClipboardList 
+  CircleAlert,
+  Store,
+  FileText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +35,7 @@ export function Sidebar() {
         {expanded ? (
           <div className="flex items-center">
             <CircleAlert className="h-6 w-6 text-fire-red" />
-            <h2 className="ml-2 text-lg font-bold text-white truncate">Feuerwehr Inventar</h2>
+            <h2 className="ml-2 text-lg font-bold text-white truncate">Gerätemeister</h2>
           </div>
         ) : (
           <CircleAlert className="h-6 w-6 mx-auto text-fire-red" />
@@ -50,9 +52,12 @@ export function Sidebar() {
 
       <nav className="flex-1 px-2 py-4 space-y-1">
         <NavItem to="/" icon={<LayoutDashboard size={20} />} label="Dashboard" expanded={expanded} />
-        <NavItem to="/equipment" icon={<Package size={20} />} label="Ausrüstung" expanded={expanded} />
-        <NavItem to="/maintenance" icon={<FileSearch size={20} />} label="Wartung" expanded={expanded} />
-        <NavItem to="/inventory" icon={<ClipboardList size={20} />} label="Inventar" expanded={expanded} />
+        <NavItem to="/scanner" icon={<Barcode size={20} />} label="Scanner" expanded={expanded} />
+        <NavItem to="/equipment" icon={<Package size={20} />} label="Geräte" expanded={expanded} />
+        <NavItem to="/maintenance" icon={<ClipboardCheck size={20} />} label="Prüfungen" expanded={expanded} />
+        <NavItem to="/inventory" icon={<Store size={20} />} label="Lager" expanded={expanded} />
+        <NavItem to="/reports" icon={<FileText size={20} />} label="Berichte" expanded={expanded} />
+        <NavItem to="/import-export" icon={<FileSpreadsheet size={20} />} label="Import/Export" expanded={expanded} />
         <NavItem to="/settings" icon={<Settings size={20} />} label="Einstellungen" expanded={expanded} />
       </nav>
     </aside>
