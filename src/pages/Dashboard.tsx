@@ -1,6 +1,4 @@
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CircleAlert, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
+import { Package } from 'lucide-react';
 
 const Dashboard = () => {
   return (
@@ -10,83 +8,15 @@ const Dashboard = () => {
       </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Geräte Gesamt</CardTitle>
+        <div className="rounded-xl border bg-card p-6 shadow-sm">
+          <div className="flex items-center justify-between space-y-0 pb-2">
+            <h3 className="text-sm font-medium">Geräte</h3>
             <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Prüfungen Fällig</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Prüfungen Überfällig</CardTitle>
-            <CircleAlert className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Prüfungen in 30 Tagen</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="col-span-2">
-          <CardHeader>
-            <CardTitle>Aktuelle Prüfungen</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Keine aktuellen Prüfungen vorhanden.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Gerätestatus</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center">
-                <CheckCircle2 className="h-4 w-4 text-green-500 mr-2" />
-                <span className="flex-1">Einsatzbereit</span>
-                <span className="font-bold">0</span>
-              </div>
-              <div className="flex items-center">
-                <AlertTriangle className="h-4 w-4 text-amber-500 mr-2" />
-                <span className="flex-1">Prüfung fällig</span>
-                <span className="font-bold">0</span>
-              </div>
-              <div className="flex items-center">
-                <CircleAlert className="h-4 w-4 text-destructive mr-2" />
-                <span className="flex-1">Nicht einsatzbereit</span>
-                <span className="font-bold">0</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="text-2xl font-bold">123</div>
+          <p className="text-xs text-muted-foreground">Total Equipment</p>
+        </div>
+        {/* Add other dashboard cards as needed */}
       </div>
     </div>
   );
