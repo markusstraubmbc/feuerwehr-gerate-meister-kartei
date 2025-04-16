@@ -5,15 +5,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
-
 import Index from "./pages/Index";
 import Equipment from "./pages/Equipment";
 import Maintenance from "./pages/Maintenance";
 import Inventory from "./pages/Inventory";
 import Settings from "./pages/Settings";
-import Scanner from "./pages/Scanner";
-import Reports from "./pages/Reports";
-import ImportExport from "./pages/ImportExport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,12 +23,9 @@ const App = () => (
         <Layout>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/scanner" element={<Scanner />} />
             <Route path="/equipment" element={<Equipment />} />
             <Route path="/maintenance" element={<Maintenance />} />
             <Route path="/inventory" element={<Inventory />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/import-export" element={<ImportExport />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
