@@ -86,7 +86,7 @@ const Dashboard = () => {
                     <span>{item.date}</span>
                   </div>
                 </div>
-                <MaintenanceStatusBadge status={item.status} />
+                <MaintenanceStatusBadge status={item.status as "dringend" | "geplant" | "optional"} />
               </div>
             ))}
           </CardContent>
@@ -126,7 +126,10 @@ function StatsCard({ title, value, description, icon }: StatsCardProps) {
   );
 }
 
-function MaintenanceStatusBadge({ status }: { status: "dringend" | "geplant" | "optional" }) {
+// Update the interface to match the data
+type MaintenanceStatus = "dringend" | "geplant" | "optional";
+
+function MaintenanceStatusBadge({ status }: { status: MaintenanceStatus }) {
   const statusStyles = {
     dringend: "bg-red-100 text-red-800 border-red-200",
     geplant: "bg-amber-100 text-amber-800 border-amber-200",
@@ -142,6 +145,14 @@ function MaintenanceStatusBadge({ status }: { status: "dringend" | "geplant" | "
   );
 }
 
+// Update the type definition in the sample data
+interface MaintenanceItem {
+  id: number;
+  name: string;
+  date: string;
+  status: MaintenanceStatus;
+}
+
 // Sample data
 const categories = [
   { name: "Atemschutzgeräte", status: 85, total: 42, change: 2, changeColor: "text-green-500" },
@@ -151,7 +162,7 @@ const categories = [
   { name: "Persönliche Schutzausrüstung", status: 90, total: 52, change: 4, changeColor: "text-green-500" }
 ];
 
-const maintenanceItems = [
+const maintenanceItems: MaintenanceItem[] = [
   { id: 1, name: "Atemschutzgerät #A-12", date: "24.04.2025", status: "dringend" },
   { id: 2, name: "Hydrauliksatz Zeus-7000", date: "28.04.2025", status: "geplant" },
   { id: 3, name: "Funkgerät Motorola #F-23", date: "02.05.2025", status: "geplant" },
