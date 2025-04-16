@@ -42,7 +42,7 @@ const formSchema = z.object({
   inventory_number: z.string().optional(),
   category_id: z.string().uuid().optional(),
   status: z.enum(["einsatzbereit", "wartung", "defekt", "prüfung fällig"]).default("einsatzbereit"),
-  barcode: z.string().optional(),
+  barcode: z.string().min(1, "Barcode ist erforderlich"),
   serial_number: z.string().optional(),
   manufacturer: z.string().optional(),
   model: z.string().optional(),
@@ -71,6 +71,7 @@ export function EditEquipmentForm({ equipment, onSuccess }: EditEquipmentFormPro
   // Parse dates from string to Date objects if they exist
   const defaultValues: FormValues = {
     ...equipment,
+    barcode: equipment.barcode || "", // Make sure barcode has a default value
     purchase_date: equipment.purchase_date ? new Date(equipment.purchase_date) : null,
     replacement_date: equipment.replacement_date ? new Date(equipment.replacement_date) : null,
     last_check_date: equipment.last_check_date ? new Date(equipment.last_check_date) : null,
@@ -119,7 +120,6 @@ export function EditEquipmentForm({ equipment, onSuccess }: EditEquipmentFormPro
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Wiederholung der FormFields aus NewEquipmentForm mit den gleichen Feldern */}
           <FormField
             control={form.control}
             name="name"
@@ -134,7 +134,6 @@ export function EditEquipmentForm({ equipment, onSuccess }: EditEquipmentFormPro
             )}
           />
           
-          {/* ... Andere Felder wie in NewEquipmentForm ... */}
           <FormField
             control={form.control}
             name="inventory_number"
@@ -198,13 +197,12 @@ export function EditEquipmentForm({ equipment, onSuccess }: EditEquipmentFormPro
             )}
           />
 
-          {/* Rest der FormFields wie in NewEquipmentForm */}
           <FormField
             control={form.control}
             name="barcode"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Barcode</FormLabel>
+                <FormLabel>Barcode *</FormLabel>
                 <FormControl>
                   <Input {...field} value={field.value || ""} />
                 </FormControl>

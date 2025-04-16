@@ -57,6 +57,7 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
             <TableRow>
               <TableHead>Inventarnummer</TableHead>
               <TableHead>Name</TableHead>
+              <TableHead>Barcode</TableHead>
               <TableHead>Kategorie</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Letzte Prüfung</TableHead>
@@ -72,6 +73,7 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.inventory_number || "-"}</TableCell>
                   <TableCell>{item.name}</TableCell>
+                  <TableCell>{item.barcode || "-"}</TableCell>
                   <TableCell>
                     {item.category?.name ? (
                       <Badge variant="outline">{item.category.name}</Badge>
@@ -118,22 +120,20 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
-                      {item.barcode && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleShowBarcode(item)}
-                        >
-                          <Barcode className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleShowBarcode(item)}
+                      >
+                        <Barcode className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-4 text-muted-foreground">
+                <TableCell colSpan={10} className="text-center py-4 text-muted-foreground">
                   Keine Ausrüstung gefunden
                 </TableCell>
               </TableRow>
@@ -172,7 +172,6 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
           {currentEquipment?.barcode && (
             <div className="flex flex-col items-center gap-4 py-4">
               <div className="h-40 w-full flex items-center justify-center border rounded">
-                {/* Hier könnte eine Barcode-Komponente sein */}
                 <div className="text-3xl font-mono font-bold p-2">{currentEquipment.barcode}</div>
               </div>
               <div className="text-center">

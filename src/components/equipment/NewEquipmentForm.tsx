@@ -41,7 +41,7 @@ const formSchema = z.object({
   inventory_number: z.string().optional(),
   category_id: z.string().uuid().optional(),
   status: z.enum(["einsatzbereit", "wartung", "defekt", "prüfung fällig"]).default("einsatzbereit"),
-  barcode: z.string().optional(),
+  barcode: z.string().min(1, "Barcode ist erforderlich"),
   serial_number: z.string().optional(),
   manufacturer: z.string().optional(),
   model: z.string().optional(),
@@ -70,12 +70,13 @@ export function NewEquipmentForm({ onSuccess }: NewEquipmentFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       status: "einsatzbereit",
+      barcode: "",
     },
   });
 
   const createMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      // Konvertiere Datumsfelder zu ISO-Strings für Supabase
+      // Convert date fields to ISO strings for Supabase
       const formattedValues = {
         ...values,
         purchase_date: values.purchase_date?.toISOString().split('T')[0] || null,
@@ -189,7 +190,7 @@ export function NewEquipmentForm({ onSuccess }: NewEquipmentFormProps) {
             name="barcode"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Barcode</FormLabel>
+                <FormLabel>Barcode *</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
