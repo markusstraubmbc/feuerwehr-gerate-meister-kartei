@@ -71,6 +71,7 @@ export function NewEquipmentForm({ onSuccess }: NewEquipmentFormProps) {
     defaultValues: {
       status: "einsatzbereit",
       barcode: "",
+      name: "",
     },
   });
 

@@ -62,6 +62,7 @@ export function NewMaintenanceForm({ onSuccess }: NewMaintenanceFormProps) {
     defaultValues: {
       status: "ausstehend",
       due_date: new Date(),
+      equipment_id: undefined, // Initialize as undefined to enforce selection
     },
   });
 
@@ -80,7 +81,10 @@ export function NewMaintenanceForm({ onSuccess }: NewMaintenanceFormProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["maintenance_records"] });
       toast.success("Wartungseintrag erfolgreich angelegt");
-      form.reset();
+      form.reset({
+        status: "ausstehend",
+        due_date: new Date(),
+      });
       onSuccess();
     },
     onError: (error) => {

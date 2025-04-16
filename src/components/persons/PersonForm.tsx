@@ -52,7 +52,7 @@ export function PersonForm({ initialData, onSuccess }: PersonFormProps) {
         const { error } = await supabase
           .from("persons")
           .update(values)
-          .eq("id", initialData.id);
+          .eq("id", initialData!.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("persons").insert(values);

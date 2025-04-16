@@ -48,11 +48,11 @@ export function LocationForm({ initialData, onSuccess }: LocationFormProps) {
         const { error } = await supabase
           .from("locations")
           .update(values)
-          .eq("id", initialData.id);
+          .eq("id", initialData!.id);
         if (error) throw error;
       } else {
-        // Create
-        const { error } = await supabase.from("locations").insert([values]);
+        // Create - ensure name is provided
+        const { error } = await supabase.from("locations").insert(values);
         if (error) throw error;
       }
     },
