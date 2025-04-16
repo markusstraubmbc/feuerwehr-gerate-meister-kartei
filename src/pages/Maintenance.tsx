@@ -1,11 +1,23 @@
 
+import { useState } from "react";
 import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
 import { MaintenanceList } from "@/components/maintenance/MaintenanceList";
+import { NewMaintenanceForm } from "@/components/maintenance/NewMaintenanceForm";
 import { Button } from "@/components/ui/button";
 import { Plus, FileDown, Filter } from "lucide-react";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 
 const Maintenance = () => {
   const { data: records, isLoading, error } = useMaintenanceRecords();
+  const [isNewMaintenanceOpen, setIsNewMaintenanceOpen] = useState(false);
 
   if (isLoading) {
     return <div>Lädt...</div>;
@@ -28,7 +40,7 @@ const Maintenance = () => {
             <FileDown className="h-4 w-4 mr-2" />
             Exportieren
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setIsNewMaintenanceOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Neue Wartung
           </Button>
@@ -36,6 +48,25 @@ const Maintenance = () => {
       </div>
 
       <MaintenanceList records={records || []} />
+
+      <Drawer open={isNewMaintenanceOpen} onOpenChange={setIsNewMaintenanceOpen}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Neue Wartung anlegen</DrawerTitle>
+            <DrawerDescription>
+              Bitte füllen Sie alle erforderlichen Felder aus.
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="px-4 py-2">
+            <NewMaintenanceForm onSuccess={() => setIsNewMaintenanceOpen(false)} />
+          </div>
+          <DrawerFooter>
+            <DrawerClose asChild>
+              <Button variant="outline">Abbrechen</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 };
