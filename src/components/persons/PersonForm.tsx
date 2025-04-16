@@ -48,14 +48,22 @@ export function PersonForm({ initialData, onSuccess }: PersonFormProps) {
 
   const createMutation = useMutation({
     mutationFn: async (values: FormValues) => {
+      // Ensure required fields are explicitly included
+      const formattedValues = {
+        first_name: values.first_name, // Required field
+        last_name: values.last_name,   // Required field
+        email: values.email || null,
+        phone: values.phone || null
+      };
+
       if (isEditMode) {
         const { error } = await supabase
           .from("persons")
-          .update(values)
+          .update(formattedValues)
           .eq("id", initialData!.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("persons").insert(values);
+        const { error } = await supabase.from("persons").insert(formattedValues);
         if (error) throw error;
       }
     },

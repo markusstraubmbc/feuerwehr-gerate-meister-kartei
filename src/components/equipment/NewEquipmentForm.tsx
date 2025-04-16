@@ -77,13 +77,23 @@ export function NewEquipmentForm({ onSuccess }: NewEquipmentFormProps) {
 
   const createMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      // Convert date fields to ISO strings for Supabase
+      // Ensure required fields are present and properly typed
       const formattedValues = {
-        ...values,
+        name: values.name, // Explicitly include required field
+        barcode: values.barcode || "", // Explicitly include required field with fallback
+        status: values.status,
+        inventory_number: values.inventory_number || null,
+        category_id: values.category_id || null,
+        serial_number: values.serial_number || null,
+        manufacturer: values.manufacturer || null,
+        model: values.model || null,
         purchase_date: values.purchase_date?.toISOString().split('T')[0] || null,
         replacement_date: values.replacement_date?.toISOString().split('T')[0] || null,
+        location_id: values.location_id || null,
+        responsible_person_id: values.responsible_person_id || null,
         last_check_date: values.last_check_date?.toISOString() || null,
         next_check_date: values.next_check_date?.toISOString() || null,
+        notes: values.notes || null,
       };
       
       const { error } = await supabase.from("equipment").insert(formattedValues);

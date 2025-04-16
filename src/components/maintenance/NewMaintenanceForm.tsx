@@ -68,11 +68,15 @@ export function NewMaintenanceForm({ onSuccess }: NewMaintenanceFormProps) {
 
   const createMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      // Konvertiere Datumsfelder zu ISO-Strings für Supabase
+      // Ensure required fields are explicitly included and handle optional fields properly
       const formattedValues = {
-        ...values,
-        due_date: values.due_date.toISOString(),
+        equipment_id: values.equipment_id, // Required field
+        due_date: values.due_date.toISOString(), // Required field
+        status: values.status, // Required field
+        template_id: values.template_id || null,
+        performed_by: values.performed_by || null,
         performed_date: values.performed_date?.toISOString() || null,
+        notes: values.notes || null,
       };
       
       const { error } = await supabase.from("maintenance_records").insert(formattedValues);

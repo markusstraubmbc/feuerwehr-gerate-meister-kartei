@@ -43,16 +43,22 @@ export function LocationForm({ initialData, onSuccess }: LocationFormProps) {
 
   const createMutation = useMutation({
     mutationFn: async (values: FormValues) => {
+      // Ensure required fields are explicitly included
+      const formattedValues = {
+        name: values.name, // Explicitly include the required name field
+        description: values.description || null,
+      };
+
       if (isEditing) {
         // Update
         const { error } = await supabase
           .from("locations")
-          .update(values)
+          .update(formattedValues)
           .eq("id", initialData!.id);
         if (error) throw error;
       } else {
         // Create - ensure name is provided
-        const { error } = await supabase.from("locations").insert(values);
+        const { error } = await supabase.from("locations").insert(formattedValues);
         if (error) throw error;
       }
     },
