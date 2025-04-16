@@ -9,77 +9,135 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      equipment: {
+      categories: {
         Row: {
           created_at: string
+          description: string | null
           id: string
-          last_maintenance_date: string | null
-          manufacturer: string | null
-          model: string | null
           name: string
-          next_maintenance_date: string | null
-          purchase_date: string | null
-          serial_number: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          description?: string | null
           id?: string
-          last_maintenance_date?: string | null
-          manufacturer?: string | null
-          model?: string | null
           name: string
-          next_maintenance_date?: string | null
-          purchase_date?: string | null
-          serial_number?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          description?: string | null
           id?: string
-          last_maintenance_date?: string | null
-          manufacturer?: string | null
-          model?: string | null
           name?: string
-          next_maintenance_date?: string | null
-          purchase_date?: string | null
-          serial_number?: string | null
           updated_at?: string
         }
         Relationships: []
       }
-      inventory: {
+      equipment: {
         Row: {
-          category: string | null
+          barcode: string | null
+          category_id: string | null
           created_at: string
           id: string
-          item_name: string
-          item_number: string | null
-          location: string | null
-          minimum_quantity: number
-          quantity: number
+          inventory_number: string | null
+          last_check_date: string | null
+          location_id: string | null
+          manufacturer: string | null
+          model: string | null
+          name: string
+          next_check_date: string | null
+          notes: string | null
+          purchase_date: string | null
+          replacement_date: string | null
+          responsible_person_id: string | null
+          serial_number: string | null
+          status: Database["public"]["Enums"]["equipment_status"]
           updated_at: string
         }
         Insert: {
-          category?: string | null
+          barcode?: string | null
+          category_id?: string | null
           created_at?: string
           id?: string
-          item_name: string
-          item_number?: string | null
-          location?: string | null
-          minimum_quantity?: number
-          quantity?: number
+          inventory_number?: string | null
+          last_check_date?: string | null
+          location_id?: string | null
+          manufacturer?: string | null
+          model?: string | null
+          name: string
+          next_check_date?: string | null
+          notes?: string | null
+          purchase_date?: string | null
+          replacement_date?: string | null
+          responsible_person_id?: string | null
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["equipment_status"]
           updated_at?: string
         }
         Update: {
-          category?: string | null
+          barcode?: string | null
+          category_id?: string | null
           created_at?: string
           id?: string
-          item_name?: string
-          item_number?: string | null
-          location?: string | null
-          minimum_quantity?: number
-          quantity?: number
+          inventory_number?: string | null
+          last_check_date?: string | null
+          location_id?: string | null
+          manufacturer?: string | null
+          model?: string | null
+          name?: string
+          next_check_date?: string | null
+          notes?: string | null
+          purchase_date?: string | null
+          replacement_date?: string | null
+          responsible_person_id?: string | null
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["equipment_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_responsible_person_id_fkey"
+            columns: ["responsible_person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      locations: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
           updated_at?: string
         }
         Relationships: []
@@ -87,41 +145,38 @@ export type Database = {
       maintenance_records: {
         Row: {
           created_at: string
-          description: string | null
           due_date: string
           equipment_id: string
           id: string
-          maintenance_type: string
           notes: string | null
-          performed_at: string | null
           performed_by: string | null
+          performed_date: string | null
           status: Database["public"]["Enums"]["maintenance_status"]
+          template_id: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
-          description?: string | null
           due_date: string
           equipment_id: string
           id?: string
-          maintenance_type: string
           notes?: string | null
-          performed_at?: string | null
           performed_by?: string | null
+          performed_date?: string | null
           status?: Database["public"]["Enums"]["maintenance_status"]
+          template_id?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
-          description?: string | null
           due_date?: string
           equipment_id?: string
           id?: string
-          maintenance_type?: string
           notes?: string | null
-          performed_at?: string | null
           performed_by?: string | null
+          performed_date?: string | null
           status?: Database["public"]["Enums"]["maintenance_status"]
+          template_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -132,7 +187,89 @@ export type Database = {
             referencedRelation: "equipment"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "maintenance_records_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_records_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_templates"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      maintenance_templates: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          interval_months: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          interval_months: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          interval_months?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_templates_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      persons: {
+        Row: {
+          created_at: string
+          email: string | null
+          first_name: string
+          id: string
+          last_name: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -142,7 +279,16 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      maintenance_status: "pending" | "in_progress" | "completed" | "overdue"
+      equipment_status:
+        | "einsatzbereit"
+        | "wartung"
+        | "defekt"
+        | "prüfung fällig"
+      maintenance_status:
+        | "ausstehend"
+        | "geplant"
+        | "in_bearbeitung"
+        | "abgeschlossen"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -258,7 +404,18 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      maintenance_status: ["pending", "in_progress", "completed", "overdue"],
+      equipment_status: [
+        "einsatzbereit",
+        "wartung",
+        "defekt",
+        "prüfung fällig",
+      ],
+      maintenance_status: [
+        "ausstehend",
+        "geplant",
+        "in_bearbeitung",
+        "abgeschlossen",
+      ],
     },
   },
 } as const
