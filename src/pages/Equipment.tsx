@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { 
   Search, 
   Filter, 
-  Package, 
+  Package as PackageIcon, 
   Calendar, 
   User, 
   AlertTriangle, 
@@ -58,7 +57,7 @@ const Equipment = () => {
       case "einsatzbereit":
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case "wartung":
-        return <Package className="h-4 w-4 text-blue-500" />;
+        return <PackageIcon className="h-4 w-4 text-blue-500" />;
       case "defekt":
         return <AlertTriangle className="h-4 w-4 text-red-500" />;
       case "prüfung fällig":
@@ -212,7 +211,6 @@ const Equipment = () => {
               </div>
             </TabsContent>
 
-            {/* Similar structure for other tabs - omitting for brevity */}
             <TabsContent value="maintenance" className="mt-4">
               <div className="rounded-md border">
                 <Table>
@@ -307,7 +305,6 @@ const Equipment = () => {
   );
 };
 
-// Sample data
 const equipmentData: Equipment[] = [
   {
     id: "ASG-001",

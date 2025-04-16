@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
   Home, 
-  Package, 
+  Package as PackageIcon, 
   FileSearch, 
   Settings, 
   LayoutDashboard, 
@@ -50,7 +50,7 @@ export function Sidebar() {
 
       <nav className="flex-1 px-2 py-4 space-y-1">
         <NavItem to="/" icon={<LayoutDashboard size={20} />} label="Dashboard" expanded={expanded} />
-        <NavItem to="/equipment" icon={<Package size={20} />} label="Ausrüstung" expanded={expanded} />
+        <NavItem to="/equipment" icon={<PackageIcon size={20} />} label="Ausrüstung" expanded={expanded} />
         <NavItem to="/maintenance" icon={<FileSearch size={20} />} label="Wartung" expanded={expanded} />
         <NavItem to="/inventory" icon={<ClipboardList size={20} />} label="Inventar" expanded={expanded} />
         <NavItem to="/settings" icon={<Settings size={20} />} label="Einstellungen" expanded={expanded} />

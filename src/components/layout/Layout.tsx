@@ -1,7 +1,6 @@
 
 import React from "react";
 import { Sidebar } from "./Sidebar";
-import { Toaster } from "sonner";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -16,7 +15,6 @@ export function Layout({ children }: LayoutProps) {
           {children}
         </main>
       </div>
-      <Toaster position="top-right" />
     </div>
   );
 }
