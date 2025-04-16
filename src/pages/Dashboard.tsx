@@ -8,11 +8,73 @@ import {
   CheckCircle, 
   Clock, 
   ArrowDown, 
-  ArrowUp, 
-  HelpCircle 
+  ArrowUp,
+  Calendar
 } from "lucide-react";
+import { useEquipment } from "@/hooks/useEquipment";
+import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
+import { format, addDays } from "date-fns";
+import { de } from "date-fns/locale";
 
 const Dashboard = () => {
+  const { data: equipment = [] } = useEquipment();
+  const { data: maintenanceRecords = [] } = useMaintenanceRecords();
+  
+  // Calculate equipment statistics
+  const totalEquipment = equipment.length;
+  const readyEquipment = equipment.filter(item => item.status === "einsatzbereit").length;
+  const maintenanceNeeded = equipment.filter(item => item.status === "prüfung fällig").length;
+  const inMaintenance = equipment.filter(item => item.status === "wartung").length;
+  
+  // Get pending maintenance records sorted by due date
+  const pendingMaintenance = maintenanceRecords
+    .filter(record => record.status !== "abgeschlossen")
+    .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+    .slice(0, 5); // Get top 5
+  
+  // Calculate category statistics
+  const categories = equipment.reduce((acc: Record<string, any>, item) => {
+    const categoryName = item.category?.name || "Uncategorized";
+    
+    if (!acc[categoryName]) {
+      acc[categoryName] = {
+        name: categoryName,
+        total: 0,
+        ready: 0
+      };
+    }
+    
+    acc[categoryName].total++;
+    if (item.status === "einsatzbereit") {
+      acc[categoryName].ready++;
+    }
+    
+    return acc;
+  }, {});
+  
+  // Convert to array and calculate percentages
+  const categoryStats = Object.values(categories).map((cat: any) => {
+    const status = cat.total > 0 ? (cat.ready / cat.total) * 100 : 0;
+    // Random change for demo purposes - in real app this would be calculated from historical data
+    const change = Math.floor(Math.random() * 10) - 5;
+    
+    return {
+      name: cat.name,
+      status,
+      total: cat.total,
+      change,
+      changeColor: change >= 0 ? "text-green-500" : "text-red-500"
+    };
+  });
+  
+  // Calculate if there are any urgent maintenance tasks (due in the next 7 days)
+  const urgentMaintenanceCount = maintenanceRecords.filter(record => {
+    const dueDate = new Date(record.due_date);
+    const today = new Date();
+    const sevenDaysLater = addDays(today, 7);
+    return record.status !== "abgeschlossen" && dueDate <= sevenDaysLater;
+  }).length;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -22,25 +84,25 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard 
           title="Gesamt Ausrüstung" 
-          value="248" 
+          value={totalEquipment.toString()} 
           description="Alle Ausrüstungsgegenstände"
           icon={<Package className="h-4 w-4 text-fire-red" />} 
         />
         <StatsCard 
           title="Wartungsbedarf" 
-          value="14" 
+          value={maintenanceNeeded.toString()} 
           description="Prüfung fällig"
           icon={<AlertTriangle className="h-4 w-4 text-amber-500" />} 
         />
         <StatsCard 
           title="Einsatzbereit" 
-          value="225" 
+          value={readyEquipment.toString()} 
           description="Vollständig funktionstüchtig"
           icon={<CheckCircle className="h-4 w-4 text-green-500" />} 
         />
         <StatsCard 
           title="In Wartung" 
-          value="9" 
+          value={inMaintenance.toString()} 
           description="Aktuell in Reparatur"
           icon={<Clock className="h-4 w-4 text-blue-500" />}
         />
@@ -53,21 +115,25 @@ const Dashboard = () => {
             <CardDescription>Status der verschiedenen Kategorien</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {categories.map((category) => (
-              <div key={category.name} className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">{category.name}</p>
-                  <div className="flex items-center space-x-2">
-                    <span className={`text-xs ${category.changeColor}`}>
-                      {category.change >= 0 ? <ArrowUp className="inline h-3 w-3" /> : <ArrowDown className="inline h-3 w-3" />}
-                      {Math.abs(category.change)}%
-                    </span>
-                    <span className="text-xs text-muted-foreground">{category.total} Artikel</span>
+            {categoryStats.length > 0 ? (
+              categoryStats.map((category) => (
+                <div key={category.name} className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">{category.name}</p>
+                    <div className="flex items-center space-x-2">
+                      <span className={`text-xs ${category.changeColor}`}>
+                        {category.change >= 0 ? <ArrowUp className="inline h-3 w-3" /> : <ArrowDown className="inline h-3 w-3" />}
+                        {Math.abs(category.change)}%
+                      </span>
+                      <span className="text-xs text-muted-foreground">{category.total} Artikel</span>
+                    </div>
                   </div>
+                  <Progress value={category.status} className="h-2" />
                 </div>
-                <Progress value={category.status} className="h-2" />
-              </div>
-            ))}
+              ))
+            ) : (
+              <div className="text-sm text-muted-foreground">Keine Kategoriedaten verfügbar</div>
+            )}
           </CardContent>
         </Card>
 
@@ -77,32 +143,52 @@ const Dashboard = () => {
             <CardDescription>In den nächsten 30 Tagen</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {maintenanceItems.map((item) => (
-              <div key={item.id} className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0">
-                <div className="space-y-1">
-                  <p className="font-medium">{item.name}</p>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Clock className="mr-1 h-3 w-3" />
-                    <span>{item.date}</span>
+            {pendingMaintenance.length > 0 ? (
+              pendingMaintenance.map((item) => (
+                <div key={item.id} className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0">
+                  <div className="space-y-1">
+                    <p className="font-medium">{item.equipment?.name || "Unbekannte Ausrüstung"}</p>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Calendar className="mr-1 h-3 w-3" />
+                      <span>{format(new Date(item.due_date), "dd.MM.yyyy", { locale: de })}</span>
+                    </div>
                   </div>
+                  <MaintenanceStatusBadge status={getMaintenanceStatusDisplay(item.status)} />
                 </div>
-                <MaintenanceStatusBadge status={item.status as "dringend" | "geplant" | "optional"} />
-              </div>
-            ))}
+              ))
+            ) : (
+              <div className="text-sm text-muted-foreground">Keine anstehenden Wartungen</div>
+            )}
           </CardContent>
         </Card>
       </div>
       
-      <Alert className="border-fire-red bg-fire-red/10">
-        <AlertTriangle className="h-4 w-4 text-fire-red" />
-        <AlertTitle>Achtung</AlertTitle>
-        <AlertDescription>
-          Es gibt 3 Atemschutzgeräte, deren Prüfung sofort durchgeführt werden muss.
-        </AlertDescription>
-      </Alert>
+      {urgentMaintenanceCount > 0 && (
+        <Alert className="border-fire-red bg-fire-red/10">
+          <AlertTriangle className="h-4 w-4 text-fire-red" />
+          <AlertTitle>Achtung</AlertTitle>
+          <AlertDescription>
+            Es gibt {urgentMaintenanceCount} Wartung{urgentMaintenanceCount !== 1 ? 'en' : ''}, die in den nächsten 7 Tagen durchgeführt werden {urgentMaintenanceCount !== 1 ? 'müssen' : 'muss'}.
+          </AlertDescription>
+        </Alert>
+      )}
     </div>
   );
 };
+
+// Helper function to convert database status to display status
+function getMaintenanceStatusDisplay(status: string): "dringend" | "geplant" | "optional" {
+  switch (status) {
+    case "ausstehend":
+      return "dringend";
+    case "geplant":
+      return "geplant";
+    case "in_bearbeitung":
+      return "optional";
+    default:
+      return "geplant";
+  }
+}
 
 interface StatsCardProps {
   title: string;
@@ -144,30 +230,5 @@ function MaintenanceStatusBadge({ status }: { status: MaintenanceStatus }) {
     </span>
   );
 }
-
-// Update the type definition in the sample data
-interface MaintenanceItem {
-  id: number;
-  name: string;
-  date: string;
-  status: MaintenanceStatus;
-}
-
-// Sample data
-const categories = [
-  { name: "Atemschutzgeräte", status: 85, total: 42, change: 2, changeColor: "text-green-500" },
-  { name: "Schläuche & Armaturen", status: 93, total: 86, change: 1, changeColor: "text-green-500" },
-  { name: "Funkgeräte", status: 78, total: 24, change: -3, changeColor: "text-red-500" },
-  { name: "Hydraulische Rettungsgeräte", status: 95, total: 15, change: 0, changeColor: "text-gray-500" },
-  { name: "Persönliche Schutzausrüstung", status: 90, total: 52, change: 4, changeColor: "text-green-500" }
-];
-
-const maintenanceItems: MaintenanceItem[] = [
-  { id: 1, name: "Atemschutzgerät #A-12", date: "24.04.2025", status: "dringend" },
-  { id: 2, name: "Hydrauliksatz Zeus-7000", date: "28.04.2025", status: "geplant" },
-  { id: 3, name: "Funkgerät Motorola #F-23", date: "02.05.2025", status: "geplant" },
-  { id: 4, name: "Schlauch 20m #S-124", date: "10.05.2025", status: "optional" },
-  { id: 5, name: "Kompressor #K-8", date: "15.05.2025", status: "optional" },
-];
 
 export default Dashboard;
