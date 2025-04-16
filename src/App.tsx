@@ -7,12 +7,20 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
 import Index from "./pages/Index";
 import Equipment from "./pages/Equipment";
+import EquipmentManagement from "./pages/EquipmentManagement";
 import Maintenance from "./pages/Maintenance";
 import Inventory from "./pages/Inventory";
+import Locations from "./pages/Locations";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 Minuten
+    },
+  },
+});
 
 const App = () => (
   <BrowserRouter>
@@ -22,8 +30,10 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/equipment" element={<Equipment />} />
+            <Route path="/equipment-management" element={<EquipmentManagement />} />
             <Route path="/maintenance" element={<Maintenance />} />
             <Route path="/inventory" element={<Inventory />} />
+            <Route path="/locations" element={<Locations />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

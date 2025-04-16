@@ -1,4 +1,6 @@
+
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +12,9 @@ import {
   User, 
   AlertTriangle, 
   CheckCircle,
-  ArrowUpDown
+  ArrowUpDown,
+  Plus,
+  Settings
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -35,6 +39,7 @@ interface Equipment {
 }
 
 const Equipment = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredEquipment, setFilteredEquipment] = useState<Equipment[]>(equipmentData);
 
@@ -87,6 +92,10 @@ const Equipment = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Ausrüstung</h1>
+        <Button onClick={() => navigate('/equipment-management')} size="sm">
+          <Settings className="h-4 w-4 mr-2" />
+          Ausrüstung verwalten
+        </Button>
       </div>
 
       <Card>

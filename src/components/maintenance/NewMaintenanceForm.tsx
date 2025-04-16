@@ -70,7 +70,14 @@ export function NewMaintenanceForm({ onSuccess }: NewMaintenanceFormProps) {
 
   const createMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const { error } = await supabase.from("maintenance_records").insert([values]);
+      // Konvertiere Datumsfelder zu ISO-Strings für Supabase
+      const formattedValues = {
+        ...values,
+        due_date: values.due_date.toISOString(),
+        performed_date: values.performed_date ? values.performed_date.toISOString() : null,
+      };
+      
+      const { error } = await supabase.from("maintenance_records").insert(formattedValues);
       if (error) throw error;
     },
     onSuccess: () => {
