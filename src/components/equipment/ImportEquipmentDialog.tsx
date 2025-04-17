@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import {
   Dialog,
@@ -15,11 +14,16 @@ import { useQueryClient } from "@tanstack/react-query";
 import { FileUp, AlertCircle, Download, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Papa from 'papaparse';
+import { Equipment } from "@/hooks/useEquipment";
 
 interface ImportEquipmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+type EquipmentImportData = Partial<Equipment> & {
+  name: string;  // Ensure name is always present
+};
 
 export function ImportEquipmentDialog({
   open,
@@ -90,13 +94,13 @@ export function ImportEquipmentDialog({
       Papa.parse(file, {
         header: true,
         complete: async function(results) {
-          const data = results.data;
+          const data = results.data as EquipmentImportData[];
           
           if (!Array.isArray(data) || data.length === 0) {
             throw new Error("Keine gültigen Daten in der CSV-Datei gefunden.");
           }
           
-          // Clean and validate data
+          // Clean and validate data with explicit typing
           const equipmentData = data.filter(item => item.name).map(item => ({
             name: item.name,
             inventory_number: item.inventory_number || null,

@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+// Define a more strict type for email settings
 interface EmailSettings {
   upcoming_days_interval: number;
   monthly_report_day: number;
@@ -45,7 +46,12 @@ const EmailSettings = () => {
         return DEFAULT_SETTINGS;
       }
 
-      return data.value as EmailSettings;
+      // Safely parse the value
+      const parsedSettings = data.value as EmailSettings;
+      return {
+        upcoming_days_interval: parsedSettings.upcoming_days_interval || DEFAULT_SETTINGS.upcoming_days_interval,
+        monthly_report_day: parsedSettings.monthly_report_day || DEFAULT_SETTINGS.monthly_report_day
+      };
     },
   });
 
