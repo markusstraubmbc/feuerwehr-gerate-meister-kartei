@@ -1,6 +1,5 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +10,7 @@ import {
   FileDown,
   ArrowLeft,
   Printer,
+  FileUp,
 } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
 import { EquipmentList } from "@/components/equipment/EquipmentList";
@@ -26,14 +26,22 @@ import {
 } from "@/components/ui/drawer";
 import { useLocations } from "@/hooks/useLocations";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { ImportEquipmentDialog } from "@/components/equipment/ImportEquipmentDialog";
+import { useReactToPrint } from "react-to-print";
+import React from "react";
+import * as XLSX from 'xlsx';
 
 const EquipmentManagement = () => {
-  const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { data: equipment, isLoading, error } = useEquipment();
   const { data: locations } = useLocations();
   const [searchTerm, setSearchTerm] = useState("");
   const [isNewEquipmentOpen, setIsNewEquipmentOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  
+  const printRef = React.useRef<HTMLDivElement>(null);
   
   const filteredEquipment = equipment?.filter(
     (item) => {
@@ -57,18 +65,51 @@ const EquipmentManagement = () => {
     setSelectedLocation(locationId === "all" ? null : locationId);
   };
 
-  const handlePrintByLocation = () => {
-    // Implementation for printing by location will be added later
-    console.log("Print by location");
-    // In a real application, this would generate a print-friendly view
-    // filtered by the currently selected location
-  };
+  const handlePrintByLocation = useReactToPrint({
+    content: () => printRef.current,
+    documentTitle: `Ausrüstungsliste-${
+      selectedLocation && locations
+        ? locations.find(loc => loc.id === selectedLocation)?.name
+        : 'Alle-Standorte'
+    }`,
+    onBeforePrint: () => console.log('Printing equipment list...'),
+  });
 
   const handleExportToExcel = () => {
-    // Implementation for Excel export will be added later
-    console.log("Export to Excel");
-    // In a real application, this would generate an Excel file
-    // with the equipment data
+    if (!filteredEquipment) return;
+    
+    const exportData = filteredEquipment.map(item => ({
+      'Inventarnummer': item.inventory_number || '',
+      'Name': item.name,
+      'Barcode': item.barcode || '',
+      'Seriennummer': item.serial_number || '',
+      'Hersteller': item.manufacturer || '',
+      'Modell': item.model || '',
+      'Kategorie': item.category?.name || '',
+      'Status': item.status,
+      'Letzte Prüfung': item.last_check_date ? new Date(item.last_check_date).toLocaleDateString('de-DE') : '',
+      'Nächste Prüfung': item.next_check_date ? new Date(item.next_check_date).toLocaleDateString('de-DE') : '',
+      'Standort': item.location?.name || '',
+      'Verantwortliche Person': item.responsible_person 
+        ? `${item.responsible_person.first_name} ${item.responsible_person.last_name}`
+        : '',
+      'Kaufdatum': item.purchase_date ? new Date(item.purchase_date).toLocaleDateString('de-DE') : '',
+      'Ersatzdatum': item.replacement_date ? new Date(item.replacement_date).toLocaleDateString('de-DE') : '',
+      'Notizen': item.notes || ''
+    }));
+    
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Ausrüstung');
+    
+    // Generate file name with location info if filtered
+    const fileName = `Ausrüstungsliste-${
+      selectedLocation && locations
+        ? locations.find(loc => loc.id === selectedLocation)?.name
+        : 'Alle-Standorte'
+    }-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    
+    XLSX.writeFile(workbook, fileName);
   };
   
   if (isLoading) {
@@ -81,29 +122,33 @@ const EquipmentManagement = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => navigate('/equipment')}
+            onClick={() => window.history.back()}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-2xl font-bold tracking-tight">Ausrüstungsverwaltung</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={handlePrintByLocation}>
             <Printer className="h-4 w-4 mr-2" />
-            Drucken nach Lagerort
+            {isMobile ? '' : 'Drucken'}
           </Button>
           <Button variant="outline" size="sm" onClick={handleExportToExcel}>
             <FileDown className="h-4 w-4 mr-2" />
-            Exportieren
+            {isMobile ? '' : 'Exportieren'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setIsImportDialogOpen(true)}>
+            <FileUp className="h-4 w-4 mr-2" />
+            {isMobile ? '' : 'Importieren'}
           </Button>
           <Button size="sm" onClick={() => setIsNewEquipmentOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Neue Ausrüstung
+            {isMobile ? '' : 'Neue Ausrüstung'}
           </Button>
         </div>
       </div>
@@ -143,7 +188,9 @@ const EquipmentManagement = () => {
             </Button>
           </div>
 
-          <EquipmentList equipment={filteredEquipment || []} />
+          <div ref={printRef}>
+            <EquipmentList equipment={filteredEquipment || []} />
+          </div>
         </CardContent>
       </Card>
 
@@ -165,6 +212,11 @@ const EquipmentManagement = () => {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+      
+      <ImportEquipmentDialog 
+        open={isImportDialogOpen} 
+        onOpenChange={setIsImportDialogOpen} 
+      />
     </div>
   );
 };

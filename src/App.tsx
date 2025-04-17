@@ -3,17 +3,17 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import Equipment from "./pages/Equipment";
 import EquipmentManagement from "./pages/EquipmentManagement";
 import Maintenance from "./pages/Maintenance";
-import Inventory from "./pages/Inventory";
 import Locations from "./pages/Locations";
 import Settings from "./pages/Settings";
 import PersonManagement from "./pages/PersonManagement";
 import NotFound from "./pages/NotFound";
+import MaintenanceTemplateSettings from "./pages/MaintenanceTemplateSettings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,13 +30,13 @@ const App = () => (
         <Layout>
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/equipment" element={<Equipment />} />
-            <Route path="/equipment-management" element={<EquipmentManagement />} />
+            <Route path="/equipment" element={<EquipmentManagement />} />
+            <Route path="/equipment-management" element={<Navigate to="/equipment" replace />} />
             <Route path="/maintenance" element={<Maintenance />} />
-            <Route path="/inventory" element={<Inventory />} />
             <Route path="/locations" element={<Locations />} />
             <Route path="/person-management" element={<PersonManagement />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/settings/maintenance-templates" element={<MaintenanceTemplateSettings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>

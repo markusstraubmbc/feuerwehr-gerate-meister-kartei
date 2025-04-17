@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BarcodeDialog } from "./BarcodeDialog";
 
 interface EquipmentListProps {
   equipment: Equipment[];
@@ -164,25 +165,13 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
         />
       )}
 
-      <Dialog open={barcodeDialogOpen} onOpenChange={setBarcodeDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Barcode</DialogTitle>
-          </DialogHeader>
-          {currentEquipment?.barcode && (
-            <div className="flex flex-col items-center gap-4 py-4">
-              <div className="h-40 w-full flex items-center justify-center border rounded">
-                <div className="text-3xl font-mono font-bold p-2">{currentEquipment.barcode}</div>
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-medium">Inventarnummer: {currentEquipment.inventory_number || "-"}</p>
-                <p className="text-sm text-muted-foreground">{currentEquipment.name}</p>
-              </div>
-              <Button className="w-full">Drucken</Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {currentEquipment && (
+        <BarcodeDialog
+          open={barcodeDialogOpen}
+          onOpenChange={setBarcodeDialogOpen}
+          equipment={currentEquipment}
+        />
+      )}
     </>
   );
 }

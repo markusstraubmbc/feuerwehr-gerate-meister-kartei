@@ -7,6 +7,7 @@ export type MaintenanceRecord = Database["public"]["Tables"]["maintenance_record
   equipment: Database["public"]["Tables"]["equipment"]["Row"];
   template: Database["public"]["Tables"]["maintenance_templates"]["Row"] | null;
   performer: Database["public"]["Tables"]["persons"]["Row"] | null;
+  documentation_image_url?: string | null;
 };
 
 export const useMaintenanceRecords = () => {

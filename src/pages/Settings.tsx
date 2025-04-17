@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { User, Settings as SettingsIcon, MapPin } from "lucide-react";
+import { User, Settings as SettingsIcon, MapPin, Wrench, Palette } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Settings = () => {
@@ -67,8 +67,33 @@ const Settings = () => {
         <Card className="shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
-              <SettingsIcon className="h-5 w-5" />
-              Allgemeine Einstellungen
+              <Wrench className="h-5 w-5" />
+              Wartungstemplates
+            </CardTitle>
+            <CardDescription>
+              Wartungsvorlagen verwalten
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Verwalten Sie Ihre Wartungsvorlagen, Intervalle und Checklisten.
+            </p>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="w-full"
+              onClick={() => navigate('/settings/maintenance-templates')}
+            >
+              Wartungstemplates verwalten
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5" />
+              Erscheinungsbild
             </CardTitle>
             <CardDescription>
               Anpassen der Anwendungseinstellungen
@@ -76,14 +101,15 @@ const Settings = () => {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Passen Sie allgemeine Einstellungen und Konfigurationen an.
+              Passen Sie Farben, Logo und Texte der Anwendung an.
             </p>
             <Button 
               variant="outline" 
               size="sm"
               className="w-full"
+              onClick={() => navigate('/settings/appearance')}
             >
-              Einstellungen anpassen
+              Erscheinungsbild anpassen
             </Button>
           </CardContent>
         </Card>
