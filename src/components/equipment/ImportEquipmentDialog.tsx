@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import {
   Dialog,
@@ -15,6 +16,7 @@ import { FileUp, AlertCircle, Download, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Papa from 'papaparse';
 import { Equipment } from "@/hooks/useEquipment";
+import * as XLSX from 'xlsx';
 
 interface ImportEquipmentDialogProps {
   open: boolean;
@@ -39,34 +41,49 @@ export function ImportEquipmentDialog({
   const [progress, setProgress] = useState(0);
   
   const downloadTemplate = () => {
-    const csvContent = "name,inventory_number,barcode,serial_number,manufacturer,model,category_id,location_id,responsible_person_id,status,last_check_date,next_check_date,purchase_date,replacement_date,notes\nBeispiel Ausrüstung,INV001,BC001,SN001,Hersteller,Modell,,,,einsatzbereit,2023-01-01,2024-01-01,2022-01-01,2025-01-01,Notizen";
+    // Erstelle ein Beispiel-Excel-Workbook
+    const worksheet = XLSX.utils.json_to_sheet([{
+      name: "Beispiel Ausrüstung",
+      inventory_number: "INV001",
+      barcode: "BC001",
+      serial_number: "SN001",
+      manufacturer: "Hersteller",
+      model: "Modell",
+      category_id: "",
+      location_id: "",
+      responsible_person_id: "",
+      status: "einsatzbereit",
+      last_check_date: "2023-01-01",
+      next_check_date: "2024-01-01",
+      purchase_date: "2022-01-01",
+      replacement_date: "2025-01-01",
+      notes: "Notizen"
+    }]);
     
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Vorlage");
     
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'equipment_import_template.csv');
-    link.style.visibility = 'hidden';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Speichern als XLSX
+    XLSX.writeFile(workbook, "equipment_import_template.xlsx");
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     
-    if (selectedFile) {
-      if (selectedFile.type !== 'text/csv' && !selectedFile.name.endsWith('.csv')) {
-        setError("Bitte wählen Sie eine CSV-Datei aus.");
-        setFile(null);
-        return;
-      }
-      
-      setFile(selectedFile);
-      
-      // Preview the file
+    if (!selectedFile) return;
+    
+    // Prüfe Dateityp
+    const fileType = selectedFile.name.split('.').pop()?.toLowerCase();
+    if (fileType !== 'csv' && fileType !== 'xlsx' && fileType !== 'xls') {
+      setError("Bitte wählen Sie eine CSV- oder Excel-Datei (XLSX/XLS) aus.");
+      setFile(null);
+      return;
+    }
+    
+    setFile(selectedFile);
+    
+    // Datei-Vorschau basierend auf Dateityp
+    if (fileType === 'csv') {
       Papa.parse(selectedFile, {
         header: true,
         preview: 5,
@@ -78,12 +95,70 @@ export function ImportEquipmentDialog({
           setError(`Fehler beim Parsen der CSV-Datei: ${error}`);
         }
       });
+    } else {
+      // Excel-Datei parsen
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = e.target?.result;
+          if (data) {
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+            
+            setImportPreview(jsonData.slice(0, 5));
+            setError(null);
+          }
+        } catch (err: any) {
+          setError(`Fehler beim Parsen der Excel-Datei: ${err.message}`);
+        }
+      };
+      reader.readAsArrayBuffer(selectedFile);
     }
+  };
+
+  const parseImportFile = async (file: File): Promise<EquipmentImportData[]> => {
+    return new Promise((resolve, reject) => {
+      const fileType = file.name.split('.').pop()?.toLowerCase();
+      
+      if (fileType === 'csv') {
+        Papa.parse(file, {
+          header: true,
+          complete: function(results) {
+            resolve(results.data as EquipmentImportData[]);
+          },
+          error: function(error) {
+            reject(`Fehler beim Parsen der CSV-Datei: ${error}`);
+          }
+        });
+      } else {
+        // Excel-Datei parsen
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = e.target?.result;
+            if (data) {
+              const workbook = XLSX.read(data, { type: 'array' });
+              const firstSheetName = workbook.SheetNames[0];
+              const worksheet = workbook.Sheets[firstSheetName];
+              const jsonData = XLSX.utils.sheet_to_json(worksheet);
+              resolve(jsonData as EquipmentImportData[]);
+            } else {
+              reject("Keine Daten in der Datei gefunden.");
+            }
+          } catch (err: any) {
+            reject(`Fehler beim Parsen der Excel-Datei: ${err.message}`);
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      }
+    });
   };
 
   const handleImport = async () => {
     if (!file) {
-      setError("Bitte wählen Sie eine CSV-Datei aus.");
+      setError("Bitte wählen Sie eine Datei aus.");
       return;
     }
     
@@ -91,67 +166,59 @@ export function ImportEquipmentDialog({
     setProgress(0);
     
     try {
-      Papa.parse(file, {
-        header: true,
-        complete: async function(results) {
-          const data = results.data as EquipmentImportData[];
+      const data = await parseImportFile(file);
+      
+      if (!Array.isArray(data) || data.length === 0) {
+        throw new Error("Keine gültigen Daten in der Datei gefunden.");
+      }
+      
+      // Daten bereinigen und validieren
+      const equipmentData = data.filter(item => item.name).map(item => ({
+        name: item.name,
+        inventory_number: item.inventory_number || null,
+        barcode: item.barcode || null,
+        serial_number: item.serial_number || null,
+        manufacturer: item.manufacturer || null,
+        model: item.model || null,
+        category_id: item.category_id || null,
+        location_id: item.location_id || null,
+        responsible_person_id: item.responsible_person_id || null,
+        status: item.status || "einsatzbereit",
+        last_check_date: item.last_check_date || null,
+        next_check_date: item.next_check_date || null,
+        purchase_date: item.purchase_date || null,
+        replacement_date: item.replacement_date || null,
+        notes: item.notes || null,
+      }));
+      
+      if (equipmentData.length === 0) {
+        throw new Error("Keine gültigen Ausrüstungsdaten gefunden. Stellen Sie sicher, dass mindestens das Feld 'name' vorhanden ist.");
+      }
+      
+      // Daten in Batches einfügen
+      const batchSize = 20;
+      let imported = 0;
+      
+      for (let i = 0; i < equipmentData.length; i += batchSize) {
+        const batch = equipmentData.slice(i, i + batchSize);
+        
+        const { error } = await supabase
+          .from("equipment")
+          .insert(batch);
           
-          if (!Array.isArray(data) || data.length === 0) {
-            throw new Error("Keine gültigen Daten in der CSV-Datei gefunden.");
-          }
-          
-          // Clean and validate data with explicit typing
-          const equipmentData = data.filter(item => item.name).map(item => ({
-            name: item.name,
-            inventory_number: item.inventory_number || null,
-            barcode: item.barcode || null,
-            serial_number: item.serial_number || null,
-            manufacturer: item.manufacturer || null,
-            model: item.model || null,
-            category_id: item.category_id || null,
-            location_id: item.location_id || null,
-            responsible_person_id: item.responsible_person_id || null,
-            status: item.status || "einsatzbereit",
-            last_check_date: item.last_check_date || null,
-            next_check_date: item.next_check_date || null,
-            purchase_date: item.purchase_date || null,
-            replacement_date: item.replacement_date || null,
-            notes: item.notes || null,
-          }));
-          
-          if (equipmentData.length === 0) {
-            throw new Error("Keine gültigen Ausrüstungsdaten gefunden. Stellen Sie sicher, dass mindestens das Feld 'name' vorhanden ist.");
-          }
-          
-          // Insert data in batches
-          const batchSize = 20;
-          let imported = 0;
-          
-          for (let i = 0; i < equipmentData.length; i += batchSize) {
-            const batch = equipmentData.slice(i, i + batchSize);
-            
-            const { error } = await supabase
-              .from("equipment")
-              .insert(batch);
-              
-            if (error) throw error;
-            
-            imported += batch.length;
-            setProgress(Math.round((imported / equipmentData.length) * 100));
-          }
-          
-          toast({
-            title: "Import erfolgreich",
-            description: `${imported} Ausrüstungsgegenstände wurden erfolgreich importiert.`,
-          });
-          
-          queryClient.invalidateQueries({ queryKey: ["equipment"] });
-          onOpenChange(false);
-        },
-        error: function(error) {
-          throw new Error(`Fehler beim Parsen der CSV-Datei: ${error}`);
-        }
+        if (error) throw error;
+        
+        imported += batch.length;
+        setProgress(Math.round((imported / equipmentData.length) * 100));
+      }
+      
+      toast({
+        title: "Import erfolgreich",
+        description: `${imported} Ausrüstungsgegenstände wurden erfolgreich importiert.`,
       });
+      
+      queryClient.invalidateQueries({ queryKey: ["equipment"] });
+      onOpenChange(false);
     } catch (err: any) {
       setError(`Fehler beim Import: ${err.message}`);
       toast({
@@ -177,7 +244,7 @@ export function ImportEquipmentDialog({
         <DialogHeader>
           <DialogTitle>Ausrüstung importieren</DialogTitle>
           <DialogDescription>
-            Importieren Sie mehrere Ausrüstungsgegenstände über eine CSV-Datei.
+            Importieren Sie mehrere Ausrüstungsgegenstände über eine CSV- oder Excel-Datei (XLSX/XLS).
           </DialogDescription>
         </DialogHeader>
         
@@ -188,7 +255,7 @@ export function ImportEquipmentDialog({
             onClick={downloadTemplate}
           >
             <Download className="mr-2 h-4 w-4" />
-            CSV-Vorlage herunterladen
+            Excel-Vorlage herunterladen
           </Button>
           
           <div className="space-y-2">
@@ -196,7 +263,7 @@ export function ImportEquipmentDialog({
               <div className="relative flex-1">
                 <Input
                   type="file"
-                  accept=".csv"
+                  accept=".csv,.xlsx,.xls"
                   onChange={handleFileChange}
                   className="absolute inset-0 opacity-0 cursor-pointer z-10"
                 />
@@ -206,7 +273,7 @@ export function ImportEquipmentDialog({
                   className="w-full"
                 >
                   <FileUp className="h-4 w-4 mr-2" />
-                  CSV-Datei auswählen
+                  CSV- oder Excel-Datei auswählen
                 </Button>
               </div>
             </div>
@@ -242,7 +309,7 @@ export function ImportEquipmentDialog({
                 </table>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Zeigt die ersten 5 Zeilen und 5 Spalten der CSV-Datei.
+                Zeigt die ersten 5 Zeilen und 5 Spalten der Datei.
               </p>
             </div>
           )}

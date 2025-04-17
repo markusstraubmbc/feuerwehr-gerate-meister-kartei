@@ -39,6 +39,7 @@ const App = () => (
             <Route path="/settings" element={<Settings />} />
             <Route path="/settings/maintenance-templates" element={<MaintenanceTemplateSettings />} />
             <Route path="/settings/email" element={<EmailSettings />} />
+            <Route path="/inventory" element={<Navigate to="/equipment" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>

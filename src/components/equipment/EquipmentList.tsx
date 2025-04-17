@@ -8,46 +8,51 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Pencil,
+  Trash2,
+  BarcodeScan,
+  Copy
+} from "lucide-react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Barcode } from "lucide-react";
 import { EquipmentStatusBadge } from "./EquipmentStatusBadge";
-import type { Equipment } from "@/hooks/useEquipment";
+import { Equipment } from "@/hooks/useEquipment";
 import { EditEquipmentForm } from "./EditEquipmentForm";
 import { DeleteEquipmentDialog } from "./DeleteEquipmentDialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { BarcodeDialog } from "./BarcodeDialog";
+import { DuplicateEquipmentDialog } from "./DuplicateEquipmentDialog";
 
 interface EquipmentListProps {
   equipment: Equipment[];
 }
 
 export function EquipmentList({ equipment }: EquipmentListProps) {
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [currentEquipment, setCurrentEquipment] = useState<Equipment | null>(null);
-  const [barcodeDialogOpen, setBarcodeDialogOpen] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
+  const [isEditFormOpen, setIsEditFormOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isBarcodeDialogOpen, setIsBarcodeDialogOpen] = useState(false);
+  const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
 
   const handleEdit = (item: Equipment) => {
-    setCurrentEquipment(item);
-    setEditDialogOpen(true);
+    setSelectedEquipment(item);
+    setIsEditFormOpen(true);
   };
 
   const handleDelete = (item: Equipment) => {
-    setCurrentEquipment(item);
-    setDeleteDialogOpen(true);
+    setSelectedEquipment(item);
+    setIsDeleteDialogOpen(true);
   };
 
-  const handleShowBarcode = (item: Equipment) => {
-    setCurrentEquipment(item);
-    setBarcodeDialogOpen(true);
+  const handleBarcode = (item: Equipment) => {
+    setSelectedEquipment(item);
+    setIsBarcodeDialogOpen(true);
+  };
+  
+  const handleDuplicate = (item: Equipment) => {
+    setSelectedEquipment(item);
+    setIsDuplicateDialogOpen(true);
   };
 
   return (
@@ -58,119 +63,95 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
             <TableRow>
               <TableHead>Inventarnummer</TableHead>
               <TableHead>Name</TableHead>
-              <TableHead>Barcode</TableHead>
-              <TableHead>Kategorie</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Letzte Prüfung</TableHead>
-              <TableHead>Nächste Prüfung</TableHead>
-              <TableHead>Standort</TableHead>
-              <TableHead>Verantwortlich</TableHead>
-              <TableHead>Aktionen</TableHead>
+              <TableHead className="hidden md:table-cell">Standort</TableHead>
+              <TableHead className="hidden md:table-cell">Kategorie</TableHead>
+              <TableHead className="hidden md:table-cell">Status</TableHead>
+              <TableHead className="text-right">Aktionen</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {equipment.length > 0 ? (
+            {equipment.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
+                  Keine Ausrüstung gefunden
+                </TableCell>
+              </TableRow>
+            ) : (
               equipment.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.inventory_number || "-"}</TableCell>
+                  <TableCell>{item.inventory_number || "-"}</TableCell>
                   <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.barcode || "-"}</TableCell>
-                  <TableCell>
-                    {item.category?.name ? (
-                      <Badge variant="outline">{item.category.name}</Badge>
-                    ) : (
-                      "-"
-                    )}
+                  <TableCell className="hidden md:table-cell">
+                    {item.location?.name || "-"}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {item.category?.name || "-"}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <EquipmentStatusBadge status={item.status} />
                   </TableCell>
-                  <TableCell>
-                    {item.last_check_date
-                      ? format(new Date(item.last_check_date), "dd.MM.yyyy", {
-                          locale: de,
-                        })
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    {item.next_check_date
-                      ? format(new Date(item.next_check_date), "dd.MM.yyyy", {
-                          locale: de,
-                        })
-                      : "-"}
-                  </TableCell>
-                  <TableCell>{item.location?.name || "-"}</TableCell>
-                  <TableCell>
-                    {item.responsible_person
-                      ? `${item.responsible_person.first_name} ${item.responsible_person.last_name}`
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleBarcode(item)}
+                      >
+                        <BarcodeScan className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDuplicate(item)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => handleEdit(item)}
                       >
-                        <Edit className="h-4 w-4" />
+                        <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDelete(item)}
                       >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleShowBarcode(item)}
-                      >
-                        <Barcode className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={10} className="text-center py-4 text-muted-foreground">
-                  Keine Ausrüstung gefunden
-                </TableCell>
-              </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
 
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Ausrüstung bearbeiten</DialogTitle>
-          </DialogHeader>
-          {currentEquipment && (
-            <EditEquipmentForm 
-              equipment={currentEquipment} 
-              onSuccess={() => setEditDialogOpen(false)} 
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {currentEquipment && (
-        <DeleteEquipmentDialog
-          open={deleteDialogOpen}
-          onOpenChange={setDeleteDialogOpen}
-          equipment={currentEquipment}
-        />
-      )}
-
-      {currentEquipment && (
-        <BarcodeDialog
-          open={barcodeDialogOpen}
-          onOpenChange={setBarcodeDialogOpen}
-          equipment={currentEquipment}
-        />
+      {selectedEquipment && (
+        <>
+          <EditEquipmentForm
+            equipment={selectedEquipment}
+            open={isEditFormOpen}
+            onOpenChange={setIsEditFormOpen}
+          />
+          <DeleteEquipmentDialog
+            equipment={selectedEquipment}
+            open={isDeleteDialogOpen}
+            onOpenChange={setIsDeleteDialogOpen}
+          />
+          <BarcodeDialog
+            equipment={selectedEquipment}
+            open={isBarcodeDialogOpen}
+            onOpenChange={setIsBarcodeDialogOpen}
+          />
+          <DuplicateEquipmentDialog
+            equipment={selectedEquipment}
+            open={isDuplicateDialogOpen}
+            onOpenChange={setIsDuplicateDialogOpen}
+          />
+        </>
       )}
     </>
   );
