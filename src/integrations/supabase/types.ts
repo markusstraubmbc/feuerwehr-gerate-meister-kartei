@@ -145,6 +145,7 @@ export type Database = {
       maintenance_records: {
         Row: {
           created_at: string
+          documentation_image_url: string | null
           due_date: string
           equipment_id: string
           id: string
@@ -157,6 +158,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          documentation_image_url?: string | null
           due_date: string
           equipment_id: string
           id?: string
@@ -169,6 +171,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          documentation_image_url?: string | null
           due_date?: string
           equipment_id?: string
           id?: string
@@ -206,29 +209,35 @@ export type Database = {
       maintenance_templates: {
         Row: {
           category_id: string | null
+          checklist_url: string | null
           created_at: string
           description: string | null
           id: string
           interval_months: number
           name: string
+          responsible_person_id: string | null
           updated_at: string
         }
         Insert: {
           category_id?: string | null
+          checklist_url?: string | null
           created_at?: string
           description?: string | null
           id?: string
           interval_months: number
           name: string
+          responsible_person_id?: string | null
           updated_at?: string
         }
         Update: {
           category_id?: string | null
+          checklist_url?: string | null
           created_at?: string
           description?: string | null
           id?: string
           interval_months?: number
           name?: string
+          responsible_person_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -237,6 +246,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_templates_responsible_person_id_fkey"
+            columns: ["responsible_person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
             referencedColumns: ["id"]
           },
         ]
@@ -268,6 +284,30 @@ export type Database = {
           last_name?: string
           phone?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: Json
         }
         Relationships: []
       }

@@ -25,7 +25,7 @@ export const useMaintenanceTemplates = () => {
         .order('name', { ascending: true });
 
       if (error) throw error;
-      return data as MaintenanceTemplate[];
+      return data as unknown as MaintenanceTemplate[];
     },
   });
 };

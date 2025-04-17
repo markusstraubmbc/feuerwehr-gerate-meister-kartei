@@ -14,6 +14,7 @@ import Settings from "./pages/Settings";
 import PersonManagement from "./pages/PersonManagement";
 import NotFound from "./pages/NotFound";
 import MaintenanceTemplateSettings from "./pages/MaintenanceTemplateSettings";
+import EmailSettings from "./pages/EmailSettings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/person-management" element={<PersonManagement />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/settings/maintenance-templates" element={<MaintenanceTemplateSettings />} />
+            <Route path="/settings/email" element={<EmailSettings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>

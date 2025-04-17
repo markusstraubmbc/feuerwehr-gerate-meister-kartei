@@ -1,4 +1,3 @@
-
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import {
@@ -36,7 +35,7 @@ export function ViewMaintenanceDialog({
         try {
           const { data, error } = await supabase
             .from('maintenance_templates')
-            .select('checklist_url')
+            .select('*')
             .eq('id', record.template.id)
             .single();
             

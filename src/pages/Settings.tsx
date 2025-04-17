@@ -1,116 +1,111 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { User, Settings as SettingsIcon, MapPin, Wrench, Palette } from "lucide-react";
+import { 
+  UsersRound, 
+  FolderOpenDot, 
+  FileCheck, 
+  Settings2, 
+  Mail,
+  ThumbsUp 
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Settings = () => {
   const navigate = useNavigate();
-  
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Einstellungen</h1>
-      </div>
-
+      <h1 className="text-2xl font-bold tracking-tight">Einstellungen</h1>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
+        <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate("/person-management")}>
+          <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Lagerorteverwaltung
+              <UsersRound className="h-5 w-5" />
+              Personen
             </CardTitle>
-            <CardDescription>
-              Lagerorte erstellen und verwalten
-            </CardDescription>
+            <CardDescription>Personen für das System verwalten</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Erstellen und bearbeiten Sie Lagerorte für Ihre Ausrüstung.
+            <p className="text-sm">
+              Alle Personen anzeigen und verwalten, die für die Wartung und Prüfung der Ausrüstung verantwortlich sind.
             </p>
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="w-full"
-              onClick={() => navigate('/locations')}
-            >
-              Lagerorte verwalten
-            </Button>
           </CardContent>
         </Card>
-
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
+        
+        <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate("/locations")}>
+          <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Personenverwaltung
+              <FolderOpenDot className="h-5 w-5" />
+              Standorte
             </CardTitle>
-            <CardDescription>
-              Personen erstellen und verwalten
-            </CardDescription>
+            <CardDescription>Lagerorte und Standorte verwalten</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Erstellen und bearbeiten Sie verantwortliche Personen für Ihre Ausrüstung.
+            <p className="text-sm">
+              Alle Lagerorte und Standorte für die Ausrüstung anzeigen und verwalten.
             </p>
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="w-full"
-              onClick={() => navigate('/person-management')}
-            >
-              Personen verwalten
-            </Button>
           </CardContent>
         </Card>
-
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
+        
+        <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate("/settings/maintenance-templates")}>
+          <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Wrench className="h-5 w-5" />
-              Wartungstemplates
+              <FileCheck className="h-5 w-5" />
+              Wartungsvorlagen
             </CardTitle>
-            <CardDescription>
-              Wartungsvorlagen verwalten
-            </CardDescription>
+            <CardDescription>Wartungsvorlagen verwalten</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Verwalten Sie Ihre Wartungsvorlagen, Intervalle und Checklisten.
+            <p className="text-sm">
+              Vorlagen für wiederkehrende Wartungs- und Prüfaufgaben erstellen und verwalten.
             </p>
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="w-full"
-              onClick={() => navigate('/settings/maintenance-templates')}
-            >
-              Wartungstemplates verwalten
-            </Button>
           </CardContent>
         </Card>
-
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
+        
+        <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate("/settings/email")}>
+          <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Palette className="h-5 w-5" />
-              Erscheinungsbild
+              <Mail className="h-5 w-5" />
+              E-Mail-Benachrichtigungen
             </CardTitle>
-            <CardDescription>
-              Anpassen der Anwendungseinstellungen
-            </CardDescription>
+            <CardDescription>E-Mail-Einstellungen verwalten</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Passen Sie Farben, Logo und Texte der Anwendung an.
+            <p className="text-sm">
+              Konfigurieren Sie die E-Mail-Benachrichtigungen für anstehende Wartungen und monatliche Berichte.
             </p>
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="w-full"
-              onClick={() => navigate('/settings/appearance')}
-            >
-              Erscheinungsbild anpassen
-            </Button>
+          </CardContent>
+        </Card>
+        
+        <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => {}}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings2 className="h-5 w-5" />
+              Allgemeine Einstellungen
+            </CardTitle>
+            <CardDescription>Allgemeine Systemeinstellungen</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">
+              Allgemeine Systemeinstellungen wie Farbschema und Browsereinstellungen verwalten.
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => {}}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ThumbsUp className="h-5 w-5" />
+              System
+            </CardTitle>
+            <CardDescription>Systemeinstellungen</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">
+              Systemspezifische Einstellungen und Anpassungen verwalten.
+            </p>
           </CardContent>
         </Card>
       </div>

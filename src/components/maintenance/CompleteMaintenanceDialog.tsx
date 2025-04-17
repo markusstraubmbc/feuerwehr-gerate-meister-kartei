@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import {
   Dialog,
@@ -63,8 +62,10 @@ export function CompleteMaintenanceDialog({
       
       // Create a preview
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setImagePreview(event.target.result as string);
+        }
       };
       reader.readAsDataURL(file);
       setError(null);
@@ -76,7 +77,30 @@ export function CompleteMaintenanceDialog({
     input.type = 'file';
     input.accept = 'image/*';
     input.capture = 'environment';
-    input.onchange = (e) => handleFileChange(e as React.ChangeEvent<HTMLInputElement>);
+    input.onchange = (e) => {
+      const inputElement = e.target as HTMLInputElement;
+      if (inputElement.files && inputElement.files[0]) {
+        const file = inputElement.files[0];
+        
+        // Check if the file is an image
+        if (!file.type.startsWith("image/")) {
+          setError("Die aufgenommene Datei muss ein Bild sein.");
+          return;
+        }
+        
+        setImage(file);
+        
+        // Create a preview
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            setImagePreview(event.target.result as string);
+          }
+        };
+        reader.readAsDataURL(file);
+        setError(null);
+      }
+    };
     input.click();
   };
 
@@ -100,14 +124,14 @@ export function CompleteMaintenanceDialog({
       const fileName = `maintenance-${record.id}-${timestamp}.${fileExt}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('maintenance-images')
+        .from('maintenance_docs')
         .upload(fileName, image);
         
       if (uploadError) throw uploadError;
       
       // Get public URL
       const { data: publicUrlData } = supabase.storage
-        .from('maintenance-images')
+        .from('maintenance_docs')
         .getPublicUrl(fileName);
         
       // Update maintenance record
