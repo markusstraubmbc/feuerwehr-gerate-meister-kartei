@@ -1,4 +1,3 @@
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -36,6 +35,8 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import type { Equipment } from "@/hooks/useEquipment";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dispatch, SetStateAction } from "react";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name ist erforderlich"),
@@ -59,10 +60,12 @@ type FormValues = z.infer<typeof formSchema>;
 
 interface EditEquipmentFormProps {
   equipment: Equipment;
+  open?: boolean;
+  onOpenChange?: Dispatch<SetStateAction<boolean>>;
   onSuccess: () => void;
 }
 
-export function EditEquipmentForm({ equipment, onSuccess }: EditEquipmentFormProps) {
+export function EditEquipmentForm({ equipment, open = false, onOpenChange, onSuccess }: EditEquipmentFormProps) {
   const queryClient = useQueryClient();
   const { data: categories } = useCategories();
   const { data: locations } = useLocations();
@@ -105,6 +108,9 @@ export function EditEquipmentForm({ equipment, onSuccess }: EditEquipmentFormPro
       queryClient.invalidateQueries({ queryKey: ["equipment"] });
       toast.success("Ausrüstung erfolgreich aktualisiert");
       onSuccess();
+      if (onOpenChange) {
+        onOpenChange(false);
+      }
     },
     onError: (error) => {
       console.error(error);
@@ -116,7 +122,7 @@ export function EditEquipmentForm({ equipment, onSuccess }: EditEquipmentFormPro
     updateMutation.mutate(data);
   }
 
-  return (
+  const formContent = (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -473,4 +479,21 @@ export function EditEquipmentForm({ equipment, onSuccess }: EditEquipmentFormPro
       </form>
     </Form>
   );
+
+  // If open prop is provided, render in a Dialog
+  if (open !== undefined && onOpenChange) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Ausrüstung bearbeiten</DialogTitle>
+          </DialogHeader>
+          {formContent}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Otherwise, render just the form
+  return formContent;
 }

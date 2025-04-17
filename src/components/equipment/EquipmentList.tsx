@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import {
   Table,
@@ -12,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import {
   Pencil,
   Trash2,
-  BarcodeScan,
+  Barcode,
   Copy
 } from "lucide-react";
 import { format } from "date-fns";
@@ -97,7 +96,7 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
                         size="icon"
                         onClick={() => handleBarcode(item)}
                       >
-                        <BarcodeScan className="h-4 w-4" />
+                        <Barcode className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -133,8 +132,7 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
         <>
           <EditEquipmentForm
             equipment={selectedEquipment}
-            open={isEditFormOpen}
-            onOpenChange={setIsEditFormOpen}
+            onSuccess={() => setIsEditFormOpen(false)}
           />
           <DeleteEquipmentDialog
             equipment={selectedEquipment}
