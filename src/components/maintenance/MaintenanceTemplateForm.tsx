@@ -33,8 +33,8 @@ export function MaintenanceTemplateForm({ template, onSuccess }: MaintenanceTemp
   const [name, setName] = useState(template?.name || "");
   const [description, setDescription] = useState(template?.description || "");
   const [intervalMonths, setIntervalMonths] = useState(template?.interval_months?.toString() || "1");
-  const [categoryId, setCategoryId] = useState(template?.category_id || "");
-  const [responsiblePersonId, setResponsiblePersonId] = useState(template?.responsible_person_id || "");
+  const [categoryId, setCategoryId] = useState(template?.category_id || "none");
+  const [responsiblePersonId, setResponsiblePersonId] = useState(template?.responsible_person_id || "none");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checklistFile, setChecklistFile] = useState<File | null>(null);
   const [existingChecklist, setExistingChecklist] = useState(template?.checklist_url || null);
@@ -64,13 +64,7 @@ export function MaintenanceTemplateForm({ template, onSuccess }: MaintenanceTemp
       if (checklistFile) {
         const fileName = `template_${Date.now()}_${checklistFile.name.replace(/\s+/g, '_')}`;
         
-        // Create a function to track upload progress
-        const trackProgress = (progress: { loaded: number; total: number }) => {
-          const percentage = Math.round((progress.loaded / progress.total) * 100);
-          setChecklistUploadProgress(percentage);
-        };
-        
-        // Upload the file with progress tracking
+        // Upload the file
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('checklists')
           .upload(fileName, checklistFile, {
@@ -87,17 +81,20 @@ export function MaintenanceTemplateForm({ template, onSuccess }: MaintenanceTemp
         checklistUrl = publicUrlData.publicUrl;
       }
       
+      // Prepare data with null for "none" values
+      const dataToSubmit = {
+        name,
+        description,
+        interval_months: parseInt(intervalMonths),
+        category_id: categoryId === "none" ? null : categoryId,
+        responsible_person_id: responsiblePersonId === "none" ? null : responsiblePersonId,
+        checklist_url: checklistUrl,
+      };
+      
       if (template?.id) {
         const { error } = await supabase
           .from("maintenance_templates")
-          .update({
-            name,
-            description,
-            interval_months: parseInt(intervalMonths),
-            category_id: categoryId || null,
-            responsible_person_id: responsiblePersonId || null,
-            checklist_url: checklistUrl,
-          })
+          .update(dataToSubmit)
           .eq("id", template.id);
           
         if (error) throw error;
@@ -107,14 +104,7 @@ export function MaintenanceTemplateForm({ template, onSuccess }: MaintenanceTemp
           description: "Die Wartungsvorlage wurde erfolgreich aktualisiert.",
         });
       } else {
-        const { error } = await supabase.from("maintenance_templates").insert({
-          name,
-          description,
-          interval_months: parseInt(intervalMonths),
-          category_id: categoryId || null,
-          responsible_person_id: responsiblePersonId || null,
-          checklist_url: checklistUrl,
-        });
+        const { error } = await supabase.from("maintenance_templates").insert(dataToSubmit);
           
         if (error) throw error;
         
@@ -140,7 +130,7 @@ export function MaintenanceTemplateForm({ template, onSuccess }: MaintenanceTemp
     }
   };
 
-  // Manually update progress to simulate upload progress since onUploadProgress is not available
+  // Manually update progress to simulate upload progress
   useEffect(() => {
     if (isSubmitting && checklistFile) {
       const interval = setInterval(() => {
@@ -201,7 +191,7 @@ export function MaintenanceTemplateForm({ template, onSuccess }: MaintenanceTemp
               <SelectValue placeholder="Kategorie auswählen" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Keine Kategorie</SelectItem>
+              <SelectItem value="none">Keine Kategorie</SelectItem>
               {categories?.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}
@@ -218,7 +208,7 @@ export function MaintenanceTemplateForm({ template, onSuccess }: MaintenanceTemp
               <SelectValue placeholder="Person auswählen" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Keine Person</SelectItem>
+              <SelectItem value="none">Keine Person</SelectItem>
               {persons?.map((person) => (
                 <SelectItem key={person.id} value={person.id}>
                   {person.first_name} {person.last_name}
