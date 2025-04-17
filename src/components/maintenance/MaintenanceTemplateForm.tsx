@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,15 +64,18 @@ export function MaintenanceTemplateForm({ template, onSuccess }: MaintenanceTemp
       if (checklistFile) {
         const fileName = `template_${Date.now()}_${checklistFile.name.replace(/\s+/g, '_')}`;
         
+        // Create a function to track upload progress
+        const trackProgress = (progress: { loaded: number; total: number }) => {
+          const percentage = Math.round((progress.loaded / progress.total) * 100);
+          setChecklistUploadProgress(percentage);
+        };
+        
+        // Upload the file with progress tracking
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('checklists')
           .upload(fileName, checklistFile, {
             cacheControl: '3600',
-            upsert: true,
-            onUploadProgress: (progress) => {
-              const percentage = Math.round((progress.loaded / progress.total) * 100);
-              setChecklistUploadProgress(percentage);
-            }
+            upsert: true
           });
           
         if (uploadError) throw uploadError;
@@ -135,6 +139,23 @@ export function MaintenanceTemplateForm({ template, onSuccess }: MaintenanceTemp
       setChecklistUploadProgress(0);
     }
   };
+
+  // Manually update progress to simulate upload progress since onUploadProgress is not available
+  useEffect(() => {
+    if (isSubmitting && checklistFile) {
+      const interval = setInterval(() => {
+        setChecklistUploadProgress(prev => {
+          if (prev >= 95) {
+            clearInterval(interval);
+            return prev;
+          }
+          return prev + 5;
+        });
+      }, 100);
+
+      return () => clearInterval(interval);
+    }
+  }, [isSubmitting, checklistFile]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">

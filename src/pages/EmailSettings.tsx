@@ -47,11 +47,26 @@ const EmailSettings = () => {
       }
 
       // Safely parse the value
-      const parsedSettings = data.value as EmailSettings;
-      return {
-        upcoming_days_interval: parsedSettings.upcoming_days_interval || DEFAULT_SETTINGS.upcoming_days_interval,
-        monthly_report_day: parsedSettings.monthly_report_day || DEFAULT_SETTINGS.monthly_report_day
-      };
+      try {
+        const rawValue = data.value;
+        return {
+          upcoming_days_interval: 
+            typeof rawValue === 'object' && 
+            rawValue !== null && 
+            'upcoming_days_interval' in rawValue ? 
+            Number(rawValue.upcoming_days_interval) : 
+            DEFAULT_SETTINGS.upcoming_days_interval,
+          monthly_report_day: 
+            typeof rawValue === 'object' && 
+            rawValue !== null && 
+            'monthly_report_day' in rawValue ? 
+            Number(rawValue.monthly_report_day) : 
+            DEFAULT_SETTINGS.monthly_report_day,
+        };
+      } catch (e) {
+        console.error("Error parsing settings:", e);
+        return DEFAULT_SETTINGS;
+      }
     },
   });
 
@@ -64,11 +79,17 @@ const EmailSettings = () => {
         .eq("key", "email_settings")
         .maybeSingle();
 
+      // Convert EmailSettings to a JSON-compatible object
+      const jsonValue = {
+        upcoming_days_interval: newSettings.upcoming_days_interval,
+        monthly_report_day: newSettings.monthly_report_day
+      };
+
       if (existingSettings) {
         // Update existing settings
         const { error } = await supabase
           .from("settings")
-          .update({ value: newSettings })
+          .update({ value: jsonValue })
           .eq("key", "email_settings");
 
         if (error) throw error;
@@ -76,7 +97,7 @@ const EmailSettings = () => {
         // Insert new settings
         const { error } = await supabase
           .from("settings")
-          .insert({ key: "email_settings", value: newSettings });
+          .insert({ key: "email_settings", value: jsonValue });
 
         if (error) throw error;
       }

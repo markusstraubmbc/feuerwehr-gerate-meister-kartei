@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import {
   Table,
@@ -17,7 +18,6 @@ import type { MaintenanceRecord } from "@/hooks/useMaintenanceRecords";
 import { CompleteMaintenanceDialog } from "./CompleteMaintenanceDialog";
 import { ViewMaintenanceDialog } from "./ViewMaintenanceDialog";
 import { useReactToPrint } from "react-to-print";
-import React from "react";
 
 interface MaintenanceListProps {
   records: MaintenanceRecord[];
@@ -28,7 +28,7 @@ export const MaintenanceList = ({ records }: MaintenanceListProps) => {
   const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   
-  const printRef = React.useRef<HTMLDivElement>(null);
+  const printRef = useRef<HTMLDivElement>(null);
   
   const handlePrint = useReactToPrint({
     content: () => printRef.current,

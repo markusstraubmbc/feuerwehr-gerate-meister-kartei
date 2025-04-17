@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ImportEquipmentDialog } from "@/components/equipment/ImportEquipmentDialog";
 import { useReactToPrint } from "react-to-print";
-import React from "react";
 import * as XLSX from 'xlsx';
 
 const EquipmentManagement = () => {
@@ -41,7 +40,7 @@ const EquipmentManagement = () => {
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   
-  const printRef = React.useRef<HTMLDivElement>(null);
+  const printRef = useRef<HTMLDivElement>(null);
   
   const filteredEquipment = equipment?.filter(
     (item) => {
