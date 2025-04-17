@@ -25,7 +25,26 @@ export const useMaintenanceRecords = () => {
         .order('due_date', { ascending: true });
 
       if (error) throw error;
-      return data as MaintenanceRecord[];
+      
+      // Generate signed URLs for documentation images if they exist
+      const recordsWithUrls = await Promise.all(
+        (data || []).map(async (record) => {
+          if (record.documentation_image_url) {
+            const { data: signedUrlData } = await supabase
+              .storage
+              .from('maintenance_docs')
+              .createSignedUrl(record.documentation_image_url, 60 * 60); // 1 hour expiry
+            
+            return { 
+              ...record, 
+              documentation_image_url: signedUrlData?.signedUrl || record.documentation_image_url 
+            };
+          }
+          return record;
+        })
+      );
+      
+      return recordsWithUrls as MaintenanceRecord[];
     },
   });
 };

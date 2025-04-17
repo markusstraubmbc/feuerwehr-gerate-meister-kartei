@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useRef } from "react";
 import {
   Table,
   TableBody,
@@ -12,7 +13,8 @@ import {
   Pencil,
   Trash2,
   Barcode,
-  Copy
+  Copy,
+  Printer
 } from "lucide-react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
@@ -22,6 +24,7 @@ import { EditEquipmentForm } from "./EditEquipmentForm";
 import { DeleteEquipmentDialog } from "./DeleteEquipmentDialog";
 import { BarcodeDialog } from "./BarcodeDialog";
 import { DuplicateEquipmentDialog } from "./DuplicateEquipmentDialog";
+import { useReactToPrint } from "react-to-print";
 
 interface EquipmentListProps {
   equipment: Equipment[];
@@ -33,6 +36,14 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isBarcodeDialogOpen, setIsBarcodeDialogOpen] = useState(false);
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
+  
+  // Add ref for printing
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    documentTitle: 'Ausrüstungsliste',
+  });
 
   const handleEdit = (item: Equipment) => {
     setSelectedEquipment(item);
@@ -56,7 +67,14 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
 
   return (
     <>
-      <div className="rounded-md border">
+      <div className="flex justify-end mb-4">
+        <Button variant="outline" size="sm" onClick={handlePrint}>
+          <Printer className="h-4 w-4 mr-2" />
+          Drucken
+        </Button>
+      </div>
+      
+      <div ref={printRef} className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -132,6 +150,8 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
         <>
           <EditEquipmentForm
             equipment={selectedEquipment}
+            open={isEditFormOpen}
+            onOpenChange={setIsEditFormOpen}
             onSuccess={() => setIsEditFormOpen(false)}
           />
           <DeleteEquipmentDialog
