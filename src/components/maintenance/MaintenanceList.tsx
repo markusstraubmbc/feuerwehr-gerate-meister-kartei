@@ -28,7 +28,7 @@ export const MaintenanceList = ({ records }: MaintenanceListProps) => {
   const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   
-  const printRef = useRef<HTMLDivElement>(null);
+  const printRef = useRef(null);
   
   const handlePrint = useReactToPrint({
     content: () => printRef.current,

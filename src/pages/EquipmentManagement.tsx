@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,7 +39,7 @@ const EquipmentManagement = () => {
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   
-  const printRef = useRef<HTMLDivElement>(null);
+  const printRef = useRef(null);
   
   const filteredEquipment = equipment?.filter(
     (item) => {

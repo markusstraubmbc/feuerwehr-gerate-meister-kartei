@@ -20,7 +20,7 @@ interface BarcodeDialogProps {
 
 export function BarcodeDialog({ equipment, open, onOpenChange }: BarcodeDialogProps) {
   const [activeTab, setActiveTab] = useState("barcode");
-  const printRef = useRef<HTMLDivElement>(null);
+  const printRef = useRef(null);
   
   const handlePrint = useReactToPrint({
     content: () => printRef.current,

@@ -3,7 +3,7 @@ declare module 'react-to-print' {
   import React from 'react';
 
   export interface UseReactToPrintProps {
-    content: () => React.RefObject<HTMLElement> | null;
+    content: () => React.ReactInstance | null;
     documentTitle?: string;
     onBeforePrint?: () => void;
     onAfterPrint?: () => void;
