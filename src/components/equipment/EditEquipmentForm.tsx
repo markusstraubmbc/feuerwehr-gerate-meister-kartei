@@ -49,6 +49,7 @@ import { useCategories } from "@/hooks/useCategories";
 import { useLocations } from "@/hooks/useLocations";
 import { usePersons } from "@/hooks/usePersons";
 import { useEffect } from "react";
+import { useQueryClient } from "react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/hooks/useEquipment";
 import { useState } from "react";
@@ -88,6 +89,7 @@ export function EditEquipmentForm({ equipment, onSuccess }: Props) {
   const { data: locations } = useLocations();
   const { data: persons } = usePersons();
   const [isSaving, setIsSaving] = useState(false);
+  const queryClient = useQueryClient();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -106,7 +108,7 @@ export function EditEquipmentForm({ equipment, onSuccess }: Props) {
       replacement_date: equipment.replacement_date ? new Date(equipment.replacement_date) : null,
       last_check_date: equipment.last_check_date ? new Date(equipment.last_check_date) : null,
       next_check_date: equipment.next_check_date ? new Date(equipment.next_check_date) : null,
-      notes: equipment.notes || null,
+      notes: equipment.notes || "",
     },
   });
 
@@ -126,7 +128,7 @@ export function EditEquipmentForm({ equipment, onSuccess }: Props) {
       replacement_date: equipment.replacement_date ? new Date(equipment.replacement_date) : null,
       last_check_date: equipment.last_check_date ? new Date(equipment.last_check_date) : null,
       next_check_date: equipment.next_check_date ? new Date(equipment.next_check_date) : null,
-      notes: equipment.notes || null,
+      notes: equipment.notes || "",
     });
   }, [equipment, form]);
 
@@ -148,13 +150,16 @@ export function EditEquipmentForm({ equipment, onSuccess }: Props) {
         .eq("id", equipment.id);
 
       if (error) {
-        toast("Es gab ein Problem beim Aktualisieren des Geräts.");
+        console.error("Update error:", error);
+        toast.error("Es gab ein Problem beim Aktualisieren des Geräts.");
       } else {
-        toast("Das Gerät wurde erfolgreich aktualisiert.");
+        toast.success("Das Gerät wurde erfolgreich aktualisiert.");
+        queryClient.invalidateQueries({ queryKey: ["equipment"] });
         onSuccess();
       }
     } catch (error) {
-      toast("Es gab ein unerwartetes Problem.");
+      console.error("Unexpected error:", error);
+      toast.error("Es gab ein unerwartetes Problem.");
     } finally {
       setIsSaving(false);
     }

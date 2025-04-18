@@ -1,21 +1,20 @@
 
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
   DialogDescription,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
-import { Copy, AlertCircle, Loader2 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
 import { Equipment } from "@/hooks/useEquipment";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface DuplicateEquipmentDialogProps {
   equipment: Equipment;
@@ -23,131 +22,100 @@ interface DuplicateEquipmentDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function DuplicateEquipmentDialog({
-  equipment,
-  open,
-  onOpenChange,
-}: DuplicateEquipmentDialogProps) {
-  const { toast } = useToast();
+export function DuplicateEquipmentDialog({ equipment, open, onOpenChange }: DuplicateEquipmentDialogProps) {
+  const [duplicateName, setDuplicateName] = useState(`${equipment?.name || ''} (Kopie)`);
+  const [isProcessing, setIsProcessing] = useState(false);
   const queryClient = useQueryClient();
-  
-  const [count, setCount] = useState<number>(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  const handleCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value);
-    if (value > 0 && value <= 100) { // Begrenzen auf max. 100 Duplikate
-      setCount(value);
-    }
-  };
 
   const handleDuplicate = async () => {
-    if (count <= 0) {
-      setError("Bitte geben Sie eine positive Zahl ein.");
-      return;
-    }
-    
-    setIsLoading(true);
-    setError(null);
-    
+    if (!equipment || !duplicateName.trim()) return;
+
+    setIsProcessing(true);
     try {
-      const duplicates = [];
+      const equipmentToDuplicate = { ...equipment };
       
-      for (let i = 0; i < count; i++) {
-        // Erstelle ein neues Objekt ohne die ID
-        const {id, created_at, updated_at, ...equipmentData} = equipment;
-        
-        duplicates.push({
-          ...equipmentData,
-          name: `${equipment.name} #${i + 1}`,
-          // Entferne eindeutige Werte
-          inventory_number: null, 
-          barcode: null,
-          serial_number: null
-        });
-      }
+      // Remove fields that shouldn't be duplicated
+      delete equipmentToDuplicate.id;
+      delete equipmentToDuplicate.created_at;
+      delete equipmentToDuplicate.updated_at;
       
-      // Alle Duplikate in einem Batch einfügen
-      const { error: insertError } = await supabase
+      // Update certain fields for the duplicate
+      const newEquipment = {
+        ...equipmentToDuplicate,
+        name: duplicateName.trim(),
+        category_id: equipment.category_id,
+        location_id: equipment.location_id,
+        responsible_person_id: equipment.responsible_person_id
+      };
+      
+      // Remove any nested objects (they cause problems with the insert)
+      delete newEquipment.category;
+      delete newEquipment.location;
+      delete newEquipment.responsible_person;
+
+      const { data, error } = await supabase
         .from("equipment")
-        .insert(duplicates);
-        
-      if (insertError) throw insertError;
-      
-      toast({
-        title: "Ausrüstung dupliziert",
-        description: `${count} ${count === 1 ? 'Duplikat wurde' : 'Duplikate wurden'} erfolgreich erstellt.`,
-      });
-      
+        .insert(newEquipment)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Fehler beim Duplizieren:", error);
+        toast.error("Die Ausrüstung konnte nicht dupliziert werden.");
+        return;
+      }
+
+      toast.success("Ausrüstung erfolgreich dupliziert.");
       queryClient.invalidateQueries({ queryKey: ["equipment"] });
       onOpenChange(false);
-    } catch (err: any) {
-      console.error("Fehler beim Duplizieren:", err);
-      setError(`Ein Fehler ist aufgetreten: ${err.message}`);
-      
-      toast({
-        variant: "destructive",
-        title: "Fehler",
-        description: "Die Ausrüstung konnte nicht dupliziert werden.",
-      });
+    } catch (error) {
+      console.error("Fehler beim Duplizieren:", error);
+      toast.error("Die Ausrüstung konnte nicht dupliziert werden.");
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Ausrüstung duplizieren</DialogTitle>
           <DialogDescription>
-            Geben Sie an, wie viele Kopien von "{equipment.name}" erstellt werden sollen.
+            Erstellen Sie eine Kopie dieser Ausrüstung mit einem neuen Namen.
           </DialogDescription>
         </DialogHeader>
-        
-        <div className="space-y-6 py-4">
+        <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="count">Anzahl der Kopien</Label>
-            <Input 
-              id="count"
-              type="number"
-              min="1"
-              max="100"
-              value={count}
-              onChange={handleCountChange}
+            <Label htmlFor="duplicate-name">Neuer Name</Label>
+            <Input
+              id="duplicate-name"
+              value={duplicateName}
+              onChange={(e) => setDuplicateName(e.target.value)}
+              placeholder="Name für die duplizierte Ausrüstung"
             />
+          </div>
+          <div>
             <p className="text-sm text-muted-foreground">
-              Die duplizierten Ausrüstungen erhalten automatisch eine fortlaufende Nummer.
+              Alle Eigenschaften des Originals werden in die neue Ausrüstung übernommen, außer der Name.
             </p>
           </div>
-          
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
         </div>
-        
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isProcessing}
+          >
             Abbrechen
           </Button>
-          <Button onClick={handleDuplicate} disabled={isLoading || count < 1}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Wird dupliziert...
-              </>
-            ) : (
-              <>
-                <Copy className="mr-2 h-4 w-4" />
-                Duplizieren
-              </>
-            )}
+          <Button 
+            onClick={handleDuplicate} 
+            disabled={isProcessing || !duplicateName.trim()}
+          >
+            {isProcessing ? "Wird dupliziert..." : "Duplizieren"}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

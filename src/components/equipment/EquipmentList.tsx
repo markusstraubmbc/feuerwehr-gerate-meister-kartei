@@ -15,7 +15,8 @@ import {
   Barcode,
   Copy,
   Printer,
-  Filter
+  Filter,
+  MessageCircle
 } from "lucide-react";
 import { EquipmentStatusBadge } from "./EquipmentStatusBadge";
 import { Equipment } from "@/hooks/useEquipment";
@@ -36,6 +37,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { SELECT_ALL_VALUE, SELECT_NONE_VALUE } from "@/lib/constants";
+import { format } from "date-fns";
+import { CommentsDialog } from "./CommentsDialog";
 
 interface EquipmentListProps {
   equipment: Equipment[];
@@ -62,6 +65,7 @@ export function EquipmentList({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isBarcodeDialogOpen, setIsBarcodeDialogOpen] = useState(false);
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
+  const [isCommentsDialogOpen, setIsCommentsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState(statusFilter || "");
   const [selectedCategory, setSelectedCategory] = useState(categoryFilter || "");
@@ -83,6 +87,11 @@ export function EquipmentList({
         });
       }
     },
+    onPrintError: () => {
+      toast.error("Drucken fehlgeschlagen", {
+        description: "Es gab ein Problem beim Drucken der Ausrüstungsliste."
+      });
+    },
   });
 
   const handleEdit = (item: Equipment) => {
@@ -103,6 +112,11 @@ export function EquipmentList({
   const handleDuplicate = (item: Equipment) => {
     setSelectedEquipment(item);
     setIsDuplicateDialogOpen(true);
+  };
+
+  const handleComments = (item: Equipment) => {
+    setSelectedEquipment(item);
+    setIsCommentsDialogOpen(true);
   };
 
   const handleFilterChange = (type: string, value: string) => {
@@ -132,7 +146,7 @@ export function EquipmentList({
   };
 
   const filteredEquipment = equipment.filter(item => {
-    if (selectedStatus && item.status !== selectedStatus) {
+    if (selectedStatus && selectedStatus !== "status_all" && item.status !== selectedStatus) {
       return false;
     }
     
@@ -255,13 +269,16 @@ export function EquipmentList({
               <TableHead className="hidden md:table-cell">Standort</TableHead>
               <TableHead className="hidden md:table-cell">Kategorie</TableHead>
               <TableHead className="hidden md:table-cell">Status</TableHead>
+              <TableHead className="hidden md:table-cell">Ersetzt am</TableHead>
+              <TableHead className="hidden md:table-cell">Letzte Wartung</TableHead>
+              <TableHead className="hidden md:table-cell">Nächste Wartung</TableHead>
               <TableHead className="text-right">Aktionen</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredEquipment.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={9} className="h-24 text-center">
                   Keine Ausrüstung gefunden
                 </TableCell>
               </TableRow>
@@ -279,6 +296,15 @@ export function EquipmentList({
                   <TableCell className="hidden md:table-cell">
                     <EquipmentStatusBadge status={item.status} />
                   </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {item.replacement_date ? format(new Date(item.replacement_date), "dd.MM.yyyy") : "-"}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {item.last_check_date ? format(new Date(item.last_check_date), "dd.MM.yyyy") : "-"}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {item.next_check_date ? format(new Date(item.next_check_date), "dd.MM.yyyy") : "-"}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
@@ -287,6 +313,13 @@ export function EquipmentList({
                         onClick={() => handleBarcode(item)}
                       >
                         <Barcode className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleComments(item)}
+                      >
+                        <MessageCircle className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -340,6 +373,11 @@ export function EquipmentList({
             equipment={selectedEquipment}
             open={isDuplicateDialogOpen}
             onOpenChange={setIsDuplicateDialogOpen}
+          />
+          <CommentsDialog
+            equipment={selectedEquipment}
+            open={isCommentsDialogOpen}
+            onOpenChange={setIsCommentsDialogOpen}
           />
         </>
       )}

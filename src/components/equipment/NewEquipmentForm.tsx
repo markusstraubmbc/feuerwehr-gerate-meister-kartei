@@ -35,6 +35,8 @@ import {
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
+import { useState, useEffect } from "react";
+import { useEquipment } from "@/hooks/useEquipment";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name ist erforderlich"),
@@ -65,6 +67,42 @@ export function NewEquipmentForm({ onSuccess }: NewEquipmentFormProps) {
   const { data: categories } = useCategories();
   const { data: locations } = useLocations();
   const { data: persons } = usePersons();
+  const { data: existingEquipment } = useEquipment();
+  
+  const [manufacturerSuggestions, setManufacturerSuggestions] = useState<string[]>([]);
+  const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
+  const [nextInventoryNumber, setNextInventoryNumber] = useState<string>("");
+
+  useEffect(() => {
+    if (existingEquipment && existingEquipment.length > 0) {
+      // Extract unique manufacturer and model names
+      const manufacturers = [...new Set(existingEquipment
+        .filter(item => item.manufacturer)
+        .map(item => item.manufacturer as string))];
+        
+      const models = [...new Set(existingEquipment
+        .filter(item => item.model)
+        .map(item => item.model as string))];
+        
+      setManufacturerSuggestions(manufacturers);
+      setModelSuggestions(models);
+      
+      // Generate next inventory number
+      const inventoryNumbers = existingEquipment
+        .filter(item => item.inventory_number && /^\d+$/.test(item.inventory_number))
+        .map(item => parseInt(item.inventory_number as string, 10))
+        .sort((a, b) => b - a);
+        
+      if (inventoryNumbers.length > 0) {
+        const nextNumber = (inventoryNumbers[0] + 1).toString().padStart(5, '0');
+        setNextInventoryNumber(nextNumber);
+        form.setValue("inventory_number", nextNumber);
+      } else {
+        setNextInventoryNumber("00001");
+        form.setValue("inventory_number", "00001");
+      }
+    }
+  }, [existingEquipment]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -140,7 +178,7 @@ export function NewEquipmentForm({ onSuccess }: NewEquipmentFormProps) {
               <FormItem>
                 <FormLabel>Inventarnummer</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} placeholder={nextInventoryNumber} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -230,9 +268,17 @@ export function NewEquipmentForm({ onSuccess }: NewEquipmentFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Hersteller</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
+                <div className="relative">
+                  <Input 
+                    {...field} 
+                    list="manufacturer-suggestions" 
+                  />
+                  <datalist id="manufacturer-suggestions">
+                    {manufacturerSuggestions.map((manufacturer, idx) => (
+                      <option key={idx} value={manufacturer} />
+                    ))}
+                  </datalist>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
@@ -244,9 +290,17 @@ export function NewEquipmentForm({ onSuccess }: NewEquipmentFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Modell</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
+                <div className="relative">
+                  <Input 
+                    {...field} 
+                    list="model-suggestions" 
+                  />
+                  <datalist id="model-suggestions">
+                    {modelSuggestions.map((model, idx) => (
+                      <option key={idx} value={model} />
+                    ))}
+                  </datalist>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
@@ -280,6 +334,7 @@ export function NewEquipmentForm({ onSuccess }: NewEquipmentFormProps) {
                       selected={field.value}
                       onSelect={field.onChange}
                       locale={de}
+                      className="p-3 pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -316,6 +371,7 @@ export function NewEquipmentForm({ onSuccess }: NewEquipmentFormProps) {
                       selected={field.value}
                       onSelect={field.onChange}
                       locale={de}
+                      className="p-3 pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -402,6 +458,7 @@ export function NewEquipmentForm({ onSuccess }: NewEquipmentFormProps) {
                       selected={field.value}
                       onSelect={field.onChange}
                       locale={de}
+                      className="p-3 pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -438,6 +495,7 @@ export function NewEquipmentForm({ onSuccess }: NewEquipmentFormProps) {
                       selected={field.value}
                       onSelect={field.onChange}
                       locale={de}
+                      className="p-3 pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -454,7 +512,7 @@ export function NewEquipmentForm({ onSuccess }: NewEquipmentFormProps) {
             <FormItem>
               <FormLabel>Notizen</FormLabel>
               <FormControl>
-                <Textarea {...field} />
+                <Textarea value={field.value || ""} onChange={field.onChange} />
               </FormControl>
               <FormMessage />
             </FormItem>
