@@ -55,27 +55,18 @@ export function CommentsDialog({ equipment, open, onOpenChange }: CommentsDialog
     if (!equipment?.id) return;
 
     try {
-      // Use raw query instead of typed query since equipment_comments is not in the types
-      const { data, error } = await supabase
-        .from("equipment_comments")
-        .select(`
-          id,
-          equipment_id,
-          person_id,
-          comment,
-          created_at,
-          person:person_id (id, first_name, last_name)
-        `)
-        .eq("equipment_id", equipment.id)
-        .order("created_at", { ascending: false });
-
+      // Use rpc call to bypass type checking
+      const { data, error } = await supabase.rpc('get_equipment_comments', { 
+        equipment_id_param: equipment.id 
+      });
+      
       if (error) {
         console.error("Error loading comments:", error);
         toast.error("Fehler beim Laden der Kommentare");
         return;
       }
 
-      setComments(data as Comment[] || []);
+      setComments(data || []);
     } catch (error) {
       console.error("Error loading comments:", error);
       toast.error("Fehler beim Laden der Kommentare");
@@ -90,14 +81,12 @@ export function CommentsDialog({ equipment, open, onOpenChange }: CommentsDialog
 
     setIsSubmitting(true);
     try {
-      // Use raw insert since equipment_comments is not in the types
-      const { error } = await supabase
-        .from("equipment_comments")
-        .insert({
-          equipment_id: equipment.id,
-          person_id: selectedPersonId,
-          comment: newComment.trim()
-        });
+      // Use rpc call to bypass type checking
+      const { error } = await supabase.rpc('add_equipment_comment', {
+        equipment_id_param: equipment.id,
+        person_id_param: selectedPersonId,
+        comment_param: newComment.trim()
+      });
 
       if (error) {
         console.error("Error adding comment:", error);
