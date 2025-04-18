@@ -1,3 +1,4 @@
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -79,6 +80,8 @@ const formSchema = z.object({
 interface Props {
   equipment: Equipment;
   onSuccess: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function EditEquipmentForm({ equipment, onSuccess }: Props) {
@@ -131,30 +134,36 @@ export function EditEquipmentForm({ equipment, onSuccess }: Props) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSaving(true);
     try {
+      // Convert Date objects to ISO strings for the API
+      const formattedValues = {
+        ...values,
+        purchase_date: values.purchase_date?.toISOString() || null,
+        replacement_date: values.replacement_date?.toISOString() || null,
+        last_check_date: values.last_check_date?.toISOString() || null,
+        next_check_date: values.next_check_date?.toISOString() || null
+      };
+
       const { error } = await supabase
         .from("equipment")
-        .update(values)
+        .update(formattedValues)
         .eq("id", equipment.id);
 
       if (error) {
         toast({
-          title: "Fehler",
           description: "Es gab ein Problem beim Aktualisieren des Geräts.",
-          className: "bg-red-500 text-white",
+          variant: "destructive"
         });
       } else {
         toast({
-          title: "Erfolg",
           description: "Das Gerät wurde erfolgreich aktualisiert.",
-          className: "bg-green-500 text-white",
+          variant: "default"
         });
         onSuccess();
       }
     } catch (error) {
       toast({
-        title: "Fehler",
         description: "Es gab ein unerwartetes Problem.",
-        className: "bg-red-500 text-white",
+        variant: "destructive"
       });
     } finally {
       setIsSaving(false);
@@ -460,7 +469,7 @@ export function EditEquipmentForm({ equipment, onSuccess }: Props) {
                           selected={field.value}
                           onSelect={field.onChange}
                           disabled={(date) =>
-                            date < new Date() || date < new Date("1900-01-01")
+                            date < new Date("1900-01-01")
                           }
                           initialFocus
                         />
@@ -546,7 +555,7 @@ export function EditEquipmentForm({ equipment, onSuccess }: Props) {
                           selected={field.value}
                           onSelect={field.onChange}
                           disabled={(date) =>
-                            date < new Date() || date < new Date("1900-01-01")
+                            date < new Date("1900-01-01")
                           }
                           initialFocus
                         />

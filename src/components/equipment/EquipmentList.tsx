@@ -150,8 +150,6 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
         <>
           <EditEquipmentForm
             equipment={selectedEquipment}
-            open={isEditFormOpen}
-            onOpenChange={setIsEditFormOpen}
             onSuccess={() => setIsEditFormOpen(false)}
           />
           <DeleteEquipmentDialog
