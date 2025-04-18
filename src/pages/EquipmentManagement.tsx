@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ImportEquipmentDialog } from "@/components/equipment/ImportEquipmentDialog";
 import { useReactToPrint } from "react-to-print";
 import * as XLSX from 'xlsx';
+import { toast } from "@/components/ui/sonner";
+import { SELECT_ALL_VALUE } from "@/lib/constants";
 
 const EquipmentManagement = () => {
   const isMobile = useIsMobile();
@@ -60,7 +63,7 @@ const EquipmentManagement = () => {
   };
   
   const handleLocationFilter = (locationId: string) => {
-    setSelectedLocation(locationId === "all" ? null : locationId);
+    setSelectedLocation(locationId === SELECT_ALL_VALUE ? null : locationId);
   };
 
   const handlePrintByLocation = useReactToPrint({
@@ -70,7 +73,15 @@ const EquipmentManagement = () => {
         ? locations.find(loc => loc.id === selectedLocation)?.name
         : 'Alle-Standorte'
     }`,
-    onBeforePrint: () => console.log('Printing equipment list...'),
+    onBeforePrint: () => {
+      if (!printRef.current) {
+        toast("Drucken konnte nicht gestartet werden", {
+          description: "Es gab ein Problem beim Vorbereiten der Druckansicht."
+        });
+      } else {
+        console.log('Printing equipment list...');
+      }
+    }
   });
 
   const handleExportToExcel = () => {
@@ -108,6 +119,9 @@ const EquipmentManagement = () => {
     }-${new Date().toISOString().slice(0, 10)}.xlsx`;
     
     XLSX.writeFile(workbook, fileName);
+    toast("Export erfolgreich", {
+      description: `Ausrüstungsliste wurde als ${fileName} exportiert`
+    });
   };
   
   if (isLoading) {
@@ -167,12 +181,12 @@ const EquipmentManagement = () => {
                 onChange={handleSearch}
               />
             </div>
-            <Select onValueChange={handleLocationFilter} defaultValue="all">
+            <Select onValueChange={handleLocationFilter} defaultValue={SELECT_ALL_VALUE}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Standort" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle Standorte</SelectItem>
+                <SelectItem value={SELECT_ALL_VALUE}>Alle Standorte</SelectItem>
                 {locations?.map((location) => (
                   <SelectItem key={location.id} value={location.id}>
                     {location.name}

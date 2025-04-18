@@ -25,6 +25,7 @@ import { DeleteEquipmentDialog } from "./DeleteEquipmentDialog";
 import { BarcodeDialog } from "./BarcodeDialog";
 import { DuplicateEquipmentDialog } from "./DuplicateEquipmentDialog";
 import { useReactToPrint } from "react-to-print";
+import { toast } from "@/components/ui/sonner";
 
 interface EquipmentListProps {
   equipment: Equipment[];
@@ -43,6 +44,13 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
     documentTitle: 'Ausrüstungsliste',
+    onBeforePrint: () => {
+      if (!printRef.current) {
+        toast("Drucken konnte nicht gestartet werden", {
+          description: "Es gab ein Problem beim Vorbereiten der Druckansicht."
+        });
+      }
+    },
   });
 
   const handleEdit = (item: Equipment) => {
