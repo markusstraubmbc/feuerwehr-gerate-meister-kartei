@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
@@ -161,7 +160,7 @@ export function EditMaintenanceDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Keine Zuweisung</SelectItem>
+                        <SelectItem value="unassigned">Keine Zuweisung</SelectItem>
                         {persons.map((person) => (
                           <SelectItem key={person.id} value={person.id}>
                             {person.first_name} {person.last_name}

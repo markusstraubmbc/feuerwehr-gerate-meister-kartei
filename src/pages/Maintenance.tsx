@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
 import { useMaintenanceTemplates } from "@/hooks/useMaintenanceTemplates";
@@ -49,6 +48,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
+import { SELECT_ALL_VALUE } from "@/lib/constants";
 
 const Maintenance = () => {
   const { data: records = [], isLoading: recordsLoading, error: recordsError } = useMaintenanceRecords();
@@ -70,11 +70,8 @@ const Maintenance = () => {
   const queryClient = useQueryClient();
   const upcomingMaintenanceRef = useRef<HTMLDivElement>(null);
 
-  // Apply filters to records
   const filteredRecords = records.filter(record => {
-    // Filter by tab (status)
     if (activeTab === "all") {
-      // Continue to other filters
     } else if (activeTab === "pending" && record.status !== "ausstehend") {
       return false;
     } else if (activeTab === "scheduled" && record.status !== "geplant") {
@@ -85,12 +82,10 @@ const Maintenance = () => {
       return false;
     }
     
-    // Filter by person
     if (selectedPersonId && record.performed_by !== selectedPersonId) {
       return false;
     }
     
-    // Filter by search term
     if (maintenanceSearchTerm) {
       const searchLower = maintenanceSearchTerm.toLowerCase();
       const equipmentNameMatches = record.equipment?.name?.toLowerCase().includes(searchLower);
@@ -105,14 +100,11 @@ const Maintenance = () => {
     return true;
   });
 
-  // Calculate upcoming maintenance based on intervals
   const calculateUpcomingMaintenance = () => {
     const now = new Date();
     const upcomingMaintenance = [];
     
-    // For each equipment with a template, calculate next due date
     for (const equipment of equipmentList) {
-      // Filter templates by category if equipment has a category
       const relevantTemplates = equipment.category_id 
         ? templates.filter(template => 
             template.category_id === equipment.category_id || 
@@ -120,11 +112,9 @@ const Maintenance = () => {
           )
         : templates;
       
-      // Get all maintenance templates
       for (const template of relevantTemplates) {
         if (!template.interval_months) continue;
         
-        // Find the most recent maintenance record for this equipment+template combination
         const relatedRecords = records.filter(
           record => record.equipment_id === equipment.id && record.template_id === template.id
         ).sort((a, b) => 
@@ -133,19 +123,16 @@ const Maintenance = () => {
         
         const lastRecord = relatedRecords[0];
         
-        // Calculate next due date based on last performed date or current date
         let lastDate;
         if (lastRecord?.performed_date) {
           lastDate = new Date(lastRecord.performed_date);
         } else {
-          // If no record exists or no performed date, use today as reference
           lastDate = now;
         }
         
         const nextDueDate = addMonths(lastDate, template.interval_months);
         const daysRemaining = Math.floor((nextDueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
         
-        // Only include if it's a future date or within 30 days overdue
         if (daysRemaining > -30) {
           upcomingMaintenance.push({
             equipment: equipment,
@@ -168,9 +155,7 @@ const Maintenance = () => {
   
   const allUpcomingMaintenance = calculateUpcomingMaintenance();
   
-  // Filter upcoming maintenance
   const filteredUpcomingMaintenance = allUpcomingMaintenance.filter(item => {
-    // Apply planned/unplanned filter
     if (upcomingMaintenanceFilter === "planned" && !item.existingRecord) {
       return false;
     }
@@ -178,12 +163,10 @@ const Maintenance = () => {
       return false;
     }
     
-    // Apply category filter
     if (selectedCategoryId && item.equipment.category_id !== selectedCategoryId) {
       return false;
     }
     
-    // Apply search term
     if (upcomingMaintenanceSearchTerm) {
       const searchLower = upcomingMaintenanceSearchTerm.toLowerCase();
       const equipmentNameMatches = item.equipment.name.toLowerCase().includes(searchLower);
@@ -194,7 +177,6 @@ const Maintenance = () => {
       }
     }
     
-    // Apply person filter
     if (selectedPersonId) {
       if (item.template.responsible_person_id !== selectedPersonId) {
         return false;
@@ -236,7 +218,6 @@ const Maintenance = () => {
     }
   };
 
-  // Mutation to create new maintenance record
   const createMaintenanceMutation = useMutation({
     mutationFn: async (data: { 
       equipment_id: string; 
@@ -280,7 +261,6 @@ const Maintenance = () => {
     });
   };
 
-  // Create all pending maintenance records in bulk
   const createAllPendingMaintenance = () => {
     const pendingMaintenance = filteredUpcomingMaintenance.filter(item => !item.existingRecord);
     
@@ -328,7 +308,6 @@ const Maintenance = () => {
         </div>
       </div>
 
-      {/* Filter Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="text-sm font-medium">Person</label>
@@ -337,7 +316,7 @@ const Maintenance = () => {
               <SelectValue placeholder="Alle Personen" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Alle Personen</SelectItem>
+              <SelectItem value={SELECT_ALL_VALUE}>Alle Personen</SelectItem>
               <SelectItem value="none">Keine Zuweisung</SelectItem>
               {persons.map((person) => (
                 <SelectItem key={person.id} value={person.id}>
@@ -354,7 +333,7 @@ const Maintenance = () => {
               <SelectValue placeholder="Alle Kategorien" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Alle Kategorien</SelectItem>
+              <SelectItem value={SELECT_ALL_VALUE}>Alle Kategorien</SelectItem>
               {categories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}
