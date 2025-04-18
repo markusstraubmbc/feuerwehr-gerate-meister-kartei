@@ -34,7 +34,7 @@ const formSchema = z.object({
   performed_by: z.string().optional(),
   minutes_spent: z.number().optional(),
   notes: z.string().optional(),
-  status: z.string()
+  status: z.enum(["ausstehend", "geplant", "in_bearbeitung", "abgeschlossen"])
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -55,7 +55,7 @@ export function EditMaintenanceDialog({
       performed_by: record.performed_by || undefined,
       minutes_spent: record.minutes_spent || undefined,
       notes: record.notes || "",
-      status: record.status
+      status: record.status as "ausstehend" | "geplant" | "in_bearbeitung" | "abgeschlossen"
     },
   });
 

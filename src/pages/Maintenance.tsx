@@ -1,12 +1,12 @@
-
 import { useState, useRef, useEffect } from "react";
-import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
+import { useMaintenanceRecords, MaintenanceRecord } from "@/hooks/useMaintenanceRecords";
 import { useMaintenanceTemplates } from "@/hooks/useMaintenanceTemplates";
 import { useEquipment } from "@/hooks/useEquipment";
 import { usePersons } from "@/hooks/usePersons";
 import { useCategories } from "@/hooks/useCategories";
 import { MaintenanceList } from "@/components/maintenance/MaintenanceList";
 import { NewMaintenanceForm } from "@/components/maintenance/NewMaintenanceForm";
+import { ViewMaintenanceDialog } from "@/components/maintenance/ViewMaintenanceDialog";
 import { Button } from "@/components/ui/button";
 import { 
   Plus, 
@@ -17,7 +17,8 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
-  ArrowLeft
+  ArrowLeft,
+  Eye
 } from "lucide-react";
 import {
   Drawer,
@@ -71,6 +72,8 @@ const Maintenance = () => {
   const [completedSearchTerm, setCompletedSearchTerm] = useState("");
   const [isUpcomingMaintenanceOpen, setIsUpcomingMaintenanceOpen] = useState(true);
   const [isMaintenanceIntervalsOpen, setIsMaintenanceIntervalsOpen] = useState(true);
+  const [selectedRecord, setSelectedRecord] = useState<MaintenanceRecord | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   
   const queryClient = useQueryClient();
   const upcomingMaintenanceRef = useRef<HTMLDivElement>(null);
@@ -119,21 +122,18 @@ const Maintenance = () => {
 
   const filteredCompletedRecords = completedRecords.filter(record => {
     if (completedTab === "recent") {
-      // Last 30 days
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       if (!record.performed_date || new Date(record.performed_date) < thirtyDaysAgo) {
         return false;
       }
     } else if (completedTab === "last-quarter") {
-      // Last quarter (3 months)
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
       if (!record.performed_date || new Date(record.performed_date) < threeMonthsAgo) {
         return false;
       }
     } else if (completedTab === "last-year") {
-      // Last year
       const oneYearAgo = new Date();
       oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
       if (!record.performed_date || new Date(record.performed_date) < oneYearAgo) {
@@ -175,7 +175,6 @@ const Maintenance = () => {
     const upcomingMaintenance = [];
     
     for (const equipment of equipmentList) {
-      // Only get templates for this equipment's category
       const relevantTemplates = equipment.category_id 
         ? templates.filter(template => 
             template.category_id === equipment.category_id || 

@@ -75,6 +75,8 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
     <html>
     <head>
         <title>Wartungscheckliste - ${record.equipment.name}</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
             body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
             h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
@@ -86,7 +88,17 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
             .check-item:before { content: "☐"; position: absolute; left: 0; top: 0; font-size: 1.2em; }
             .signature-section { margin-top: 50px; border-top: 1px solid #ccc; padding-top: 20px; }
             .signature-line { margin-top: 70px; border-top: 1px solid #000; width: 250px; }
+            @media print {
+                body { font-size: 12pt; }
+                .no-print { display: none; }
+            }
         </style>
+        <script>
+            window.onload = function() {
+                // Auto-trigger print dialog when the document is loaded
+                window.print();
+            };
+        </script>
     </head>
     <body>
         <h1>WARTUNGSCHECKLISTE</h1>
@@ -136,6 +148,10 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
                 <div class="info-label">Unterschrift:</div>
                 <div class="signature-line"></div>
             </div>
+        </div>
+        
+        <div class="no-print" style="text-align: center; margin-top: 30px;">
+            <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Drucken</button>
         </div>
     </body>
     </html>
