@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -28,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { CompleteMaintenanceDialog } from "@/components/maintenance/CompleteMaintenanceDialog";
+import { SELECT_ALL_VALUE } from "@/lib/constants";
 
 const Dashboard = () => {
   const { data: equipment = [] } = useEquipment();
@@ -40,20 +40,18 @@ const Dashboard = () => {
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
   
-  // Filter equipment based on selected category
   const filteredEquipment = equipment.filter(item => {
-    if (selectedCategoryId && item.category_id !== selectedCategoryId) {
+    if (selectedCategoryId && selectedCategoryId !== SELECT_ALL_VALUE && item.category_id !== selectedCategoryId) {
       return false;
     }
     
-    if (selectedPersonId && item.responsible_person_id !== selectedPersonId) {
+    if (selectedPersonId && selectedPersonId !== SELECT_ALL_VALUE && item.responsible_person_id !== selectedPersonId) {
       return false;
     }
     
     return true;
   });
   
-  // Filter maintenance records based on selected category and person
   const filteredMaintenanceRecords = maintenanceRecords.filter(record => {
     const equipmentItem = equipment.find(item => item.id === record.equipment_id);
     
@@ -68,25 +66,21 @@ const Dashboard = () => {
     return true;
   });
   
-  // Calculate equipment statistics
   const totalEquipment = filteredEquipment.length;
   const readyEquipment = filteredEquipment.filter(item => item.status === "einsatzbereit").length;
   const maintenanceNeeded = filteredEquipment.filter(item => item.status === "prüfung fällig").length;
   const inMaintenance = filteredEquipment.filter(item => item.status === "wartung").length;
   
-  // Get pending maintenance records sorted by due date
   const pendingMaintenance = filteredMaintenanceRecords
     .filter(record => record.status !== "abgeschlossen")
     .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
-    .slice(0, 5); // Get top 5
+    .slice(0, 5);
   
-  // Calculate category statistics
   const categoryStats = categories.map(category => {
     const categoryEquipment = filteredEquipment.filter(item => item.category_id === category.id);
     const total = categoryEquipment.length;
     const ready = categoryEquipment.filter(item => item.status === "einsatzbereit").length;
     const status = total > 0 ? (ready / total) * 100 : 0;
-    // Random change for demo purposes - in real app this would be calculated from historical data
     const change = Math.floor(Math.random() * 10) - 5;
     
     return {
@@ -98,7 +92,6 @@ const Dashboard = () => {
     };
   }).filter(cat => cat.total > 0);
   
-  // Calculate if there are any urgent maintenance tasks (due in the next 7 days)
   const urgentMaintenanceCount = filteredMaintenanceRecords.filter(record => {
     const dueDate = new Date(record.due_date);
     const today = new Date();
@@ -122,7 +115,7 @@ const Dashboard = () => {
                 <SelectValue placeholder="Kategorie" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all_categories">Alle Kategorien</SelectItem>
+                <SelectItem value={SELECT_ALL_VALUE}>Alle Kategorien</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
@@ -135,7 +128,7 @@ const Dashboard = () => {
                 <SelectValue placeholder="Person" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all_persons">Alle Personen</SelectItem>
+                <SelectItem value={SELECT_ALL_VALUE}>Alle Personen</SelectItem>
                 {persons.map((person) => (
                   <SelectItem key={person.id} value={person.id}>
                     {person.first_name} {person.last_name}
@@ -268,7 +261,6 @@ const Dashboard = () => {
   );
 };
 
-// Helper function to convert database status to display status
 function getMaintenanceStatusDisplay(status: string): "dringend" | "geplant" | "optional" {
   switch (status) {
     case "ausstehend":
@@ -304,10 +296,7 @@ function StatsCard({ title, value, description, icon }: StatsCardProps) {
   );
 }
 
-// Update the interface to match the data
-type MaintenanceStatus = "dringend" | "geplant" | "optional";
-
-function MaintenanceStatusBadge({ status }: { status: MaintenanceStatus }) {
+function MaintenanceStatusBadge({ status }: { status: "dringend" | "geplant" | "optional" }) {
   const statusStyles = {
     dringend: "bg-red-100 text-red-800 border-red-200",
     geplant: "bg-amber-100 text-amber-800 border-amber-200",

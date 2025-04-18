@@ -149,6 +149,7 @@ export type Database = {
           due_date: string
           equipment_id: string
           id: string
+          minutes_spent: number | null
           notes: string | null
           performed_by: string | null
           performed_date: string | null
@@ -162,6 +163,7 @@ export type Database = {
           due_date: string
           equipment_id: string
           id?: string
+          minutes_spent?: number | null
           notes?: string | null
           performed_by?: string | null
           performed_date?: string | null
@@ -175,6 +177,7 @@ export type Database = {
           due_date?: string
           equipment_id?: string
           id?: string
+          minutes_spent?: number | null
           notes?: string | null
           performed_by?: string | null
           performed_date?: string | null
