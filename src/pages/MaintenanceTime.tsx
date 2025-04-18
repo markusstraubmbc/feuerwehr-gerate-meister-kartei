@@ -42,6 +42,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useReactToPrint } from "react-to-print";
 import * as XLSX from 'xlsx';
 import { toast } from "sonner";
+import { SELECT_ALL_VALUE } from "@/lib/constants";
 import {
   Bar,
   BarChart,
@@ -346,7 +347,7 @@ const MaintenanceTime = () => {
                     <FormLabel>Kategorie</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      value={field.value}
+                      value={field.value || ""}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -354,7 +355,7 @@ const MaintenanceTime = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Alle Kategorien</SelectItem>
+                        <SelectItem value={SELECT_ALL_VALUE}>Alle Kategorien</SelectItem>
                         {categories.map((category) => (
                           <SelectItem key={category.id} value={category.id}>
                             {category.name}
@@ -374,7 +375,7 @@ const MaintenanceTime = () => {
                     <FormLabel>Person</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      value={field.value}
+                      value={field.value || ""}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -382,7 +383,7 @@ const MaintenanceTime = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Alle Personen</SelectItem>
+                        <SelectItem value={SELECT_ALL_VALUE}>Alle Personen</SelectItem>
                         {persons.map((person) => (
                           <SelectItem key={person.id} value={person.id}>
                             {person.first_name} {person.last_name}

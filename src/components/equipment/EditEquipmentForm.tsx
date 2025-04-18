@@ -1,4 +1,3 @@
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -69,7 +68,7 @@ const formSchema = z.object({
   barcode: z.string().nullable(),
   manufacturer: z.string().nullable(),
   model: z.string().nullable(),
-  status: z.string(),
+  status: z.enum(["einsatzbereit", "wartung", "defekt", "prüfung fällig"]),
   purchase_date: z.date().nullable(),
   replacement_date: z.date().nullable(),
   last_check_date: z.date().nullable(),
@@ -102,7 +101,7 @@ export function EditEquipmentForm({ equipment, onSuccess }: Props) {
       barcode: equipment.barcode || null,
       manufacturer: equipment.manufacturer || null,
       model: equipment.model || null,
-      status: equipment.status,
+      status: equipment.status as "einsatzbereit" | "wartung" | "defekt" | "prüfung fällig",
       purchase_date: equipment.purchase_date ? new Date(equipment.purchase_date) : null,
       replacement_date: equipment.replacement_date ? new Date(equipment.replacement_date) : null,
       last_check_date: equipment.last_check_date ? new Date(equipment.last_check_date) : null,
@@ -122,7 +121,7 @@ export function EditEquipmentForm({ equipment, onSuccess }: Props) {
       barcode: equipment.barcode || null,
       manufacturer: equipment.manufacturer || null,
       model: equipment.model || null,
-      status: equipment.status,
+      status: equipment.status as "einsatzbereit" | "wartung" | "defekt" | "prüfung fällig",
       purchase_date: equipment.purchase_date ? new Date(equipment.purchase_date) : null,
       replacement_date: equipment.replacement_date ? new Date(equipment.replacement_date) : null,
       last_check_date: equipment.last_check_date ? new Date(equipment.last_check_date) : null,
@@ -149,22 +148,13 @@ export function EditEquipmentForm({ equipment, onSuccess }: Props) {
         .eq("id", equipment.id);
 
       if (error) {
-        toast({
-          description: "Es gab ein Problem beim Aktualisieren des Geräts.",
-          variant: "destructive"
-        });
+        toast("Es gab ein Problem beim Aktualisieren des Geräts.");
       } else {
-        toast({
-          description: "Das Gerät wurde erfolgreich aktualisiert.",
-          variant: "default"
-        });
+        toast("Das Gerät wurde erfolgreich aktualisiert.");
         onSuccess();
       }
     } catch (error) {
-      toast({
-        description: "Es gab ein unerwartetes Problem.",
-        variant: "destructive"
-      });
+      toast("Es gab ein unerwartetes Problem.");
     } finally {
       setIsSaving(false);
     }

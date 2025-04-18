@@ -1,4 +1,3 @@
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -34,6 +33,7 @@ import {
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
+import { SELECT_NONE_VALUE } from "@/lib/constants";
 
 const formSchema = z.object({
   equipment_id: z.string().uuid(),
@@ -62,17 +62,16 @@ export function NewMaintenanceForm({ onSuccess }: NewMaintenanceFormProps) {
     defaultValues: {
       status: "ausstehend",
       due_date: new Date(),
-      equipment_id: undefined, // Initialize as undefined to enforce selection
+      equipment_id: undefined,
     },
   });
 
   const createMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      // Ensure required fields are explicitly included and handle optional fields properly
       const formattedValues = {
-        equipment_id: values.equipment_id, // Required field
-        due_date: values.due_date.toISOString(), // Required field
-        status: values.status, // Required field
+        equipment_id: values.equipment_id,
+        due_date: values.due_date.toISOString(),
+        status: values.status,
         template_id: values.template_id || null,
         performed_by: values.performed_by || null,
         performed_date: values.performed_date?.toISOString() || null,
@@ -136,13 +135,14 @@ export function NewMaintenanceForm({ onSuccess }: NewMaintenanceFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Wartungsvorlage</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value || ""}>
+              <Select onValueChange={field.onChange} value={field.value || SELECT_NONE_VALUE}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Wartungsvorlage auswählen" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
+                  <SelectItem value={SELECT_NONE_VALUE}>Keine Vorlage</SelectItem>
                   {templates?.map((template) => (
                     <SelectItem key={template.id} value={template.id}>
                       {template.name}
@@ -221,13 +221,14 @@ export function NewMaintenanceForm({ onSuccess }: NewMaintenanceFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Durchgeführt von</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value || ""}>
+              <Select onValueChange={field.onChange} value={field.value || SELECT_NONE_VALUE}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Person auswählen" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
+                  <SelectItem value={SELECT_NONE_VALUE}>Keine Person</SelectItem>
                   {persons?.map((person) => (
                     <SelectItem key={person.id} value={person.id}>
                       {`${person.first_name} ${person.last_name}`}

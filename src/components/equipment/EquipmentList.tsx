@@ -148,10 +148,12 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
 
       {selectedEquipment && (
         <>
-          <EditEquipmentForm
-            equipment={selectedEquipment}
-            onSuccess={() => setIsEditFormOpen(false)}
-          />
+          {isEditFormOpen && (
+            <EditEquipmentForm
+              equipment={selectedEquipment}
+              onSuccess={() => setIsEditFormOpen(false)}
+            />
+          )}
           <DeleteEquipmentDialog
             equipment={selectedEquipment}
             open={isDeleteDialogOpen}

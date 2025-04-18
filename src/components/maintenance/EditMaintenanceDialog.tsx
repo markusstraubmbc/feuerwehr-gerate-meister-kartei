@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SELECT_NONE_VALUE } from "@/lib/constants";
 
 interface EditMaintenanceDialogProps {
   record: MaintenanceRecord;
@@ -152,7 +153,7 @@ export function EditMaintenanceDialog({
                     <FormLabel>Verantwortlich</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value || SELECT_NONE_VALUE}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -160,7 +161,7 @@ export function EditMaintenanceDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="unassigned">Keine Zuweisung</SelectItem>
+                        <SelectItem value={SELECT_NONE_VALUE}>Keine Zuweisung</SelectItem>
                         {persons.map((person) => (
                           <SelectItem key={person.id} value={person.id}>
                             {person.first_name} {person.last_name}
