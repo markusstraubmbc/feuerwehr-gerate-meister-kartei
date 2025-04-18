@@ -1,3 +1,4 @@
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,7 +50,7 @@ import { useCategories } from "@/hooks/useCategories";
 import { useLocations } from "@/hooks/useLocations";
 import { usePersons } from "@/hooks/usePersons";
 import { useEffect } from "react";
-import { useQueryClient } from "react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Equipment } from "@/hooks/useEquipment";
 import { useState } from "react";

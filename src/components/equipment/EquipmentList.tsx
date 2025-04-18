@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import {
   Table,
@@ -74,7 +73,6 @@ export function EquipmentList({
   const { data: categories = [] } = useCategories();
   const { data: persons = [] } = usePersons();
   
-  // Add ref for printing
   const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = useReactToPrint({
@@ -86,12 +84,7 @@ export function EquipmentList({
           description: "Es gab ein Problem beim Vorbereiten der Druckansicht."
         });
       }
-    },
-    onPrintError: () => {
-      toast.error("Drucken fehlgeschlagen", {
-        description: "Es gab ein Problem beim Drucken der Ausrüstungsliste."
-      });
-    },
+    }
   });
 
   const handleEdit = (item: Equipment) => {
