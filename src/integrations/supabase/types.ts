@@ -319,7 +319,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_equipment_comment: {
+        Args: {
+          equipment_id_param: string
+          person_id_param: string
+          comment_param: string
+        }
+        Returns: undefined
+      }
+      get_equipment_comments: {
+        Args: { equipment_id_param: string }
+        Returns: Json[]
+      }
     }
     Enums: {
       equipment_status:

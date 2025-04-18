@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -55,8 +54,7 @@ export function CommentsDialog({ equipment, open, onOpenChange }: CommentsDialog
     if (!equipment?.id) return;
 
     try {
-      // Use rpc call to bypass type checking
-      const { data, error } = await supabase.rpc('get_equipment_comments', { 
+      const { data, error } = await supabase.rpc<Comment[]>('get_equipment_comments', { 
         equipment_id_param: equipment.id 
       });
       
@@ -81,7 +79,6 @@ export function CommentsDialog({ equipment, open, onOpenChange }: CommentsDialog
 
     setIsSubmitting(true);
     try {
-      // Use rpc call to bypass type checking
       const { error } = await supabase.rpc('add_equipment_comment', {
         equipment_id_param: equipment.id,
         person_id_param: selectedPersonId,
