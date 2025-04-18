@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -9,77 +10,159 @@ import {
   Clock, 
   ArrowDown, 
   ArrowUp,
-  Calendar
+  Calendar,
+  Filter
 } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
 import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
+import { useCategories } from "@/hooks/useCategories";
+import { usePersons } from "@/hooks/usePersons";
 import { format, addDays } from "date-fns";
 import { de } from "date-fns/locale";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { CompleteMaintenanceDialog } from "@/components/maintenance/CompleteMaintenanceDialog";
 
 const Dashboard = () => {
   const { data: equipment = [] } = useEquipment();
   const { data: maintenanceRecords = [] } = useMaintenanceRecords();
+  const { data: categories = [] } = useCategories();
+  const { data: persons = [] } = usePersons();
+  
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [selectedPersonId, setSelectedPersonId] = useState("");
+  const [selectedRecord, setSelectedRecord] = useState<any>(null);
+  const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
+  
+  // Filter equipment based on selected category
+  const filteredEquipment = equipment.filter(item => {
+    if (selectedCategoryId && item.category_id !== selectedCategoryId) {
+      return false;
+    }
+    
+    if (selectedPersonId && item.responsible_person_id !== selectedPersonId) {
+      return false;
+    }
+    
+    return true;
+  });
+  
+  // Filter maintenance records based on selected category and person
+  const filteredMaintenanceRecords = maintenanceRecords.filter(record => {
+    const equipmentItem = equipment.find(item => item.id === record.equipment_id);
+    
+    if (selectedCategoryId && equipmentItem?.category_id !== selectedCategoryId) {
+      return false;
+    }
+    
+    if (selectedPersonId && record.performed_by !== selectedPersonId) {
+      return false;
+    }
+    
+    return true;
+  });
   
   // Calculate equipment statistics
-  const totalEquipment = equipment.length;
-  const readyEquipment = equipment.filter(item => item.status === "einsatzbereit").length;
-  const maintenanceNeeded = equipment.filter(item => item.status === "prüfung fällig").length;
-  const inMaintenance = equipment.filter(item => item.status === "wartung").length;
+  const totalEquipment = filteredEquipment.length;
+  const readyEquipment = filteredEquipment.filter(item => item.status === "einsatzbereit").length;
+  const maintenanceNeeded = filteredEquipment.filter(item => item.status === "prüfung fällig").length;
+  const inMaintenance = filteredEquipment.filter(item => item.status === "wartung").length;
   
   // Get pending maintenance records sorted by due date
-  const pendingMaintenance = maintenanceRecords
+  const pendingMaintenance = filteredMaintenanceRecords
     .filter(record => record.status !== "abgeschlossen")
     .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
     .slice(0, 5); // Get top 5
   
   // Calculate category statistics
-  const categories = equipment.reduce((acc: Record<string, any>, item) => {
-    const categoryName = item.category?.name || "Uncategorized";
-    
-    if (!acc[categoryName]) {
-      acc[categoryName] = {
-        name: categoryName,
-        total: 0,
-        ready: 0
-      };
-    }
-    
-    acc[categoryName].total++;
-    if (item.status === "einsatzbereit") {
-      acc[categoryName].ready++;
-    }
-    
-    return acc;
-  }, {});
-  
-  // Convert to array and calculate percentages
-  const categoryStats = Object.values(categories).map((cat: any) => {
-    const status = cat.total > 0 ? (cat.ready / cat.total) * 100 : 0;
+  const categoryStats = categories.map(category => {
+    const categoryEquipment = filteredEquipment.filter(item => item.category_id === category.id);
+    const total = categoryEquipment.length;
+    const ready = categoryEquipment.filter(item => item.status === "einsatzbereit").length;
+    const status = total > 0 ? (ready / total) * 100 : 0;
     // Random change for demo purposes - in real app this would be calculated from historical data
     const change = Math.floor(Math.random() * 10) - 5;
     
     return {
-      name: cat.name,
+      name: category.name,
       status,
-      total: cat.total,
+      total,
       change,
       changeColor: change >= 0 ? "text-green-500" : "text-red-500"
     };
-  });
+  }).filter(cat => cat.total > 0);
   
   // Calculate if there are any urgent maintenance tasks (due in the next 7 days)
-  const urgentMaintenanceCount = maintenanceRecords.filter(record => {
+  const urgentMaintenanceCount = filteredMaintenanceRecords.filter(record => {
     const dueDate = new Date(record.due_date);
     const today = new Date();
     const sevenDaysLater = addDays(today, 7);
     return record.status !== "abgeschlossen" && dueDate <= sevenDaysLater;
   }).length;
 
+  const handleCompleteMaintenance = (record: any) => {
+    setSelectedRecord(record);
+    setIsCompleteDialogOpen(true);
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="Kategorie" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Alle Kategorien</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedPersonId} onValueChange={setSelectedPersonId}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="Person" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Alle Personen</SelectItem>
+                {persons.map((person) => (
+                  <SelectItem key={person.id} value={person.id}>
+                    {person.first_name} {person.last_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" className="h-10" onClick={() => {
+              setSelectedCategoryId("");
+              setSelectedPersonId("");
+            }}>
+              <Filter className="h-4 w-4 mr-2" />
+              Zurücksetzen
+            </Button>
+          </div>
+        </div>
       </div>
+      
+      {urgentMaintenanceCount > 0 && (
+        <Alert className="border-fire-red bg-fire-red/10">
+          <AlertTriangle className="h-4 w-4 text-fire-red" />
+          <AlertTitle>Achtung</AlertTitle>
+          <AlertDescription>
+            Es gibt {urgentMaintenanceCount} Wartung{urgentMaintenanceCount !== 1 ? 'en' : ''}, die in den nächsten 7 Tagen durchgeführt werden {urgentMaintenanceCount !== 1 ? 'müssen' : 'muss'}.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard 
@@ -153,7 +236,18 @@ const Dashboard = () => {
                       <span>{format(new Date(item.due_date), "dd.MM.yyyy", { locale: de })}</span>
                     </div>
                   </div>
-                  <MaintenanceStatusBadge status={getMaintenanceStatusDisplay(item.status)} />
+                  <div className="flex items-center gap-2">
+                    <MaintenanceStatusBadge status={getMaintenanceStatusDisplay(item.status)} />
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 w-8 p-0" 
+                      title="Wartung durchführen"
+                      onClick={() => handleCompleteMaintenance(item)}
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))
             ) : (
@@ -163,14 +257,12 @@ const Dashboard = () => {
         </Card>
       </div>
       
-      {urgentMaintenanceCount > 0 && (
-        <Alert className="border-fire-red bg-fire-red/10">
-          <AlertTriangle className="h-4 w-4 text-fire-red" />
-          <AlertTitle>Achtung</AlertTitle>
-          <AlertDescription>
-            Es gibt {urgentMaintenanceCount} Wartung{urgentMaintenanceCount !== 1 ? 'en' : ''}, die in den nächsten 7 Tagen durchgeführt werden {urgentMaintenanceCount !== 1 ? 'müssen' : 'muss'}.
-          </AlertDescription>
-        </Alert>
+      {selectedRecord && (
+        <CompleteMaintenanceDialog
+          record={selectedRecord}
+          open={isCompleteDialogOpen}
+          onOpenChange={setIsCompleteDialogOpen}
+        />
       )}
     </div>
   );

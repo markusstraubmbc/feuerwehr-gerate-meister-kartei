@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
@@ -10,12 +10,26 @@ import {
   LayoutDashboard, 
   Menu, 
   X, 
-  CircleAlert
+  CircleAlert,
+  Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Sidebar() {
-  const [expanded, setExpanded] = useState(true);
+  // On mobile, start with collapsed sidebar
+  const [expanded, setExpanded] = useState(window.innerWidth > 768);
+  
+  // Update expanded state when window resizes
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 768) {
+        setExpanded(false);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const toggleSidebar = () => {
     setExpanded(!expanded);
@@ -51,6 +65,7 @@ export function Sidebar() {
         <NavItem to="/" icon={<LayoutDashboard size={20} />} label="Dashboard" expanded={expanded} />
         <NavItem to="/equipment" icon={<PackageIcon size={20} />} label="Ausrüstung" expanded={expanded} />
         <NavItem to="/maintenance" icon={<FileSearch size={20} />} label="Wartung" expanded={expanded} />
+        <NavItem to="/maintenance-time" icon={<Clock size={20} />} label="Zeitauswertung" expanded={expanded} />
         <NavItem to="/settings" icon={<Settings size={20} />} label="Einstellungen" expanded={expanded} />
       </nav>
     </aside>
@@ -76,7 +91,7 @@ function NavItem({ to, icon, label, expanded }: NavItemProps) {
       <span className="flex-shrink-0">{icon}</span>
       {expanded && <span className="ml-3">{label}</span>}
       {!expanded && (
-        <div className="absolute left-16 rounded-md px-2 py-1 ml-6 bg-sidebar-primary text-sidebar-primary-foreground text-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+        <div className="absolute left-16 rounded-md px-2 py-1 ml-6 bg-sidebar-primary text-sidebar-primary-foreground text-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
           {label}
         </div>
       )}
