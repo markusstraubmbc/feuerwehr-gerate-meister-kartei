@@ -122,7 +122,7 @@ const Dashboard = () => {
                 <SelectValue placeholder="Kategorie" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Alle Kategorien</SelectItem>
+                <SelectItem value="all_categories">Alle Kategorien</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
@@ -135,7 +135,7 @@ const Dashboard = () => {
                 <SelectValue placeholder="Person" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Alle Personen</SelectItem>
+                <SelectItem value="all_persons">Alle Personen</SelectItem>
                 {persons.map((person) => (
                   <SelectItem key={person.id} value={person.id}>
                     {person.first_name} {person.last_name}

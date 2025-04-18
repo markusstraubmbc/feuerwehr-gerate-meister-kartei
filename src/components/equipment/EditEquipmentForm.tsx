@@ -160,14 +160,14 @@ export function EditEquipmentForm({ equipment, open = false, onOpenChange, onSuc
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Kategorie</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || "none"}>
+                <Select onValueChange={field.onChange} value={field.value || ""}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Kategorie auswählen" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="none">Keine Kategorie</SelectItem>
+                    <SelectItem value="no_category">Keine Kategorie</SelectItem>
                     {categories?.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
@@ -338,14 +338,14 @@ export function EditEquipmentForm({ equipment, open = false, onOpenChange, onSuc
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Standort</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || "none"}>
+                <Select onValueChange={field.onChange} value={field.value || ""}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Standort auswählen" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="none">Kein Standort</SelectItem>
+                    <SelectItem value="no_location">Kein Standort</SelectItem>
                     {locations?.map((location) => (
                       <SelectItem key={location.id} value={location.id}>
                         {location.name}
@@ -364,14 +364,14 @@ export function EditEquipmentForm({ equipment, open = false, onOpenChange, onSuc
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Verantwortliche Person</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || "none"}>
+                <Select onValueChange={field.onChange} value={field.value || ""}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Person auswählen" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="none">Keine Person</SelectItem>
+                    <SelectItem value="no_person">Keine Person</SelectItem>
                     {persons?.map((person) => (
                       <SelectItem key={person.id} value={person.id}>
                         {`${person.first_name} ${person.last_name}`}
