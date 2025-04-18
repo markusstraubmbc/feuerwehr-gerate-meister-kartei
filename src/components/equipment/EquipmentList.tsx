@@ -35,7 +35,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { SELECT_ALL_VALUE } from "@/lib/constants";
+import { SELECT_ALL_VALUE, SELECT_NONE_VALUE } from "@/lib/constants";
 
 interface EquipmentListProps {
   equipment: Equipment[];
@@ -210,7 +210,7 @@ export function EquipmentList({
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Alle Status</SelectItem>
+              <SelectItem value="status_all">Alle Status</SelectItem>
               <SelectItem value="einsatzbereit">Einsatzbereit</SelectItem>
               <SelectItem value="prüfung fällig">Prüfung fällig</SelectItem>
               <SelectItem value="wartung">Wartung</SelectItem>
