@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
@@ -18,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SELECT_NONE_VALUE } from "@/lib/constants";
+import { Textarea } from "@/components/ui/textarea";
 
 interface EditMaintenanceDialogProps {
   record: MaintenanceRecord;
@@ -31,6 +33,8 @@ const formSchema = z.object({
   }),
   performed_by: z.string().optional(),
   minutes_spent: z.number().optional(),
+  notes: z.string().optional(),
+  status: z.string()
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -50,6 +54,8 @@ export function EditMaintenanceDialog({
       due_date: new Date(record.due_date),
       performed_by: record.performed_by || undefined,
       minutes_spent: record.minutes_spent || undefined,
+      notes: record.notes || "",
+      status: record.status
     },
   });
 
@@ -63,6 +69,8 @@ export function EditMaintenanceDialog({
           due_date: values.due_date.toISOString(),
           performed_by: values.performed_by || null,
           minutes_spent: values.minutes_spent || null,
+          notes: values.notes || null,
+          status: values.status
         })
         .eq("id", record.id);
 
@@ -176,6 +184,30 @@ export function EditMaintenanceDialog({
 
               <FormField
                 control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Status auswählen" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="ausstehend">Ausstehend</SelectItem>
+                        <SelectItem value="geplant">Geplant</SelectItem>
+                        <SelectItem value="in_bearbeitung">In Bearbeitung</SelectItem>
+                        <SelectItem value="abgeschlossen">Abgeschlossen</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="minutes_spent"
                 render={({ field }) => (
                   <FormItem>
@@ -186,6 +218,24 @@ export function EditMaintenanceDialog({
                         placeholder="0"
                         {...field}
                         onChange={(e) => field.onChange(e.target.valueAsNumber || undefined)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notizen</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Notizen zur Wartung..."
+                        {...field}
+                        value={field.value || ""}
                       />
                     </FormControl>
                     <FormMessage />

@@ -69,30 +69,80 @@ export const getTemplateChecklistUrl = async (templateId: string): Promise<strin
 // Function to generate custom checklist
 export const generateCustomChecklist = async (record: MaintenanceRecord): Promise<Blob | null> => {
   try {
-    // This is a simplified example. In a real-world scenario, you would use a PDF generation 
-    // library like jspdf or pdfmake, or call a serverless function to generate the PDF.
-    // Since we're in a browser environment, we'll create a simple PDF-like blob
-    
-    const text = `
-      WARTUNGSCHECKLISTE
-      
-      Ausrüstung: ${record.equipment.name}
-      Inventarnummer: ${record.equipment.inventory_number || 'N/A'}
-      Wartungstyp: ${record.template?.name || 'Keine Vorlage'}
-      Fällig am: ${new Date(record.due_date).toLocaleDateString('de-DE')}
-      Verantwortlich: ${record.performer ? `${record.performer.first_name} ${record.performer.last_name}` : 'Nicht zugewiesen'}
-      
-      DURCHZUFÜHRENDE PRÜFUNGEN:
-      - Sichtprüfung
-      - Funktionsprüfung
-      - Sicherheitsprüfung
-      
-      Bestätigung der Durchführung: __________________
-      
-      Datum: __________________
+    // Create a more detailed PDF-like content with proper formatting
+    const content = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Wartungscheckliste - ${record.equipment.name}</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+            h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
+            h2 { color: #555; margin-top: 20px; }
+            .info-section { margin: 20px 0; }
+            .info-row { display: flex; margin-bottom: 10px; }
+            .info-label { font-weight: bold; width: 200px; }
+            .check-item { margin: 15px 0; padding-left: 30px; position: relative; }
+            .check-item:before { content: "☐"; position: absolute; left: 0; top: 0; font-size: 1.2em; }
+            .signature-section { margin-top: 50px; border-top: 1px solid #ccc; padding-top: 20px; }
+            .signature-line { margin-top: 70px; border-top: 1px solid #000; width: 250px; }
+        </style>
+    </head>
+    <body>
+        <h1>WARTUNGSCHECKLISTE</h1>
+        
+        <div class="info-section">
+            <div class="info-row">
+                <div class="info-label">Ausrüstung:</div>
+                <div>${record.equipment.name}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Inventarnummer:</div>
+                <div>${record.equipment.inventory_number || 'Nicht zugewiesen'}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Wartungstyp:</div>
+                <div>${record.template?.name || 'Keine Vorlage'}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Fällig am:</div>
+                <div>${new Date(record.due_date).toLocaleDateString('de-DE')}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Verantwortlich:</div>
+                <div>${record.performer ? `${record.performer.first_name} ${record.performer.last_name}` : 'Nicht zugewiesen'}</div>
+            </div>
+        </div>
+        
+        <h2>DURCHZUFÜHRENDE PRÜFUNGEN:</h2>
+        
+        <div class="check-item">Sichtprüfung durchführen</div>
+        <div class="check-item">Funktionsprüfung durchführen</div>
+        <div class="check-item">Sicherheitsprüfung durchführen</div>
+        ${record.template?.description ? `<div class="check-item">${record.template.description}</div>` : ''}
+        <div class="check-item">Dokumentation der Prüfung vervollständigen</div>
+        
+        <div class="signature-section">
+            <h2>BESTÄTIGUNG:</h2>
+            <div class="info-row">
+                <div class="info-label">Durchgeführt von:</div>
+                <div>________________________</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Datum:</div>
+                <div>________________________</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Unterschrift:</div>
+                <div class="signature-line"></div>
+            </div>
+        </div>
+    </body>
+    </html>
     `;
     
-    const blob = new Blob([text], { type: 'application/pdf' });
+    // Convert HTML to a Blob
+    const blob = new Blob([content], { type: 'text/html' });
     return blob;
   } catch (error) {
     console.error("Error generating custom checklist:", error);

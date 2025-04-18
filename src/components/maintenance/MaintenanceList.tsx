@@ -13,7 +13,7 @@ import { MaintenanceStatusBadge } from "./MaintenanceStatusBadge";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
-import { FileCheck, Eye, Printer, FileDown, Trash2, PenLine } from "lucide-react";
+import { FileCheck, Eye, Printer, FileDown, Trash2, PenLine, Filter } from "lucide-react";
 import type { MaintenanceRecord } from "@/hooks/useMaintenanceRecords";
 import { getTemplateChecklistUrl, generateCustomChecklist } from "@/hooks/useMaintenanceRecords";
 import { CompleteMaintenanceDialog } from "./CompleteMaintenanceDialog";
@@ -35,6 +35,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { EditMaintenanceDialog } from "./EditMaintenanceDialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useMaintenanceTemplates } from "@/hooks/useMaintenanceTemplates";
+import { SELECT_ALL_VALUE } from "@/lib/constants";
 
 interface MaintenanceListProps {
   records: MaintenanceRecord[];
@@ -56,16 +59,21 @@ export const MaintenanceList = ({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(filterTerm);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>(SELECT_ALL_VALUE);
   
   const printRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  const { data: templates = [] } = useMaintenanceTemplates();
   
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
     documentTitle: 'Wartungsaufzeichnungen',
     pageStyle: '@page { size: auto; margin: 10mm; } @media print { body { font-size: 12pt; } }',
-    onBeforePrint: () => console.log('Before printing...'),
-    onAfterPrint: () => console.log('After printing...'),
+    onBeforePrint: () => {
+      if (!printRef.current) {
+        toast.error('Fehler beim Vorbereiten der Druckansicht');
+      }
+    },
   });
 
   const handleComplete = (record: MaintenanceRecord) => {
@@ -87,10 +95,35 @@ export const MaintenanceList = ({
     setSelectedRecord(record);
     setIsDeleteDialogOpen(true);
   };
+  
+  const filteredRecords = useMemo(() => {
+    return records.filter(record => {
+      // Filter by search term
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        const equipmentNameMatches = record.equipment?.name?.toLowerCase().includes(searchLower);
+        const templateNameMatches = record.template?.name?.toLowerCase().includes(searchLower);
+        const notesMatch = record.notes?.toLowerCase().includes(searchLower);
+        
+        if (!equipmentNameMatches && !templateNameMatches && !notesMatch) {
+          return false;
+        }
+      }
+      
+      // Filter by template
+      if (selectedTemplate && selectedTemplate !== SELECT_ALL_VALUE) {
+        if (record.template_id !== selectedTemplate) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [records, searchTerm, selectedTemplate]);
 
   const handleExportToExcel = () => {
     try {
-      const exportData = records.map(record => ({
+      const exportData = filteredRecords.map(record => ({
         'Ausrüstung': record.equipment?.name || '',
         'Wartungstyp': record.template?.name || 'Keine Vorlage',
         'Status': record.status,
@@ -157,16 +190,23 @@ export const MaintenanceList = ({
         return;
       }
       
+      // For HTML blobs, we need to use iframe to display and print
       const url = URL.createObjectURL(checklistBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Angepasste-Checkliste-${record.equipment.name}-${new Date().toISOString().slice(0, 10)}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      URL.revokeObjectURL(url);
-      link.remove();
       
-      toast.success('Angepasste Checkliste wurde heruntergeladen');
+      // Open in new window for easier printing
+      const newWindow = window.open(url, '_blank');
+      if (!newWindow) {
+        // If popup is blocked, offer direct download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Angepasste-Checkliste-${record.equipment.name}-${new Date().toISOString().slice(0, 10)}.html`;
+        document.body.appendChild(link);
+        link.click();
+        URL.revokeObjectURL(url);
+        link.remove();
+      }
+      
+      toast.success('Angepasste Checkliste wurde geöffnet');
     } catch (error) {
       console.error('Custom checklist download error:', error);
       toast.error('Fehler beim Herunterladen der angepassten Checkliste');
@@ -204,21 +244,49 @@ export const MaintenanceList = ({
   };
   
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
+    const value = e.target.value;
+    setSearchTerm(value);
     if (onFilterChange) {
-      onFilterChange(e.target.value);
+      onFilterChange(value);
+    }
+  };
+  
+  const handleResetFilters = () => {
+    setSearchTerm("");
+    setSelectedTemplate(SELECT_ALL_VALUE);
+    if (onFilterChange) {
+      onFilterChange("");
     }
   };
 
   return (
     <>
       <div className="mb-4 flex flex-col sm:flex-row justify-between gap-2">
-        <Input 
-          placeholder="Suchen..." 
-          value={searchTerm} 
-          onChange={handleSearchChange}
-          className="max-w-sm" 
-        />
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Input 
+            placeholder="Suchen..." 
+            value={searchTerm} 
+            onChange={handleSearchChange}
+            className="sm:max-w-sm" 
+          />
+          <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+            <SelectTrigger className="sm:w-60">
+              <SelectValue placeholder="Wartungsvorlage" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={SELECT_ALL_VALUE}>Alle Wartungsvorlagen</SelectItem>
+              {templates.map(template => (
+                <SelectItem key={template.id} value={template.id}>
+                  {template.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={handleResetFilters}>
+            <Filter className="mr-2 h-4 w-4" />
+            Filter zurücksetzen
+          </Button>
+        </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={handleExportToExcel}>
             <FileDown className="mr-2 h-4 w-4" />
@@ -247,7 +315,7 @@ export const MaintenanceList = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {records.map((record) => (
+              {filteredRecords.map((record) => (
                 <TableRow key={record.id}>
                   <TableCell>
                     {format(new Date(record.due_date), "dd.MM.yyyy", { locale: de })}
@@ -338,7 +406,7 @@ export const MaintenanceList = ({
                 </TableRow>
               ))}
               
-              {records.length === 0 && (
+              {filteredRecords.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={8} className="h-24 text-center">
                     Keine Wartungsaufzeichnungen gefunden

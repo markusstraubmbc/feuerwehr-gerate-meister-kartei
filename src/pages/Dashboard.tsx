@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -10,7 +11,8 @@ import {
   ArrowDown, 
   ArrowUp,
   Calendar,
-  Filter
+  Filter,
+  PenLine
 } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
 import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
@@ -27,7 +29,9 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { CompleteMaintenanceDialog } from "@/components/maintenance/CompleteMaintenanceDialog";
+import { EditMaintenanceDialog } from "@/components/maintenance/EditMaintenanceDialog";
 import { SELECT_ALL_VALUE } from "@/lib/constants";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const { data: equipment = [] } = useEquipment();
@@ -39,6 +43,9 @@ const Dashboard = () => {
   const [selectedPersonId, setSelectedPersonId] = useState("");
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  
+  const navigate = useNavigate();
   
   const filteredEquipment = equipment.filter(item => {
     if (selectedCategoryId && selectedCategoryId !== SELECT_ALL_VALUE && item.category_id !== selectedCategoryId) {
@@ -55,11 +62,11 @@ const Dashboard = () => {
   const filteredMaintenanceRecords = maintenanceRecords.filter(record => {
     const equipmentItem = equipment.find(item => item.id === record.equipment_id);
     
-    if (selectedCategoryId && equipmentItem?.category_id !== selectedCategoryId) {
+    if (selectedCategoryId && selectedCategoryId !== SELECT_ALL_VALUE && equipmentItem?.category_id !== selectedCategoryId) {
       return false;
     }
     
-    if (selectedPersonId && record.performed_by !== selectedPersonId) {
+    if (selectedPersonId && selectedPersonId !== SELECT_ALL_VALUE && record.performed_by !== selectedPersonId) {
       return false;
     }
     
@@ -88,7 +95,8 @@ const Dashboard = () => {
       status,
       total,
       change,
-      changeColor: change >= 0 ? "text-green-500" : "text-red-500"
+      changeColor: change >= 0 ? "text-green-500" : "text-red-500",
+      id: category.id
     };
   }).filter(cat => cat.total > 0);
   
@@ -102,6 +110,29 @@ const Dashboard = () => {
   const handleCompleteMaintenance = (record: any) => {
     setSelectedRecord(record);
     setIsCompleteDialogOpen(true);
+  };
+  
+  const handleEditMaintenance = (record: any) => {
+    setSelectedRecord(record);
+    setIsEditDialogOpen(true);
+  };
+
+  const navigateToEquipmentWithFilter = (status?: string, categoryId?: string) => {
+    let searchParams = new URLSearchParams();
+    
+    if (status) {
+      searchParams.append('status', status);
+    }
+    
+    if (categoryId) {
+      searchParams.append('category', categoryId);
+    }
+    
+    if (selectedPersonId && selectedPersonId !== SELECT_ALL_VALUE) {
+      searchParams.append('person', selectedPersonId);
+    }
+    
+    navigate(`/equipment?${searchParams.toString()}`);
   };
 
   return (
@@ -158,30 +189,38 @@ const Dashboard = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard 
-          title="Gesamt Ausrüstung" 
-          value={totalEquipment.toString()} 
-          description="Alle Ausrüstungsgegenstände"
-          icon={<Package className="h-4 w-4 text-fire-red" />} 
-        />
-        <StatsCard 
-          title="Wartungsbedarf" 
-          value={maintenanceNeeded.toString()} 
-          description="Prüfung fällig"
-          icon={<AlertTriangle className="h-4 w-4 text-amber-500" />} 
-        />
-        <StatsCard 
-          title="Einsatzbereit" 
-          value={readyEquipment.toString()} 
-          description="Vollständig funktionstüchtig"
-          icon={<CheckCircle className="h-4 w-4 text-green-500" />} 
-        />
-        <StatsCard 
-          title="In Wartung" 
-          value={inMaintenance.toString()} 
-          description="Aktuell in Reparatur"
-          icon={<Clock className="h-4 w-4 text-blue-500" />}
-        />
+        <div onClick={() => navigateToEquipmentWithFilter()} className="cursor-pointer">
+          <StatsCard 
+            title="Gesamt Ausrüstung" 
+            value={totalEquipment.toString()} 
+            description="Alle Ausrüstungsgegenstände"
+            icon={<Package className="h-4 w-4 text-fire-red" />} 
+          />
+        </div>
+        <div onClick={() => navigateToEquipmentWithFilter("prüfung fällig")} className="cursor-pointer">
+          <StatsCard 
+            title="Wartungsbedarf" 
+            value={maintenanceNeeded.toString()} 
+            description="Prüfung fällig"
+            icon={<AlertTriangle className="h-4 w-4 text-amber-500" />} 
+          />
+        </div>
+        <div onClick={() => navigateToEquipmentWithFilter("einsatzbereit")} className="cursor-pointer">
+          <StatsCard 
+            title="Einsatzbereit" 
+            value={readyEquipment.toString()} 
+            description="Vollständig funktionstüchtig"
+            icon={<CheckCircle className="h-4 w-4 text-green-500" />} 
+          />
+        </div>
+        <div onClick={() => navigateToEquipmentWithFilter("wartung")} className="cursor-pointer">
+          <StatsCard 
+            title="In Wartung" 
+            value={inMaintenance.toString()} 
+            description="Aktuell in Reparatur"
+            icon={<Clock className="h-4 w-4 text-blue-500" />}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -193,7 +232,7 @@ const Dashboard = () => {
           <CardContent className="space-y-4">
             {categoryStats.length > 0 ? (
               categoryStats.map((category) => (
-                <div key={category.name} className="space-y-1">
+                <div key={category.name} className="space-y-1 cursor-pointer" onClick={() => navigateToEquipmentWithFilter(undefined, category.id)}>
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium">{category.name}</p>
                     <div className="flex items-center space-x-2">
@@ -235,6 +274,15 @@ const Dashboard = () => {
                       variant="outline" 
                       size="sm" 
                       className="h-8 w-8 p-0" 
+                      title="Wartung bearbeiten"
+                      onClick={() => handleEditMaintenance(item)}
+                    >
+                      <PenLine className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 w-8 p-0" 
                       title="Wartung durchführen"
                       onClick={() => handleCompleteMaintenance(item)}
                     >
@@ -251,11 +299,18 @@ const Dashboard = () => {
       </div>
       
       {selectedRecord && (
-        <CompleteMaintenanceDialog
-          record={selectedRecord}
-          open={isCompleteDialogOpen}
-          onOpenChange={setIsCompleteDialogOpen}
-        />
+        <>
+          <CompleteMaintenanceDialog
+            record={selectedRecord}
+            open={isCompleteDialogOpen}
+            onOpenChange={setIsCompleteDialogOpen}
+          />
+          <EditMaintenanceDialog
+            record={selectedRecord}
+            open={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+          />
+        </>
       )}
     </div>
   );
@@ -283,7 +338,7 @@ interface StatsCardProps {
 
 function StatsCard({ title, value, description, icon }: StatsCardProps) {
   return (
-    <Card>
+    <Card className="hover:border-primary/50 transition-colors">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         {icon}

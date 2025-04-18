@@ -14,10 +14,9 @@ import {
   Trash2,
   Barcode,
   Copy,
-  Printer
+  Printer,
+  Filter
 } from "lucide-react";
-import { format } from "date-fns";
-import { de } from "date-fns/locale";
 import { EquipmentStatusBadge } from "./EquipmentStatusBadge";
 import { Equipment } from "@/hooks/useEquipment";
 import { EditEquipmentForm } from "./EditEquipmentForm";
@@ -26,17 +25,50 @@ import { BarcodeDialog } from "./BarcodeDialog";
 import { DuplicateEquipmentDialog } from "./DuplicateEquipmentDialog";
 import { useReactToPrint } from "react-to-print";
 import { toast } from "@/components/ui/sonner";
+import { useCategories } from "@/hooks/useCategories";
+import { usePersons } from "@/hooks/usePersons";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { SELECT_ALL_VALUE } from "@/lib/constants";
 
 interface EquipmentListProps {
   equipment: Equipment[];
+  statusFilter?: string;
+  categoryFilter?: string;
+  personFilter?: string;
+  onFilterChange?: (filters: {
+    status?: string;
+    category?: string;
+    person?: string;
+    search?: string;
+  }) => void;
 }
 
-export function EquipmentList({ equipment }: EquipmentListProps) {
+export function EquipmentList({ 
+  equipment,
+  statusFilter,
+  categoryFilter,
+  personFilter,
+  onFilterChange
+}: EquipmentListProps) {
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isBarcodeDialogOpen, setIsBarcodeDialogOpen] = useState(false);
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState(statusFilter || "");
+  const [selectedCategory, setSelectedCategory] = useState(categoryFilter || "");
+  const [selectedPerson, setSelectedPerson] = useState(personFilter || "");
+  
+  const { data: categories = [] } = useCategories();
+  const { data: persons = [] } = usePersons();
   
   // Add ref for printing
   const printRef = useRef<HTMLDivElement>(null);
@@ -73,13 +105,145 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
     setIsDuplicateDialogOpen(true);
   };
 
+  const handleFilterChange = (type: string, value: string) => {
+    switch (type) {
+      case 'status':
+        setSelectedStatus(value);
+        break;
+      case 'category':
+        setSelectedCategory(value);
+        break;
+      case 'person':
+        setSelectedPerson(value);
+        break;
+      case 'search':
+        setSearchTerm(value);
+        break;
+    }
+
+    if (onFilterChange) {
+      onFilterChange({
+        status: type === 'status' ? value : selectedStatus,
+        category: type === 'category' ? value : selectedCategory,
+        person: type === 'person' ? value : selectedPerson,
+        search: type === 'search' ? value : searchTerm
+      });
+    }
+  };
+
+  const filteredEquipment = equipment.filter(item => {
+    if (selectedStatus && item.status !== selectedStatus) {
+      return false;
+    }
+    
+    if (selectedCategory && selectedCategory !== SELECT_ALL_VALUE && item.category_id !== selectedCategory) {
+      return false;
+    }
+    
+    if (selectedPerson && selectedPerson !== SELECT_ALL_VALUE && item.responsible_person_id !== selectedPerson) {
+      return false;
+    }
+    
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        (item.name && item.name.toLowerCase().includes(searchLower)) ||
+        (item.inventory_number && item.inventory_number.toLowerCase().includes(searchLower)) ||
+        (item.serial_number && item.serial_number.toLowerCase().includes(searchLower)) ||
+        (item.barcode && item.barcode.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    return true;
+  });
+
   return (
     <>
-      <div className="flex justify-end mb-4">
-        <Button variant="outline" size="sm" onClick={handlePrint}>
-          <Printer className="h-4 w-4 mr-2" />
-          Drucken
+      <div className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
+        <div className="flex flex-1 flex-col sm:flex-row gap-2 w-full">
+          <Input
+            placeholder="Suchen..."
+            value={searchTerm}
+            onChange={(e) => handleFilterChange('search', e.target.value)}
+            className="w-full sm:w-60"
+          />
+          
+          <Select 
+            value={selectedCategory || SELECT_ALL_VALUE} 
+            onValueChange={(value) => handleFilterChange('category', value)}
+          >
+            <SelectTrigger className="w-full sm:w-40">
+              <SelectValue placeholder="Kategorie" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={SELECT_ALL_VALUE}>Alle Kategorien</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select 
+            value={selectedPerson || SELECT_ALL_VALUE} 
+            onValueChange={(value) => handleFilterChange('person', value)}
+          >
+            <SelectTrigger className="w-full sm:w-40">
+              <SelectValue placeholder="Person" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={SELECT_ALL_VALUE}>Alle Personen</SelectItem>
+              {persons.map((person) => (
+                <SelectItem key={person.id} value={person.id}>
+                  {person.first_name} {person.last_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select 
+            value={selectedStatus} 
+            onValueChange={(value) => handleFilterChange('status', value)}
+          >
+            <SelectTrigger className="w-full sm:w-40">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Alle Status</SelectItem>
+              <SelectItem value="einsatzbereit">Einsatzbereit</SelectItem>
+              <SelectItem value="prüfung fällig">Prüfung fällig</SelectItem>
+              <SelectItem value="wartung">Wartung</SelectItem>
+              <SelectItem value="defekt">Defekt</SelectItem>
+              <SelectItem value="aussortiert">Aussortiert</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => {
+            setSearchTerm("");
+            setSelectedStatus("");
+            setSelectedCategory("");
+            setSelectedPerson("");
+            if (onFilterChange) {
+              onFilterChange({ status: "", category: "", person: "", search: "" });
+            }
+          }}
+          className="min-w-[100px]"
+        >
+          <Filter className="h-4 w-4 mr-2" />
+          Zurücksetzen
         </Button>
+        
+        <div>
+          <Button variant="outline" size="sm" onClick={handlePrint}>
+            <Printer className="h-4 w-4 mr-2" />
+            Drucken
+          </Button>
+        </div>
       </div>
       
       <div ref={printRef} className="rounded-md border">
@@ -95,14 +259,14 @@ export function EquipmentList({ equipment }: EquipmentListProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {equipment.length === 0 ? (
+            {filteredEquipment.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center">
                   Keine Ausrüstung gefunden
                 </TableCell>
               </TableRow>
             ) : (
-              equipment.map((item) => (
+              filteredEquipment.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell>{item.inventory_number || "-"}</TableCell>
                   <TableCell>{item.name}</TableCell>

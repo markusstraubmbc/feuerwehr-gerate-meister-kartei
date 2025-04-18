@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
 import { useMaintenanceTemplates } from "@/hooks/useMaintenanceTemplates";
@@ -15,7 +16,8 @@ import {
   Printer, 
   ChevronDown,
   ChevronUp,
-  Search
+  Search,
+  ArrowLeft
 } from "lucide-react";
 import {
   Drawer,
@@ -48,7 +50,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
-import { SELECT_ALL_VALUE } from "@/lib/constants";
+import { SELECT_ALL_VALUE, SELECT_NONE_VALUE } from "@/lib/constants";
 
 const Maintenance = () => {
   const { data: records = [], isLoading: recordsLoading, error: recordsError } = useMaintenanceRecords();
@@ -58,31 +60,46 @@ const Maintenance = () => {
   const { data: categories = [], isLoading: categoriesLoading } = useCategories();
   
   const [isNewMaintenanceOpen, setIsNewMaintenanceOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("pending");
+  const [completedTab, setCompletedTab] = useState("recent");
   const [selectedPersonId, setSelectedPersonId] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [upcomingMaintenanceFilter, setUpcomingMaintenanceFilter] = useState("unplanned");
   const [upcomingMaintenanceSearchTerm, setUpcomingMaintenanceSearchTerm] = useState("");
   const [maintenanceSearchTerm, setMaintenanceSearchTerm] = useState("");
+  const [completedSearchTerm, setCompletedSearchTerm] = useState("");
   const [isUpcomingMaintenanceOpen, setIsUpcomingMaintenanceOpen] = useState(true);
   const [isMaintenanceIntervalsOpen, setIsMaintenanceIntervalsOpen] = useState(true);
   
   const queryClient = useQueryClient();
   const upcomingMaintenanceRef = useRef<HTMLDivElement>(null);
+  const completedMaintenanceRef = useRef<HTMLDivElement>(null);
 
-  const filteredRecords = records.filter(record => {
-    if (activeTab === "all") {
-    } else if (activeTab === "pending" && record.status !== "ausstehend") {
+  const activeRecords = records.filter(record => record.status !== "abgeschlossen");
+  const completedRecords = records.filter(record => record.status === "abgeschlossen");
+
+  const filteredActiveRecords = activeRecords.filter(record => {
+    if (activeTab === "pending" && record.status !== "ausstehend") {
       return false;
     } else if (activeTab === "scheduled" && record.status !== "geplant") {
       return false;
     } else if (activeTab === "in-progress" && record.status !== "in_bearbeitung") {
       return false;
-    } else if (activeTab === "completed" && record.status !== "abgeschlossen") {
+    }
+    
+    if (selectedPersonId && selectedPersonId !== SELECT_ALL_VALUE && record.performed_by !== selectedPersonId) {
       return false;
     }
     
-    if (selectedPersonId && record.performed_by !== selectedPersonId) {
+    if (selectedCategoryId && selectedCategoryId !== SELECT_ALL_VALUE) {
+      const relatedEquipment = equipmentList.find(e => e.id === record.equipment_id);
+      if (relatedEquipment?.category_id !== selectedCategoryId) {
+        return false;
+      }
+    }
+    
+    if (selectedTemplateId && selectedTemplateId !== SELECT_ALL_VALUE && record.template_id !== selectedTemplateId) {
       return false;
     }
     
@@ -100,11 +117,65 @@ const Maintenance = () => {
     return true;
   });
 
+  const filteredCompletedRecords = completedRecords.filter(record => {
+    if (completedTab === "recent") {
+      // Last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      if (!record.performed_date || new Date(record.performed_date) < thirtyDaysAgo) {
+        return false;
+      }
+    } else if (completedTab === "last-quarter") {
+      // Last quarter (3 months)
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      if (!record.performed_date || new Date(record.performed_date) < threeMonthsAgo) {
+        return false;
+      }
+    } else if (completedTab === "last-year") {
+      // Last year
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      if (!record.performed_date || new Date(record.performed_date) < oneYearAgo) {
+        return false;
+      }
+    }
+    
+    if (selectedPersonId && selectedPersonId !== SELECT_ALL_VALUE && record.performed_by !== selectedPersonId) {
+      return false;
+    }
+    
+    if (selectedCategoryId && selectedCategoryId !== SELECT_ALL_VALUE) {
+      const relatedEquipment = equipmentList.find(e => e.id === record.equipment_id);
+      if (relatedEquipment?.category_id !== selectedCategoryId) {
+        return false;
+      }
+    }
+    
+    if (selectedTemplateId && selectedTemplateId !== SELECT_ALL_VALUE && record.template_id !== selectedTemplateId) {
+      return false;
+    }
+    
+    if (completedSearchTerm) {
+      const searchLower = completedSearchTerm.toLowerCase();
+      const equipmentNameMatches = record.equipment?.name?.toLowerCase().includes(searchLower);
+      const templateNameMatches = record.template?.name?.toLowerCase().includes(searchLower);
+      const notesMatch = record.notes?.toLowerCase().includes(searchLower);
+      
+      if (!equipmentNameMatches && !templateNameMatches && !notesMatch) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
+
   const calculateUpcomingMaintenance = () => {
     const now = new Date();
     const upcomingMaintenance = [];
     
     for (const equipment of equipmentList) {
+      // Only get templates for this equipment's category
       const relevantTemplates = equipment.category_id 
         ? templates.filter(template => 
             template.category_id === equipment.category_id || 
@@ -163,7 +234,7 @@ const Maintenance = () => {
       return false;
     }
     
-    if (selectedCategoryId && item.equipment.category_id !== selectedCategoryId) {
+    if (selectedCategoryId && selectedCategoryId !== SELECT_ALL_VALUE && item.equipment.category_id !== selectedCategoryId) {
       return false;
     }
     
@@ -177,7 +248,7 @@ const Maintenance = () => {
       }
     }
     
-    if (selectedPersonId) {
+    if (selectedPersonId && selectedPersonId !== SELECT_ALL_VALUE) {
       if (item.template.responsible_person_id !== selectedPersonId) {
         return false;
       }
@@ -190,6 +261,22 @@ const Maintenance = () => {
     content: () => upcomingMaintenanceRef.current,
     documentTitle: 'Anstehende_Wartungen',
     pageStyle: '@page { size: auto; margin: 10mm; } @media print { body { font-size: 12pt; } }',
+    onBeforePrint: () => {
+      if (!upcomingMaintenanceRef.current) {
+        toast.error("Drucken konnte nicht gestartet werden");
+      }
+    }
+  });
+  
+  const handlePrintCompleted = useReactToPrint({
+    content: () => completedMaintenanceRef.current,
+    documentTitle: 'Abgeschlossene_Wartungen',
+    pageStyle: '@page { size: auto; margin: 10mm; } @media print { body { font-size: 12pt; } }',
+    onBeforePrint: () => {
+      if (!completedMaintenanceRef.current) {
+        toast.error("Drucken konnte nicht gestartet werden");
+      }
+    }
   });
 
   const handleExportUpcoming = () => {
@@ -211,6 +298,32 @@ const Maintenance = () => {
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Anstehende Wartungen');
       
       XLSX.writeFile(workbook, `Anstehende-Wartungen-${new Date().toISOString().slice(0, 10)}.xlsx`);
+      toast.success("Export erfolgreich abgeschlossen");
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error("Fehler beim Exportieren der Daten");
+    }
+  };
+  
+  const handleExportCompleted = () => {
+    try {
+      const exportData = filteredCompletedRecords.map(record => ({
+        'Ausrüstung': record.equipment.name,
+        'Wartungsvorlage': record.template?.name || 'Keine Vorlage',
+        'Fällig am': format(new Date(record.due_date), "dd.MM.yyyy", { locale: de }),
+        'Durchgeführt am': record.performed_date ? format(new Date(record.performed_date), "dd.MM.yyyy", { locale: de }) : '-',
+        'Verantwortlich': record.performer ? 
+          `${record.performer.first_name} ${record.performer.last_name}` : 
+          'Nicht zugewiesen',
+        'Zeit (Minuten)': record.minutes_spent || '-',
+        'Notizen': record.notes || ''
+      }));
+      
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Abgeschlossene Wartungen');
+      
+      XLSX.writeFile(workbook, `Abgeschlossene-Wartungen-${new Date().toISOString().slice(0, 10)}.xlsx`);
       toast.success("Export erfolgreich abgeschlossen");
     } catch (error) {
       console.error('Export error:', error);
@@ -295,12 +408,17 @@ const Maintenance = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Wartung</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Filter className="h-4 w-4 mr-2" />
-            Filter
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => window.history.back()}
+          >
+            <ArrowLeft className="h-4 w-4" />
           </Button>
+          <h1 className="text-2xl font-bold tracking-tight">Wartung</h1>
+        </div>
+        <div className="flex gap-2">
           <Button size="sm" onClick={() => setIsNewMaintenanceOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Neue Wartung
@@ -317,7 +435,6 @@ const Maintenance = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={SELECT_ALL_VALUE}>Alle Personen</SelectItem>
-              <SelectItem value="none">Keine Zuweisung</SelectItem>
               {persons.map((person) => (
                 <SelectItem key={person.id} value={person.id}>
                   {person.first_name} {person.last_name}
@@ -342,25 +459,130 @@ const Maintenance = () => {
             </SelectContent>
           </Select>
         </div>
+        <div>
+          <label className="text-sm font-medium">Wartungsvorlage</label>
+          <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Alle Vorlagen" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={SELECT_ALL_VALUE}>Alle Vorlagen</SelectItem>
+              {templates.map((template) => (
+                <SelectItem key={template.id} value={template.id}>
+                  {template.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="all">Alle</TabsTrigger>
-          <TabsTrigger value="pending">Ausstehend</TabsTrigger>
-          <TabsTrigger value="scheduled">Geplant</TabsTrigger>
-          <TabsTrigger value="in-progress">In Bearbeitung</TabsTrigger>
-          <TabsTrigger value="completed">Abgeschlossen</TabsTrigger>
-        </TabsList>
-        <TabsContent value={activeTab} className="mt-4">
-          <MaintenanceList 
-            records={filteredRecords} 
-            responsiblePersonId={selectedPersonId === "none" ? "" : selectedPersonId}
-            filterTerm={maintenanceSearchTerm}
-            onFilterChange={setMaintenanceSearchTerm}
-          />
-        </TabsContent>
-      </Tabs>
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold mb-2">Aktive Wartungen</h2>
+          <Tabs defaultValue="pending" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="pending">Ausstehend</TabsTrigger>
+              <TabsTrigger value="scheduled">Geplant</TabsTrigger>
+              <TabsTrigger value="in-progress">In Bearbeitung</TabsTrigger>
+            </TabsList>
+            <TabsContent value={activeTab} className="mt-4">
+              <MaintenanceList 
+                records={filteredActiveRecords} 
+                responsiblePersonId={selectedPersonId === SELECT_NONE_VALUE ? "" : selectedPersonId}
+                filterTerm={maintenanceSearchTerm}
+                onFilterChange={setMaintenanceSearchTerm}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+        
+        <div>
+          <h2 className="text-xl font-semibold mb-2">Abgeschlossene Wartungen</h2>
+          <Tabs defaultValue="recent" value={completedTab} onValueChange={setCompletedTab}>
+            <TabsList>
+              <TabsTrigger value="recent">Letzte 30 Tage</TabsTrigger>
+              <TabsTrigger value="last-quarter">Letztes Quartal</TabsTrigger>
+              <TabsTrigger value="last-year">Letztes Jahr</TabsTrigger>
+              <TabsTrigger value="all">Alle</TabsTrigger>
+            </TabsList>
+            <TabsContent value={completedTab} className="mt-4">
+              <div className="mb-4 flex flex-col sm:flex-row justify-between gap-2">
+                <Input 
+                  placeholder="In abgeschlossenen Wartungen suchen..." 
+                  value={completedSearchTerm} 
+                  onChange={(e) => setCompletedSearchTerm(e.target.value)}
+                  className="sm:max-w-sm" 
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={handleExportCompleted}>
+                    <FileDown className="mr-2 h-4 w-4" />
+                    Exportieren
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handlePrintCompleted}>
+                    <Printer className="mr-2 h-4 w-4" />
+                    Drucken
+                  </Button>
+                </div>
+              </div>
+              
+              <div ref={completedMaintenanceRef} className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Durchgeführt am</TableHead>
+                      <TableHead>Ausrüstung</TableHead>
+                      <TableHead>Wartungstyp</TableHead>
+                      <TableHead>Verantwortlich</TableHead>
+                      <TableHead>Zeit (Min)</TableHead>
+                      <TableHead>Aktionen</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCompletedRecords.length > 0 ? (
+                      filteredCompletedRecords.map((record) => (
+                        <TableRow key={record.id}>
+                          <TableCell>
+                            {record.performed_date ? format(new Date(record.performed_date), "dd.MM.yyyy", { locale: de }) : "-"}
+                          </TableCell>
+                          <TableCell>{record.equipment.name}</TableCell>
+                          <TableCell>{record.template?.name || "Keine Vorlage"}</TableCell>
+                          <TableCell>
+                            {record.performer ? 
+                              `${record.performer.first_name} ${record.performer.last_name}` : 
+                              "Nicht zugewiesen"
+                            }
+                          </TableCell>
+                          <TableCell>{record.minutes_spent || "-"}</TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8 w-8 p-0" 
+                              onClick={() => {
+                                setSelectedRecord(record);
+                                setIsViewDialogOpen(true);
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={6} className="h-24 text-center">
+                          Keine abgeschlossenen Wartungen gefunden
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
 
       <Collapsible 
         open={isUpcomingMaintenanceOpen} 
@@ -566,8 +788,40 @@ const Maintenance = () => {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+      
+      {selectedRecord && isViewDialogOpen && (
+        <ViewMaintenanceDialog
+          record={selectedRecord}
+          open={isViewDialogOpen}
+          onOpenChange={setIsViewDialogOpen}
+        />
+      )}
     </div>
   );
 };
+
+const Table: React.FC<React.HTMLAttributes<HTMLTableElement>> = ({ className, ...props }) => (
+  <table className={`w-full border-collapse ${className || ''}`} {...props} />
+);
+
+const TableHeader: React.FC<React.HTMLAttributes<HTMLTableSectionElement>> = ({ className, ...props }) => (
+  <thead className={`bg-slate-50 ${className || ''}`} {...props} />
+);
+
+const TableRow: React.FC<React.HTMLAttributes<HTMLTableRowElement>> = ({ className, ...props }) => (
+  <tr className={`border-b hover:bg-slate-50 ${className || ''}`} {...props} />
+);
+
+const TableHead: React.FC<React.ThHTMLAttributes<HTMLTableCellElement>> = ({ className, ...props }) => (
+  <th className={`h-10 px-4 text-left align-middle font-medium text-slate-500 ${className || ''}`} {...props} />
+);
+
+const TableBody: React.FC<React.HTMLAttributes<HTMLTableSectionElement>> = ({ className, ...props }) => (
+  <tbody className={className} {...props} />
+);
+
+const TableCell: React.FC<React.TdHTMLAttributes<HTMLTableCellElement>> = ({ className, ...props }) => (
+  <td className={`p-4 align-middle ${className || ''}`} {...props} />
+);
 
 export default Maintenance;

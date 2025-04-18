@@ -1,5 +1,5 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,31 +32,39 @@ import { useReactToPrint } from "react-to-print";
 import * as XLSX from 'xlsx';
 import { toast } from "@/components/ui/sonner";
 import { SELECT_ALL_VALUE } from "@/lib/constants";
+import { useSearchParams } from "react-router-dom";
+import { useCategories } from "@/hooks/useCategories";
+import { usePersons } from "@/hooks/usePersons";
 
 const EquipmentManagement = () => {
   const isMobile = useIsMobile();
   const { data: equipment, isLoading, error } = useEquipment();
   const { data: locations } = useLocations();
+  const { data: categories } = useCategories();
+  const { data: persons } = usePersons();
+  
+  const [searchParams, setSearchParams] = useSearchParams();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [isNewEquipmentOpen, setIsNewEquipmentOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(searchParams.get('category'));
+  const [selectedPerson, setSelectedPerson] = useState<string | null>(searchParams.get('person'));
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(searchParams.get('status'));
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   
   const printRef = useRef(null);
   
-  const filteredEquipment = equipment?.filter(
-    (item) => {
-      const matchesSearch = !searchTerm || 
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.inventory_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.serial_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.barcode?.toLowerCase().includes(searchTerm.toLowerCase());
-        
-      const matchesLocation = !selectedLocation || item.location_id === selectedLocation;
-      
-      return matchesSearch && matchesLocation;
-    }
-  );
+  // Apply URL params to filters
+  useEffect(() => {
+    const status = searchParams.get('status');
+    const category = searchParams.get('category');
+    const person = searchParams.get('person');
+    
+    if (status) setSelectedStatus(status);
+    if (category) setSelectedCategory(category);
+    if (person) setSelectedPerson(person);
+  }, [searchParams]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -64,6 +72,42 @@ const EquipmentManagement = () => {
   
   const handleLocationFilter = (locationId: string) => {
     setSelectedLocation(locationId === SELECT_ALL_VALUE ? null : locationId);
+  };
+  
+  const handleFilterChange = (filters: {
+    status?: string;
+    category?: string;
+    person?: string;
+    search?: string;
+  }) => {
+    const newSearchParams = new URLSearchParams();
+    
+    if (filters.status) {
+      newSearchParams.set('status', filters.status);
+      setSelectedStatus(filters.status);
+    } else {
+      setSelectedStatus(null);
+    }
+    
+    if (filters.category && filters.category !== SELECT_ALL_VALUE) {
+      newSearchParams.set('category', filters.category);
+      setSelectedCategory(filters.category);
+    } else {
+      setSelectedCategory(null);
+    }
+    
+    if (filters.person && filters.person !== SELECT_ALL_VALUE) {
+      newSearchParams.set('person', filters.person);
+      setSelectedPerson(filters.person);
+    } else {
+      setSelectedPerson(null);
+    }
+    
+    if (filters.search) {
+      setSearchTerm(filters.search);
+    }
+    
+    setSearchParams(newSearchParams);
   };
 
   const handlePrintByLocation = useReactToPrint({
@@ -85,7 +129,22 @@ const EquipmentManagement = () => {
   });
 
   const handleExportToExcel = () => {
-    if (!filteredEquipment) return;
+    if (!equipment) return;
+    
+    const filteredEquipment = equipment.filter(item => {
+      const matchesSearch = !searchTerm || 
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.inventory_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.serial_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.barcode?.toLowerCase().includes(searchTerm.toLowerCase());
+        
+      const matchesLocation = !selectedLocation || item.location_id === selectedLocation;
+      const matchesCategory = !selectedCategory || item.category_id === selectedCategory;
+      const matchesPerson = !selectedPerson || item.responsible_person_id === selectedPerson;
+      const matchesStatus = !selectedStatus || item.status === selectedStatus;
+      
+      return matchesSearch && matchesLocation && matchesCategory && matchesPerson && matchesStatus;
+    });
     
     const exportData = filteredEquipment.map(item => ({
       'Inventarnummer': item.inventory_number || '',
@@ -170,38 +229,14 @@ const EquipmentManagement = () => {
           <CardTitle>Ausrüstung verwalten</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-2 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Suche nach ID, Name, Seriennummer oder Barcode..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={handleSearch}
-              />
-            </div>
-            <Select onValueChange={handleLocationFilter} defaultValue={SELECT_ALL_VALUE}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Standort" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={SELECT_ALL_VALUE}>Alle Standorte</SelectItem>
-                {locations?.map((location) => (
-                  <SelectItem key={location.id} value={location.id}>
-                    {location.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button variant="outline" className="flex gap-2">
-              <Filter className="h-4 w-4" />
-              Filter
-            </Button>
-          </div>
-
           <div ref={printRef}>
-            <EquipmentList equipment={filteredEquipment || []} />
+            <EquipmentList 
+              equipment={equipment || []} 
+              statusFilter={selectedStatus || undefined}
+              categoryFilter={selectedCategory || undefined}
+              personFilter={selectedPerson || undefined}
+              onFilterChange={handleFilterChange}
+            />
           </div>
         </CardContent>
       </Card>
