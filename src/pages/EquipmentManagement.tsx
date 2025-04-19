@@ -1,15 +1,13 @@
-import { useState, useRef, useEffect } from "react";
+
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
-  Search,
-  Filter,
-  Plus,
-  FileDown,
   ArrowLeft,
-  Printer,
+  FileDown,
   FileUp,
+  Plus,
+  Printer
 } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
 import { EquipmentList } from "@/components/equipment/EquipmentList";
@@ -24,89 +22,33 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { useLocations } from "@/hooks/useLocations";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ImportEquipmentDialog } from "@/components/equipment/ImportEquipmentDialog";
 import { useReactToPrint } from "react-to-print";
-import * as XLSX from 'xlsx';
 import { toast } from "sonner";
-import { SELECT_ALL_VALUE } from "@/lib/constants";
-import { useSearchParams } from "react-router-dom";
-import { useCategories } from "@/hooks/useCategories";
-import { usePersons } from "@/hooks/usePersons";
+import { EquipmentFilters } from "@/components/equipment/EquipmentFilters";
+import { useEquipmentFilters } from "@/hooks/useEquipmentFilters";
+import { exportEquipmentToExcel } from "@/components/equipment/EquipmentExport";
 
 const EquipmentManagement = () => {
   const isMobile = useIsMobile();
   const { data: equipment, isLoading, error } = useEquipment();
   const { data: locations } = useLocations();
-  const { data: categories } = useCategories();
-  const { data: persons } = usePersons();
   
-  const [searchParams, setSearchParams] = useSearchParams();
-  
-  const [searchTerm, setSearchTerm] = useState("");
   const [isNewEquipmentOpen, setIsNewEquipmentOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(searchParams.get('category'));
-  const [selectedPerson, setSelectedPerson] = useState<string | null>(searchParams.get('person'));
-  const [selectedStatus, setSelectedStatus] = useState<string | null>(searchParams.get('status'));
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   
   const printRef = useRef(null);
-  
-  useEffect(() => {
-    const status = searchParams.get('status');
-    const category = searchParams.get('category');
-    const person = searchParams.get('person');
-    
-    if (status) setSelectedStatus(status);
-    if (category) setSelectedCategory(category);
-    if (person) setSelectedPerson(person);
-  }, [searchParams]);
-
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
-  
-  const handleLocationFilter = (locationId: string) => {
-    setSelectedLocation(locationId === SELECT_ALL_VALUE ? null : locationId);
-  };
-  
-  const handleFilterChange = (filters: {
-    status?: string;
-    category?: string;
-    person?: string;
-    search?: string;
-  }) => {
-    const newSearchParams = new URLSearchParams();
-    
-    if (filters.status) {
-      newSearchParams.set('status', filters.status);
-      setSelectedStatus(filters.status);
-    } else {
-      setSelectedStatus(null);
-    }
-    
-    if (filters.category && filters.category !== SELECT_ALL_VALUE) {
-      newSearchParams.set('category', filters.category);
-      setSelectedCategory(filters.category);
-    } else {
-      setSelectedCategory(null);
-    }
-    
-    if (filters.person && filters.person !== SELECT_ALL_VALUE) {
-      newSearchParams.set('person', filters.person);
-      setSelectedPerson(filters.person);
-    } else {
-      setSelectedPerson(null);
-    }
-    
-    if (filters.search) {
-      setSearchTerm(filters.search);
-    }
-    
-    setSearchParams(newSearchParams);
-  };
+  const {
+    searchTerm,
+    selectedLocation,
+    selectedCategory,
+    selectedPerson,
+    selectedStatus,
+    setSelectedLocation,
+    handleFilterChange,
+    resetFilters
+  } = useEquipmentFilters();
 
   const handlePrintByLocation = useReactToPrint({
     content: () => printRef.current,
@@ -130,53 +72,15 @@ const EquipmentManagement = () => {
   const handleExportToExcel = () => {
     if (!equipment) return;
     
-    const filteredEquipment = equipment.filter(item => {
-      const matchesSearch = !searchTerm || 
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.inventory_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.serial_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.barcode?.toLowerCase().includes(searchTerm.toLowerCase());
-        
-      const matchesLocation = !selectedLocation || item.location_id === selectedLocation;
-      const matchesCategory = !selectedCategory || item.category_id === selectedCategory;
-      const matchesPerson = !selectedPerson || item.responsible_person_id === selectedPerson;
-      const matchesStatus = !selectedStatus || item.status === selectedStatus;
-      
-      return matchesSearch && matchesLocation && matchesCategory && matchesPerson && matchesStatus;
+    exportEquipmentToExcel({
+      equipment,
+      locations,
+      selectedLocation,
+      searchTerm,
+      selectedCategory,
+      selectedPerson,
+      selectedStatus
     });
-    
-    const exportData = filteredEquipment.map(item => ({
-      'Inventarnummer': item.inventory_number || '',
-      'Name': item.name,
-      'Barcode': item.barcode || '',
-      'Seriennummer': item.serial_number || '',
-      'Hersteller': item.manufacturer || '',
-      'Modell': item.model || '',
-      'Kategorie': item.category?.name || '',
-      'Status': item.status,
-      'Letzte Prüfung': item.last_check_date ? new Date(item.last_check_date).toLocaleDateString('de-DE') : '',
-      'Nächste Prüfung': item.next_check_date ? new Date(item.next_check_date).toLocaleDateString('de-DE') : '',
-      'Standort': item.location?.name || '',
-      'Verantwortliche Person': item.responsible_person 
-        ? `${item.responsible_person.first_name} ${item.responsible_person.last_name}`
-        : '',
-      'Kaufdatum': item.purchase_date ? new Date(item.purchase_date).toLocaleDateString('de-DE') : '',
-      'Ersatzdatum': item.replacement_date ? new Date(item.replacement_date).toLocaleDateString('de-DE') : '',
-      'Notizen': item.notes || ''
-    }));
-    
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Ausrüstung');
-    
-    const fileName = `Ausrüstungsliste-${
-      selectedLocation && locations
-        ? locations.find(loc => loc.id === selectedLocation)?.name
-        : 'Alle-Standorte'
-    }-${new Date().toISOString().slice(0, 10)}.xlsx`;
-    
-    XLSX.writeFile(workbook, fileName);
-    toast.success(`Ausrüstungsliste wurde als ${fileName} exportiert`);
   };
   
   if (isLoading) {
@@ -226,6 +130,14 @@ const EquipmentManagement = () => {
         </CardHeader>
         <CardContent>
           <div ref={printRef} className="print-container">
+            <EquipmentFilters 
+              searchTerm={searchTerm}
+              selectedCategory={selectedCategory}
+              selectedPerson={selectedPerson}
+              selectedStatus={selectedStatus}
+              onFilterChange={handleFilterChange}
+              onReset={resetFilters}
+            />
             <EquipmentList 
               equipment={equipment || []} 
               statusFilter={selectedStatus || undefined}
