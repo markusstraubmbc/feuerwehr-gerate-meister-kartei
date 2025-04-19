@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,7 +54,6 @@ const EquipmentManagement = () => {
   
   const printRef = useRef(null);
   
-  // Apply URL params to filters
   useEffect(() => {
     const status = searchParams.get('status');
     const category = searchParams.get('category');
@@ -171,7 +169,6 @@ const EquipmentManagement = () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Ausrüstung');
     
-    // Generate file name with location info if filtered
     const fileName = `Ausrüstungsliste-${
       selectedLocation && locations
         ? locations.find(loc => loc.id === selectedLocation)?.name
@@ -264,28 +261,30 @@ const EquipmentManagement = () => {
         onOpenChange={setIsImportDialogOpen} 
       />
       
-      <style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden;
+      <style>
+        {`
+          @media print {
+            body * {
+              visibility: hidden;
+            }
+            .print-container, .print-container * {
+              visibility: visible;
+            }
+            .print-container {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+            }
+            .no-print {
+              display: none !important;
+            }
+            button, input, select {
+              display: none !important;
+            }
           }
-          .print-container, .print-container * {
-            visibility: visible;
-          }
-          .print-container {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          .no-print {
-            display: none !important;
-          }
-          button, input, select {
-            display: none !important;
-          }
-        }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 };
