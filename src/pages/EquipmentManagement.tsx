@@ -30,7 +30,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ImportEquipmentDialog } from "@/components/equipment/ImportEquipmentDialog";
 import { useReactToPrint } from "react-to-print";
 import * as XLSX from 'xlsx';
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { SELECT_ALL_VALUE } from "@/lib/constants";
 import { useSearchParams } from "react-router-dom";
 import { useCategories } from "@/hooks/useCategories";
@@ -117,6 +117,7 @@ const EquipmentManagement = () => {
         ? locations.find(loc => loc.id === selectedLocation)?.name
         : 'Alle-Standorte'
     }`,
+    pageStyle: '@page { size: auto; margin: 10mm; } @media print { body { font-size: 12pt; } }',
     onBeforePrint: () => {
       if (!printRef.current) {
         toast("Drucken konnte nicht gestartet werden", {
@@ -178,9 +179,7 @@ const EquipmentManagement = () => {
     }-${new Date().toISOString().slice(0, 10)}.xlsx`;
     
     XLSX.writeFile(workbook, fileName);
-    toast("Export erfolgreich", {
-      description: `Ausrüstungsliste wurde als ${fileName} exportiert`
-    });
+    toast.success(`Ausrüstungsliste wurde als ${fileName} exportiert`);
   };
   
   if (isLoading) {
@@ -229,7 +228,7 @@ const EquipmentManagement = () => {
           <CardTitle>Ausrüstung verwalten</CardTitle>
         </CardHeader>
         <CardContent>
-          <div ref={printRef}>
+          <div ref={printRef} className="print-container">
             <EquipmentList 
               equipment={equipment || []} 
               statusFilter={selectedStatus || undefined}
@@ -264,6 +263,29 @@ const EquipmentManagement = () => {
         open={isImportDialogOpen} 
         onOpenChange={setIsImportDialogOpen} 
       />
+      
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .print-container, .print-container * {
+            visibility: visible;
+          }
+          .print-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          .no-print {
+            display: none !important;
+          }
+          button, input, select {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

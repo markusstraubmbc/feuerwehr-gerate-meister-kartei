@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from "react";
 import {
   Dialog,
@@ -10,15 +11,30 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { MaintenanceRecord } from "@/hooks/useMaintenanceRecords";
-import { useToast } from "@/hooks/use-toast";
+import { MaintenanceRecord, getTemplateChecklistUrl } from "@/hooks/useMaintenanceRecords";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Camera, FileUp, Loader2 } from "lucide-react";
+import { AlertCircle, Camera, FileUp, Loader2, MessageSquare } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { usePersons } from "@/hooks/usePersons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMaintenanceTemplates } from "@/hooks/useMaintenanceTemplates";
+import { format } from "date-fns";
+import { Card } from "@/components/ui/card";
+
+interface Comment {
+  id: string;
+  equipment_id: string;
+  person_id: string;
+  comment: string;
+  created_at: string;
+  person?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  };
+}
 
 interface CompleteMaintenanceDialogProps {
   record: MaintenanceRecord;
@@ -31,7 +47,6 @@ export function CompleteMaintenanceDialog({
   open,
   onOpenChange,
 }: CompleteMaintenanceDialogProps) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: persons = [] } = usePersons();
   const { data: templates = [] } = useMaintenanceTemplates();
@@ -45,6 +60,8 @@ export function CompleteMaintenanceDialog({
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [equipmentComments, setEquipmentComments] = useState<Comment[]>([]);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
   
   useEffect(() => {
     if (record.template_id && open) {
@@ -53,7 +70,33 @@ export function CompleteMaintenanceDialog({
         setMinutesSpent(template.estimated_minutes.toString());
       }
     }
-  }, [record.template_id, templates, open, minutesSpent]);
+
+    if (open && record.equipment_id) {
+      loadEquipmentComments(record.equipment_id);
+    }
+  }, [record.template_id, record.equipment_id, templates, open, minutesSpent]);
+  
+  const loadEquipmentComments = async (equipmentId: string) => {
+    setIsLoadingComments(true);
+    try {
+      const { data, error } = await supabase.rpc('get_equipment_comments', { 
+        equipment_id_param: equipmentId 
+      });
+      
+      if (error) {
+        console.error("Error loading equipment comments:", error);
+        return;
+      }
+
+      // Convert the JSON data to Comment type and limit to the latest 3
+      const comments = (data || []) as unknown as Comment[];
+      setEquipmentComments(comments.slice(0, 3));
+    } catch (error) {
+      console.error("Error loading equipment comments:", error);
+    } finally {
+      setIsLoadingComments(false);
+    }
+  };
   
   const resetState = useCallback(() => {
     setNotes("");
@@ -62,6 +105,7 @@ export function CompleteMaintenanceDialog({
     setPerformerId(record.performer?.id || "");
     setMinutesSpent(record.template?.estimated_minutes?.toString() || "");
     setError(null);
+    setEquipmentComments([]);
   }, [record]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,9 +183,12 @@ export function CompleteMaintenanceDialog({
         
       if (uploadError) throw uploadError;
       
-      const { data: publicUrlData } = supabase.storage
+      // Create a signed URL with 1 hour expiry
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('maintenance_docs')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 60 * 60); // 1 hour in seconds
+        
+      if (signedUrlError) throw signedUrlError;
         
       const { error: updateError } = await supabase
         .from('maintenance_records')
@@ -151,7 +198,7 @@ export function CompleteMaintenanceDialog({
           performed_by: performerId,
           notes: notes || null,
           minutes_spent: minutesSpent ? parseInt(minutesSpent) : null,
-          documentation_image_url: publicUrlData.publicUrl
+          documentation_image_url: fileName // Store just the filename
         })
         .eq('id', record.id);
         
@@ -173,21 +220,14 @@ export function CompleteMaintenanceDialog({
         }
       }
       
-      toast({
-        title: "Wartung abgeschlossen",
-        description: "Die Wartung wurde erfolgreich als abgeschlossen markiert.",
-      });
+      toast.success("Die Wartung wurde erfolgreich als abgeschlossen markiert.");
       
       queryClient.invalidateQueries({ queryKey: ["maintenance-records"] });
       onOpenChange(false);
       resetState();
     } catch (err: any) {
       setError(`Fehler: ${err.message}`);
-      toast({
-        variant: "destructive",
-        title: "Fehler",
-        description: "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
-      });
+      toast.error("Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.");
     } finally {
       setIsLoading(false);
     }
@@ -207,6 +247,33 @@ export function CompleteMaintenanceDialog({
         </DialogHeader>
         
         <div className="space-y-6 py-4">
+          {equipmentComments.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-2">
+                <MessageSquare className="h-4 w-4" />
+                <h3 className="text-sm font-medium">Letzte Kommentare zur Ausrüstung</h3>
+              </div>
+              <Card className="p-3">
+                <div className="space-y-3 max-h-[150px] overflow-y-auto">
+                  {equipmentComments.map((comment) => (
+                    <div key={comment.id} className="border-b pb-2 last:border-b-0 last:pb-0">
+                      <div className="flex justify-between items-start text-sm">
+                        <div className="font-medium">
+                          {comment.person ? `${comment.person.first_name} ${comment.person.last_name}` : "Unbekannt"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(comment.created_at), "dd.MM.yyyy")}
+                        </div>
+                      </div>
+                      <div className="mt-1 text-sm whitespace-pre-wrap">{comment.comment}</div>
+                    </div>
+                  ))}
+                  {isLoadingComments && <div className="text-center text-sm">Kommentare werden geladen...</div>}
+                </div>
+              </Card>
+            </div>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="performer">Durchführende Person</Label>
             <Select

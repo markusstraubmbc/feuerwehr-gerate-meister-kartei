@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { 
   Search,
   Plus,
-  MapPin
+  MapPin,
+  ArrowLeft
 } from "lucide-react";
 import { useLocations } from "@/hooks/useLocations";
 import { LocationList } from "@/components/locations/LocationList";
@@ -54,7 +55,16 @@ const Locations = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Standorte</h1>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => window.history.back()}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-2xl font-bold tracking-tight">Standorte</h1>
+        </div>
         <Button size="sm" onClick={() => setIsFormOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Neuer Standort

@@ -12,12 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Equipment } from "@/hooks/useEquipment";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { usePersons } from "@/hooks/usePersons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQueryClient } from "@tanstack/react-query";
-import { Json } from "@/integrations/supabase/types";
 
 interface Comment {
   id: string;
