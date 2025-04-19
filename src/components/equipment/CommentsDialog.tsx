@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -16,6 +17,7 @@ import { format } from "date-fns";
 import { usePersons } from "@/hooks/usePersons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQueryClient } from "@tanstack/react-query";
+import { Json } from "@/integrations/supabase/types";
 
 interface Comment {
   id: string;
@@ -54,7 +56,7 @@ export function CommentsDialog({ equipment, open, onOpenChange }: CommentsDialog
     if (!equipment?.id) return;
 
     try {
-      const { data, error } = await supabase.rpc<Comment[]>('get_equipment_comments', { 
+      const { data, error } = await supabase.rpc('get_equipment_comments', { 
         equipment_id_param: equipment.id 
       });
       
@@ -64,7 +66,8 @@ export function CommentsDialog({ equipment, open, onOpenChange }: CommentsDialog
         return;
       }
 
-      setComments(data || []);
+      // Cast the JSON data to our Comment type
+      setComments((data || []) as Comment[]);
     } catch (error) {
       console.error("Error loading comments:", error);
       toast.error("Fehler beim Laden der Kommentare");
