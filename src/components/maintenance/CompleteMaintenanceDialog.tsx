@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+
+import { useState, useCallback, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,7 @@ import { AlertCircle, Camera, FileUp, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { usePersons } from "@/hooks/usePersons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useMaintenanceTemplates } from "@/hooks/useMaintenanceTemplates";
 
 interface CompleteMaintenanceDialogProps {
   record: MaintenanceRecord;
@@ -33,19 +35,32 @@ export function CompleteMaintenanceDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: persons = [] } = usePersons();
+  const { data: templates = [] } = useMaintenanceTemplates();
   
   const [notes, setNotes] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [performerId, setPerformerId] = useState(record.performer?.id || "");
+  const [minutesSpent, setMinutesSpent] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Get estimated time from template if available
+  useEffect(() => {
+    if (record.template_id && open) {
+      const template = templates.find(t => t.id === record.template_id);
+      if (template && template.estimated_minutes && !minutesSpent) {
+        setMinutesSpent(template.estimated_minutes.toString());
+      }
+    }
+  }, [record.template_id, templates, open, minutesSpent]);
   
   const resetState = useCallback(() => {
     setNotes("");
     setImage(null);
     setImagePreview(null);
     setPerformerId(record.performer?.id || "");
+    setMinutesSpent(record.template?.estimated_minutes?.toString() || "");
     setError(null);
   }, [record]);
 
@@ -142,11 +157,29 @@ export function CompleteMaintenanceDialog({
           performed_date: new Date().toISOString(),
           performed_by: performerId,
           notes: notes || null,
+          minutes_spent: minutesSpent ? parseInt(minutesSpent) : null,
           documentation_image_url: publicUrlData.publicUrl
         })
         .eq('id', record.id);
         
       if (updateError) throw updateError;
+      
+      // If template exists and time was changed, update the template's estimated time
+      if (record.template_id && minutesSpent) {
+        const template = templates.find(t => t.id === record.template_id);
+        if (template && (!template.estimated_minutes || template.estimated_minutes.toString() !== minutesSpent)) {
+          const { error: templateError } = await supabase
+            .from('maintenance_templates')
+            .update({ estimated_minutes: parseInt(minutesSpent) })
+            .eq('id', record.template_id);
+          
+          if (templateError) {
+            console.error("Error updating template time:", templateError);
+          } else {
+            queryClient.invalidateQueries({ queryKey: ["maintenance-templates"] });
+          }
+        }
+      }
       
       toast({
         title: "Wartung abgeschlossen",
@@ -199,6 +232,23 @@ export function CompleteMaintenanceDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="minutes_spent">Aufgewendete Zeit (Minuten)</Label>
+            <Input
+              id="minutes_spent"
+              type="number"
+              min="1"
+              value={minutesSpent}
+              onChange={(e) => setMinutesSpent(e.target.value)}
+              placeholder="Zeit in Minuten"
+            />
+            {record.template?.estimated_minutes && (
+              <p className="text-xs text-muted-foreground">
+                Geschätzte Zeit laut Wartungsvorlage: {record.template.estimated_minutes} Minuten
+              </p>
+            )}
           </div>
           
           <div className="space-y-2">

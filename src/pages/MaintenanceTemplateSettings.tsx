@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft, FileUp, Pencil, Trash2 } from "lucide-react";
+import { Plus, ArrowLeft, FileUp, Pencil, Trash2, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useMaintenanceTemplates } from "@/hooks/useMaintenanceTemplates";
 import { usePersons } from "@/hooks/usePersons";
@@ -12,18 +12,66 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 const MaintenanceTemplateSettings = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: templates = [], isLoading } = useMaintenanceTemplates();
   const { data: persons = [] } = usePersons();
   const [isNewTemplateOpen, setIsNewTemplateOpen] = useState(false);
   const [editTemplate, setEditTemplate] = useState<any | null>(null);
+  const [deleteTemplate, setDeleteTemplate] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const filteredTemplates = templates.filter(
     (template) => template.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleDelete = async () => {
+    if (!deleteTemplate) return;
+    
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("maintenance_templates")
+        .delete()
+        .eq("id", deleteTemplate.id);
+        
+      if (error) throw error;
+      
+      toast({
+        title: "Vorlage gelöscht",
+        description: "Die Wartungsvorlage wurde erfolgreich gelöscht."
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["maintenance-templates"] });
+      setDeleteTemplate(null);
+    } catch (error: any) {
+      console.error("Error deleting template:", error);
+      toast({
+        variant: "destructive",
+        title: "Fehler",
+        description: `Fehler beim Löschen der Vorlage: ${error.message}`
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (isLoading) {
     return <div>Lädt...</div>;
@@ -71,6 +119,8 @@ const MaintenanceTemplateSettings = () => {
                   <th className="p-2 text-left">Kategorie</th>
                   <th className="p-2 text-left">Verantwortliche Person</th>
                   <th className="p-2 text-left">Beschreibung</th>
+                  <th className="p-2 text-left">Zeit (Min)</th>
+                  <th className="p-2 text-left">Ø Zeit (Min)</th>
                   <th className="p-2 text-left">Checkliste</th>
                   <th className="p-2 text-left">Aktionen</th>
                 </tr>
@@ -94,6 +144,13 @@ const MaintenanceTemplateSettings = () => {
                           "-"}
                       </td>
                       <td className="p-2 max-w-xs truncate">{template.description || "-"}</td>
+                      <td className="p-2">{template.estimated_minutes || "-"}</td>
+                      <td className="p-2">
+                        {template.average_minutes_spent ? 
+                          <span className="font-medium">{template.average_minutes_spent}</span> : 
+                          "-"
+                        }
+                      </td>
                       <td className="p-2">
                         {template.checklist_url ? (
                           <Button variant="outline" size="sm" className="h-8 px-2 py-1">
@@ -115,7 +172,11 @@ const MaintenanceTemplateSettings = () => {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setDeleteTemplate(template)}
+                          >
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
                         </div>
@@ -124,7 +185,7 @@ const MaintenanceTemplateSettings = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="p-4 text-center text-muted-foreground">
+                    <td colSpan={9} className="p-4 text-center text-muted-foreground">
                       Keine Wartungsvorlagen gefunden
                     </td>
                   </tr>
@@ -157,6 +218,31 @@ const MaintenanceTemplateSettings = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTemplate} onOpenChange={() => setDeleteTemplate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Wartungsvorlage löschen</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sind Sie sicher, dass Sie diese Wartungsvorlage löschen möchten?
+              <div className="mt-2 font-medium">{deleteTemplate?.name}</div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                Diese Aktion kann nicht rückgängig gemacht werden.
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {isDeleting ? "Löschen..." : "Löschen"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

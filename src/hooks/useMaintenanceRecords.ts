@@ -2,20 +2,39 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { MaintenanceTemplate } from "./useMaintenanceTemplates";
 
 export type MaintenanceRecord = Database["public"]["Tables"]["maintenance_records"]["Row"] & {
   equipment: Database["public"]["Tables"]["equipment"]["Row"];
-  template: Database["public"]["Tables"]["maintenance_templates"]["Row"] | null;
+  template: MaintenanceTemplate | null;
   performer: Database["public"]["Tables"]["persons"]["Row"] | null;
   documentation_image_url?: string | null;
   minutes_spent?: number | null;
 };
 
-export const useMaintenanceRecords = () => {
+// Different sorting methods based on status
+const getOrderingForStatus = (status: string | null) => {
+  switch(status) {
+    case "abgeschlossen":
+      // For completed records, order by performed date descending (newest first)
+      return { column: 'performed_date', ascending: false };
+    case "ausstehend":
+    case "geplant":
+    case "in_bearbeitung":
+    default:
+      // For pending records, order by due date ascending (most urgent first)
+      return { column: 'due_date', ascending: true };
+  }
+};
+
+export const useMaintenanceRecords = (statusFilter?: string) => {
   return useQuery({
-    queryKey: ["maintenance-records"],
+    queryKey: ["maintenance-records", statusFilter],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const ordering = getOrderingForStatus(statusFilter);
+      
+      // Build the query with proper sorting based on status
+      let query = supabase
         .from("maintenance_records")
         .select(`
           *,
@@ -23,7 +42,14 @@ export const useMaintenanceRecords = () => {
           template:template_id (*),
           performer:performed_by (*)
         `)
-        .order('due_date', { ascending: true });
+        .order(ordering.column, { ascending: ordering.ascending });
+      
+      // Apply status filter if provided
+      if (statusFilter) {
+        query = query.eq('status', statusFilter);
+      }
+      
+      const { data, error } = await query;
 
       if (error) throw error;
       
@@ -69,6 +95,40 @@ export const getTemplateChecklistUrl = async (templateId: string): Promise<strin
 // Function to generate custom checklist
 export const generateCustomChecklist = async (record: MaintenanceRecord): Promise<Blob | null> => {
   try {
+    // Get template checks if available
+    let checksList = [];
+    
+    if (record.template?.checks && Array.isArray(record.template.checks)) {
+      checksList = record.template.checks;
+    } else if (record.template?.checks && typeof record.template.checks === 'string') {
+      try {
+        checksList = JSON.parse(record.template.checks);
+      } catch (e) {
+        console.error("Error parsing checks from template:", e);
+        checksList = [];
+      }
+    }
+    
+    // If no checks, add defaults
+    if (!checksList || checksList.length === 0) {
+      checksList = [
+        "Sichtprüfung durchführen",
+        "Funktionsprüfung durchführen",
+        "Sicherheitsprüfung durchführen"
+      ];
+      
+      if (record.template?.description) {
+        checksList.push(record.template.description);
+      }
+      
+      checksList.push("Dokumentation der Prüfung vervollständigen");
+    }
+
+    // Create check items HTML
+    const checksHtml = checksList.map(check => 
+      `<div class="check-item">${check}</div>`
+    ).join('\n');
+    
     // Create a more detailed PDF-like content with proper formatting
     const content = `
     <!DOCTYPE html>
@@ -81,16 +141,18 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
             body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
             h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
             h2 { color: #555; margin-top: 20px; }
-            .info-section { margin: 20px 0; }
+            .info-section { margin: 20px 0; border: 1px solid #ddd; padding: 15px; border-radius: 4px; }
             .info-row { display: flex; margin-bottom: 10px; }
             .info-label { font-weight: bold; width: 200px; }
             .check-item { margin: 15px 0; padding-left: 30px; position: relative; }
             .check-item:before { content: "☐"; position: absolute; left: 0; top: 0; font-size: 1.2em; }
             .signature-section { margin-top: 50px; border-top: 1px solid #ccc; padding-top: 20px; }
             .signature-line { margin-top: 70px; border-top: 1px solid #000; width: 250px; }
+            .time-info { background-color: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 15px; }
             @media print {
                 body { font-size: 12pt; }
                 .no-print { display: none; }
+                .page-break { page-break-after: always; }
             }
         </style>
         <script>
@@ -113,6 +175,10 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
                 <div>${record.equipment.inventory_number || 'Nicht zugewiesen'}</div>
             </div>
             <div class="info-row">
+                <div class="info-label">Seriennummer:</div>
+                <div>${record.equipment.serial_number || 'Nicht zugewiesen'}</div>
+            </div>
+            <div class="info-row">
                 <div class="info-label">Wartungstyp:</div>
                 <div>${record.template?.name || 'Keine Vorlage'}</div>
             </div>
@@ -124,15 +190,18 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
                 <div class="info-label">Verantwortlich:</div>
                 <div>${record.performer ? `${record.performer.first_name} ${record.performer.last_name}` : 'Nicht zugewiesen'}</div>
             </div>
+            
+            <div class="time-info">
+                <div class="info-row">
+                    <div class="info-label">Geschätzte Wartungszeit:</div>
+                    <div>${record.template?.estimated_minutes ? `${record.template.estimated_minutes} Minuten` : 'Nicht definiert'}</div>
+                </div>
+            </div>
         </div>
         
         <h2>DURCHZUFÜHRENDE PRÜFUNGEN:</h2>
         
-        <div class="check-item">Sichtprüfung durchführen</div>
-        <div class="check-item">Funktionsprüfung durchführen</div>
-        <div class="check-item">Sicherheitsprüfung durchführen</div>
-        ${record.template?.description ? `<div class="check-item">${record.template.description}</div>` : ''}
-        <div class="check-item">Dokumentation der Prüfung vervollständigen</div>
+        ${checksHtml}
         
         <div class="signature-section">
             <h2>BESTÄTIGUNG:</h2>
@@ -145,10 +214,19 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
                 <div>________________________</div>
             </div>
             <div class="info-row">
+                <div class="info-label">Benötigte Zeit (Min):</div>
+                <div>________________________</div>
+            </div>
+            <div class="info-row">
                 <div class="info-label">Unterschrift:</div>
                 <div class="signature-line"></div>
             </div>
         </div>
+
+        <div class="page-break"></div>
+
+        <h2>ANLAGEN UND ZUSÄTZLICHE DOKUMENTATION:</h2>
+        <p>Hier können Sie weitere Dokumentation, Fotos oder Notizen anhängen.</p>
         
         <div class="no-print" style="text-align: center; margin-top: 30px;">
             <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Drucken</button>

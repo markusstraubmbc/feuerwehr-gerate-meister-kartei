@@ -17,7 +17,7 @@ import { MaintenanceTemplate } from "@/hooks/useMaintenanceTemplates";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, FileUp, X } from "lucide-react";
+import { Loader2, FileUp, X, Plus, Trash } from "lucide-react";
 
 interface MaintenanceTemplateFormProps {
   template?: MaintenanceTemplate;
@@ -35,10 +35,13 @@ export function MaintenanceTemplateForm({ template, onSuccess }: MaintenanceTemp
   const [intervalMonths, setIntervalMonths] = useState(template?.interval_months?.toString() || "1");
   const [categoryId, setCategoryId] = useState(template?.category_id || "none");
   const [responsiblePersonId, setResponsiblePersonId] = useState(template?.responsible_person_id || "none");
+  const [estimatedMinutes, setEstimatedMinutes] = useState(template?.estimated_minutes?.toString() || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checklistFile, setChecklistFile] = useState<File | null>(null);
   const [existingChecklist, setExistingChecklist] = useState(template?.checklist_url || null);
   const [checklistUploadProgress, setChecklistUploadProgress] = useState(0);
+  const [checks, setChecks] = useState<string[]>(template?.checks || []);
+  const [newCheck, setNewCheck] = useState("");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -52,6 +55,17 @@ export function MaintenanceTemplateForm({ template, onSuccess }: MaintenanceTemp
 
   const handleRemoveExistingChecklist = () => {
     setExistingChecklist(null);
+  };
+
+  const handleAddCheck = () => {
+    if (newCheck.trim()) {
+      setChecks([...checks, newCheck.trim()]);
+      setNewCheck("");
+    }
+  };
+
+  const handleRemoveCheck = (index: number) => {
+    setChecks(checks.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -89,6 +103,8 @@ export function MaintenanceTemplateForm({ template, onSuccess }: MaintenanceTemp
         category_id: categoryId === "none" ? null : categoryId,
         responsible_person_id: responsiblePersonId === "none" ? null : responsiblePersonId,
         checklist_url: checklistUrl,
+        estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
+        checks: checks.length > 0 ? JSON.stringify(checks) : null,
       };
       
       if (template?.id) {
@@ -185,6 +201,19 @@ export function MaintenanceTemplateForm({ template, onSuccess }: MaintenanceTemp
         </div>
         
         <div className="space-y-2">
+          <Label htmlFor="estimated_minutes">Geschätzte Zeit (Minuten)</Label>
+          <Input
+            id="estimated_minutes"
+            name="estimated_minutes"
+            type="number"
+            min="1"
+            value={estimatedMinutes}
+            onChange={(e) => setEstimatedMinutes(e.target.value)}
+            placeholder="Geschätzte Dauer der Wartung"
+          />
+        </div>
+        
+        <div className="space-y-2">
           <Label htmlFor="category">Kategorie</Label>
           <Select value={categoryId} onValueChange={setCategoryId}>
             <SelectTrigger id="category">
@@ -216,6 +245,42 @@ export function MaintenanceTemplateForm({ template, onSuccess }: MaintenanceTemp
               ))}
             </SelectContent>
           </Select>
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        <Label>Durchzuführende Prüfungen</Label>
+        <div className="space-y-2">
+          {checks.map((check, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <Input value={check} readOnly className="flex-grow" />
+              <Button 
+                type="button" 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => handleRemoveCheck(index)}
+              >
+                <Trash className="h-4 w-4 text-red-500" />
+              </Button>
+            </div>
+          ))}
+          
+          <div className="flex items-center gap-2">
+            <Input 
+              placeholder="Neue Prüfung hinzufügen" 
+              value={newCheck}
+              onChange={(e) => setNewCheck(e.target.value)}
+              className="flex-grow"
+            />
+            <Button 
+              type="button" 
+              onClick={handleAddCheck} 
+              variant="outline" 
+              size="sm"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
       

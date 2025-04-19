@@ -10,6 +10,8 @@ export type MaintenanceTemplate = Database["public"]["Tables"]["maintenance_temp
   responsible_person?: Person | null;
   checklist_url?: string | null;
   average_minutes_spent?: number;
+  estimated_minutes?: number;
+  checks?: string[];
 };
 
 export const useMaintenanceTemplates = () => {
@@ -46,9 +48,20 @@ export const useMaintenanceTemplates = () => {
             average_minutes_spent = Math.round(total / records.length);
           }
 
+          // Parse the checks JSON field if it exists
+          let checks: string[] = [];
+          if (template.checks) {
+            try {
+              checks = JSON.parse(template.checks as string);
+            } catch (e) {
+              console.error("Error parsing checks:", e);
+            }
+          }
+
           return {
             ...template,
-            average_minutes_spent
+            average_minutes_spent,
+            checks: checks
           };
         })
       );
