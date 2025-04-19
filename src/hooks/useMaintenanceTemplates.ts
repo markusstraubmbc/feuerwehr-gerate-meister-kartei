@@ -9,13 +9,15 @@ export type MaintenanceTemplate = Database["public"]["Tables"]["maintenance_temp
   category?: Category | null;
   responsible_person?: Person | null;
   checklist_url?: string | null;
+  average_minutes_spent?: number;
 };
 
 export const useMaintenanceTemplates = () => {
   return useQuery({
     queryKey: ["maintenance-templates"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get the templates
+      const { data: templates, error } = await supabase
         .from("maintenance_templates")
         .select(`
           *,
@@ -25,7 +27,33 @@ export const useMaintenanceTemplates = () => {
         .order('name', { ascending: true });
 
       if (error) throw error;
-      return data as unknown as MaintenanceTemplate[];
+
+      // Now get the average minutes spent for each template
+      const templatesWithStats = await Promise.all(
+        templates.map(async (template) => {
+          const { data: records, error: recordsError } = await supabase
+            .from("maintenance_records")
+            .select("minutes_spent")
+            .eq("template_id", template.id)
+            .eq("status", "abgeschlossen")
+            .not("minutes_spent", "is", null);
+
+          if (recordsError) console.error("Error fetching template stats:", recordsError);
+
+          let average_minutes_spent = 0;
+          if (records && records.length > 0) {
+            const total = records.reduce((sum, record) => sum + (record.minutes_spent || 0), 0);
+            average_minutes_spent = Math.round(total / records.length);
+          }
+
+          return {
+            ...template,
+            average_minutes_spent
+          };
+        })
+      );
+
+      return templatesWithStats as MaintenanceTemplate[];
     },
   });
 };

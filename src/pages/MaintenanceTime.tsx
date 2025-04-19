@@ -16,6 +16,7 @@ import { CalendarIcon, FileDown, Printer } from "lucide-react";
 import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
 import { useCategories } from "@/hooks/useCategories";
 import { usePersons } from "@/hooks/usePersons";
+import { useMaintenanceTemplates } from "@/hooks/useMaintenanceTemplates";
 import { Button } from "@/components/ui/button";
 import { 
   Select, 
@@ -57,6 +58,7 @@ import {
 const formSchema = z.object({
   categoryId: z.string().optional(),
   personId: z.string().optional(),
+  templateId: z.string().optional(),
   startDate: z.date({
     required_error: "Startdatum ist erforderlich",
   }),
@@ -69,6 +71,7 @@ const MaintenanceTime = () => {
   const { data: maintenanceRecords = [] } = useMaintenanceRecords();
   const { data: categories = [] } = useCategories();
   const { data: persons = [] } = usePersons();
+  const { data: templates = [] } = useMaintenanceTemplates();
   const [activeTab, setActiveTab] = useState("summary");
   
   const printRef = useRef<HTMLDivElement>(null);
@@ -82,12 +85,13 @@ const MaintenanceTime = () => {
     defaultValues: {
       categoryId: undefined,
       personId: undefined,
+      templateId: undefined,
       startDate: defaultStartDate,
       endDate: defaultEndDate,
     },
   });
   
-  const { categoryId, personId, startDate, endDate } = form.watch();
+  const { categoryId, personId, templateId, startDate, endDate } = form.watch();
   
   // Filter maintenance records based on form values
   const filteredRecords = maintenanceRecords.filter(record => {
@@ -107,12 +111,17 @@ const MaintenanceTime = () => {
     }
     
     // Filter by category
-    if (categoryId && record.equipment?.category_id !== categoryId) {
+    if (categoryId && categoryId !== SELECT_ALL_VALUE && record.equipment?.category_id !== categoryId) {
       return false;
     }
     
     // Filter by person
-    if (personId && record.performed_by !== personId) {
+    if (personId && personId !== SELECT_ALL_VALUE && record.performed_by !== personId) {
+      return false;
+    }
+    
+    // Filter by template
+    if (templateId && templateId !== SELECT_ALL_VALUE && record.template_id !== templateId) {
       return false;
     }
     
@@ -156,6 +165,22 @@ const MaintenanceTime = () => {
     };
   }).filter(p => p.count > 0).sort((a, b) => b.time - a.time);
   
+  // Calculate statistics by template
+  const templateSummary = templates.map(template => {
+    const templateRecords = filteredRecords.filter(record => record.template_id === template.id);
+    const count = templateRecords.length;
+    const time = templateRecords.reduce((sum, record) => sum + (record.minutes_spent || 0), 0);
+    const average = count > 0 ? Math.round(time / count) : 0;
+    
+    return {
+      id: template.id,
+      name: template.name,
+      count,
+      time,
+      average
+    };
+  }).filter(t => t.count > 0).sort((a, b) => b.time - a.time);
+  
   // Prepare chart data
   const categoryChartData = categorySummary.map(cat => ({
     name: cat.name,
@@ -167,6 +192,12 @@ const MaintenanceTime = () => {
     name: p.name,
     "Gesamt (Minuten)": p.time,
     "Durchschnitt pro Wartung": p.average,
+  }));
+  
+  const templateChartData = templateSummary.map(t => ({
+    name: t.name,
+    "Gesamt (Minuten)": t.time,
+    "Durchschnitt pro Wartung": t.average,
   }));
   
   const handlePrint = useReactToPrint({
@@ -192,6 +223,17 @@ const MaintenanceTime = () => {
       
       const summarySheet = XLSX.utils.json_to_sheet(summaryData);
       XLSX.utils.book_append_sheet(workbook, summarySheet, 'Zusammenfassung');
+      
+      // Add template summary sheet
+      const templateData = templateSummary.map(t => ({
+        "Wartungsvorlage": t.name,
+        "Anzahl Wartungen": t.count,
+        "Gesamtzeit (Minuten)": t.time,
+        "Durchschnitt pro Wartung": t.average
+      }));
+      
+      const templateSheet = XLSX.utils.json_to_sheet(templateData);
+      XLSX.utils.book_append_sheet(workbook, templateSheet, 'Nach Wartungsvorlage');
       
       // Add category summary sheet
       const categoryData = categorySummary.map(cat => ({
@@ -220,7 +262,7 @@ const MaintenanceTime = () => {
         "Datum": format(new Date(record.performed_date!), "dd.MM.yyyy", { locale: de }),
         "Ausrüstung": record.equipment?.name || "",
         "Kategorie": categories.find(c => c.id === record.equipment?.category_id)?.name || "",
-        "Wartungstyp": record.template?.name || "",
+        "Wartungsvorlage": record.template?.name || "",
         "Person": record.performer ? `${record.performer.first_name} ${record.performer.last_name}` : "",
         "Zeit (Minuten)": record.minutes_spent || 0
       }));
@@ -262,7 +304,7 @@ const MaintenanceTime = () => {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <FormField
                 control={form.control}
                 name="startDate"
@@ -341,6 +383,34 @@ const MaintenanceTime = () => {
               
               <FormField
                 control={form.control}
+                name="templateId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Wartungsvorlage</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || ""}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Alle Vorlagen" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={SELECT_ALL_VALUE}>Alle Vorlagen</SelectItem>
+                        {templates.map((template) => (
+                          <SelectItem key={template.id} value={template.id}>
+                            {template.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
                 name="categoryId"
                 render={({ field }) => (
                   <FormItem>
@@ -404,12 +474,17 @@ const MaintenanceTime = () => {
           <Badge variant="secondary">
             Zeitraum: {format(startDate, "dd.MM.yyyy", { locale: de })} - {format(endDate, "dd.MM.yyyy", { locale: de })}
           </Badge>
-          {categoryId && (
+          {templateId && templateId !== SELECT_ALL_VALUE && (
+            <Badge variant="secondary">
+              Vorlage: {templates.find(t => t.id === templateId)?.name}
+            </Badge>
+          )}
+          {categoryId && categoryId !== SELECT_ALL_VALUE && (
             <Badge variant="secondary">
               Kategorie: {categories.find(c => c.id === categoryId)?.name}
             </Badge>
           )}
-          {personId && (
+          {personId && personId !== SELECT_ALL_VALUE && (
             <Badge variant="secondary">
               Person: {persons.find(p => p.id === personId)?.first_name} {persons.find(p => p.id === personId)?.last_name}
             </Badge>
@@ -420,6 +495,7 @@ const MaintenanceTime = () => {
       <Tabs defaultValue="summary" value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="summary">Zusammenfassung</TabsTrigger>
+          <TabsTrigger value="templates">Nach Wartungsvorlage</TabsTrigger>
           <TabsTrigger value="categories">Nach Kategorie</TabsTrigger>
           <TabsTrigger value="persons">Nach Person</TabsTrigger>
           <TabsTrigger value="detailed">Detaillierte Daten</TabsTrigger>
@@ -447,6 +523,67 @@ const MaintenanceTime = () => {
                     <p className="text-3xl font-bold">{averageTime} Min.</p>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Wartungsvorlagen-Zeiten</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 px-4">Wartungsvorlage</th>
+                        <th className="text-left py-2 px-4">Anzahl</th>
+                        <th className="text-left py-2 px-4">Gesamtzeit (Min.)</th>
+                        <th className="text-left py-2 px-4">Durchschnitt</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {templateSummary.map(t => (
+                        <tr key={t.id} className="border-b hover:bg-gray-50">
+                          <td className="py-2 px-4">{t.name}</td>
+                          <td className="py-2 px-4">{t.count}</td>
+                          <td className="py-2 px-4">{t.time}</td>
+                          <td className="py-2 px-4">{t.average}</td>
+                        </tr>
+                      ))}
+                      {templateSummary.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="py-4 text-center text-muted-foreground">
+                            Keine Daten für den ausgewählten Zeitraum und Filter verfügbar
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                    <tfoot className="font-medium text-muted-foreground bg-gray-50">
+                      <tr>
+                        <td className="py-2 px-4">Gesamt</td>
+                        <td className="py-2 px-4">{totalCount}</td>
+                        <td className="py-2 px-4">{totalTime}</td>
+                        <td className="py-2 px-4">{averageTime}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                
+                {templateSummary.length > 0 && (
+                  <div className="h-80 mt-8">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={templateChartData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="Gesamt (Minuten)" fill="#8884d8" />
+                        <Bar dataKey="Durchschnitt pro Wartung" fill="#82ca9d" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </CardContent>
             </Card>
             
@@ -493,6 +630,68 @@ const MaintenanceTime = () => {
             </Card>
           </TabsContent>
           
+          <TabsContent value="templates" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Auswertung nach Wartungsvorlage</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 px-4">Wartungsvorlage</th>
+                        <th className="text-left py-2 px-4">Anzahl</th>
+                        <th className="text-left py-2 px-4">Gesamtzeit (Min.)</th>
+                        <th className="text-left py-2 px-4">Durchschnitt</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {templateSummary.map(t => (
+                        <tr key={t.id} className="border-b hover:bg-gray-50">
+                          <td className="py-2 px-4">{t.name}</td>
+                          <td className="py-2 px-4">{t.count}</td>
+                          <td className="py-2 px-4">{t.time}</td>
+                          <td className="py-2 px-4">{t.average}</td>
+                        </tr>
+                      ))}
+                      {templateSummary.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="py-4 text-center text-muted-foreground">
+                            Keine Daten für den ausgewählten Zeitraum und Filter verfügbar
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                    <tfoot className="font-medium text-muted-foreground bg-gray-50">
+                      <tr>
+                        <td className="py-2 px-4">Gesamt</td>
+                        <td className="py-2 px-4">{totalCount}</td>
+                        <td className="py-2 px-4">{totalTime}</td>
+                        <td className="py-2 px-4">{averageTime}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                {templateSummary.length > 0 && (
+                  <div className="h-80 mt-8">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={templateChartData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="Gesamt (Minuten)" fill="#8884d8" />
+                        <Bar dataKey="Durchschnitt pro Wartung" fill="#82ca9d" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
           <TabsContent value="categories" className="mt-4">
             <Card>
               <CardHeader>
@@ -526,6 +725,14 @@ const MaintenanceTime = () => {
                         </tr>
                       )}
                     </tbody>
+                    <tfoot className="font-medium text-muted-foreground bg-gray-50">
+                      <tr>
+                        <td className="py-2 px-4">Gesamt</td>
+                        <td className="py-2 px-4">{totalCount}</td>
+                        <td className="py-2 px-4">{totalTime}</td>
+                        <td className="py-2 px-4">{averageTime}</td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
                 {categorySummary.length > 0 && (
@@ -580,6 +787,14 @@ const MaintenanceTime = () => {
                         </tr>
                       )}
                     </tbody>
+                    <tfoot className="font-medium text-muted-foreground bg-gray-50">
+                      <tr>
+                        <td className="py-2 px-4">Gesamt</td>
+                        <td className="py-2 px-4">{totalCount}</td>
+                        <td className="py-2 px-4">{totalTime}</td>
+                        <td className="py-2 px-4">{averageTime}</td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
                 {personSummary.length > 0 && (
@@ -614,7 +829,7 @@ const MaintenanceTime = () => {
                         <th className="text-left py-2 px-4">Datum</th>
                         <th className="text-left py-2 px-4">Ausrüstung</th>
                         <th className="text-left py-2 px-4">Kategorie</th>
-                        <th className="text-left py-2 px-4">Wartungstyp</th>
+                        <th className="text-left py-2 px-4">Wartungsvorlage</th>
                         <th className="text-left py-2 px-4">Person</th>
                         <th className="text-left py-2 px-4">Zeit (Min.)</th>
                       </tr>
@@ -644,6 +859,12 @@ const MaintenanceTime = () => {
                         </tr>
                       )}
                     </tbody>
+                    <tfoot className="font-medium text-muted-foreground bg-gray-50">
+                      <tr>
+                        <td colSpan={5} className="py-2 px-4">Gesamt</td>
+                        <td className="py-2 px-4">{totalTime}</td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               </CardContent>

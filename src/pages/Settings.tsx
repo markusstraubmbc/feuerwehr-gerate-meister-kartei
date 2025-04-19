@@ -7,7 +7,8 @@ import {
   FileCheck, 
   Settings2, 
   Mail,
-  ThumbsUp 
+  ThumbsUp,
+  ArrowLeft
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -16,7 +17,16 @@ const Settings = () => {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight">Einstellungen</h1>
+      <div className="flex items-center gap-2">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-2xl font-bold tracking-tight">Einstellungen</h1>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate("/person-management")}>

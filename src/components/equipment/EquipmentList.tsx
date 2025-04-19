@@ -253,95 +253,97 @@ export function EquipmentList({
         </div>
       </div>
       
-      <div ref={printRef} className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Inventarnummer</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead className="hidden md:table-cell">Standort</TableHead>
-              <TableHead className="hidden md:table-cell">Kategorie</TableHead>
-              <TableHead className="hidden md:table-cell">Status</TableHead>
-              <TableHead className="hidden md:table-cell">Ersetzt am</TableHead>
-              <TableHead className="hidden md:table-cell">Letzte Wartung</TableHead>
-              <TableHead className="hidden md:table-cell">Nächste Wartung</TableHead>
-              <TableHead className="text-right">Aktionen</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredEquipment.length === 0 ? (
+      <div className="rounded-md border">
+        <div ref={printRef}>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center">
-                  Keine Ausrüstung gefunden
-                </TableCell>
+                <TableHead>Inventarnummer</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead className="hidden md:table-cell">Standort</TableHead>
+                <TableHead className="hidden md:table-cell">Kategorie</TableHead>
+                <TableHead className="hidden md:table-cell">Status</TableHead>
+                <TableHead className="hidden md:table-cell">Ersetzt am</TableHead>
+                <TableHead className="hidden md:table-cell">Letzte Wartung</TableHead>
+                <TableHead className="hidden md:table-cell">Nächste Wartung</TableHead>
+                <TableHead className="text-right print:hidden">Aktionen</TableHead>
               </TableRow>
-            ) : (
-              filteredEquipment.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.inventory_number || "-"}</TableCell>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {item.location?.name || "-"}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {item.category?.name || "-"}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    <EquipmentStatusBadge status={item.status} />
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {item.replacement_date ? format(new Date(item.replacement_date), "dd.MM.yyyy") : "-"}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {item.last_check_date ? format(new Date(item.last_check_date), "dd.MM.yyyy") : "-"}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {item.next_check_date ? format(new Date(item.next_check_date), "dd.MM.yyyy") : "-"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleBarcode(item)}
-                      >
-                        <Barcode className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleComments(item)}
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDuplicate(item)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(item)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(item)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+            </TableHeader>
+            <TableBody>
+              {filteredEquipment.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-24 text-center">
+                    Keine Ausrüstung gefunden
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                filteredEquipment.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>{item.inventory_number || "-"}</TableCell>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {item.location?.name || "-"}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {item.category?.name || "-"}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <EquipmentStatusBadge status={item.status} />
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {item.replacement_date ? format(new Date(item.replacement_date), "dd.MM.yyyy") : "-"}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {item.last_check_date ? format(new Date(item.last_check_date), "dd.MM.yyyy") : "-"}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {item.next_check_date ? format(new Date(item.next_check_date), "dd.MM.yyyy") : "-"}
+                    </TableCell>
+                    <TableCell className="text-right print:hidden">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleBarcode(item)}
+                        >
+                          <Barcode className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleComments(item)}
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDuplicate(item)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(item)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(item)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {selectedEquipment && (
