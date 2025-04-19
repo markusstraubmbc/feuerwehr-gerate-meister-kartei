@@ -52,7 +52,7 @@ export const useMaintenanceTemplates = () => {
           let checks: string[] = [];
           if (template.checks) {
             try {
-              checks = JSON.parse(template.checks as string);
+              checks = JSON.parse(template.checks);
             } catch (e) {
               console.error("Error parsing checks:", e);
             }
@@ -61,7 +61,7 @@ export const useMaintenanceTemplates = () => {
           return {
             ...template,
             average_minutes_spent,
-            checks: checks
+            checks
           };
         })
       );

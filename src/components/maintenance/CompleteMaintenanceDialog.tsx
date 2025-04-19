@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import {
   Dialog,
@@ -41,11 +40,12 @@ export function CompleteMaintenanceDialog({
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [performerId, setPerformerId] = useState(record.performer?.id || "");
-  const [minutesSpent, setMinutesSpent] = useState<string>("");
+  const [minutesSpent, setMinutesSpent] = useState<string>(
+    record.template?.estimated_minutes?.toString() || ""
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Get estimated time from template if available
   useEffect(() => {
     if (record.template_id && open) {
       const template = templates.find(t => t.id === record.template_id);
@@ -67,7 +67,6 @@ export function CompleteMaintenanceDialog({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Check if the file is an image
       if (!file.type.startsWith("image/")) {
         setError("Die hochgeladene Datei muss ein Bild sein.");
         return;
@@ -75,7 +74,6 @@ export function CompleteMaintenanceDialog({
       
       setImage(file);
       
-      // Create a preview
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
@@ -97,7 +95,6 @@ export function CompleteMaintenanceDialog({
       if (inputElement.files && inputElement.files[0]) {
         const file = inputElement.files[0];
         
-        // Check if the file is an image
         if (!file.type.startsWith("image/")) {
           setError("Die aufgenommene Datei muss ein Bild sein.");
           return;
@@ -105,7 +102,6 @@ export function CompleteMaintenanceDialog({
         
         setImage(file);
         
-        // Create a preview
         const reader = new FileReader();
         reader.onload = (event) => {
           if (event.target?.result) {
@@ -133,7 +129,6 @@ export function CompleteMaintenanceDialog({
       
       setIsLoading(true);
       
-      // Upload image
       const timestamp = Date.now();
       const fileExt = image.name.split('.').pop();
       const fileName = `maintenance-${record.id}-${timestamp}.${fileExt}`;
@@ -144,12 +139,10 @@ export function CompleteMaintenanceDialog({
         
       if (uploadError) throw uploadError;
       
-      // Get public URL
       const { data: publicUrlData } = supabase.storage
         .from('maintenance_docs')
         .getPublicUrl(fileName);
         
-      // Update maintenance record
       const { error: updateError } = await supabase
         .from('maintenance_records')
         .update({
@@ -164,7 +157,6 @@ export function CompleteMaintenanceDialog({
         
       if (updateError) throw updateError;
       
-      // If template exists and time was changed, update the template's estimated time
       if (record.template_id && minutesSpent) {
         const template = templates.find(t => t.id === record.template_id);
         if (template && (!template.estimated_minutes || template.estimated_minutes.toString() !== minutesSpent)) {

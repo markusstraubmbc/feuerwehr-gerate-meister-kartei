@@ -13,7 +13,7 @@ export type MaintenanceRecord = Database["public"]["Tables"]["maintenance_record
 };
 
 // Different sorting methods based on status
-const getOrderingForStatus = (status: string | null) => {
+const getOrderingForStatus = (status: Database["public"]["Enums"]["maintenance_status"] | null) => {
   switch(status) {
     case "abgeschlossen":
       // For completed records, order by performed date descending (newest first)
@@ -27,7 +27,7 @@ const getOrderingForStatus = (status: string | null) => {
   }
 };
 
-export const useMaintenanceRecords = (statusFilter?: string) => {
+export const useMaintenanceRecords = (statusFilter?: Database["public"]["Enums"]["maintenance_status"]) => {
   return useQuery({
     queryKey: ["maintenance-records", statusFilter],
     queryFn: async () => {

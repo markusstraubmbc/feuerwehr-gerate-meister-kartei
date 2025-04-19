@@ -213,8 +213,10 @@ export type Database = {
         Row: {
           category_id: string | null
           checklist_url: string | null
+          checks: string | null
           created_at: string
           description: string | null
+          estimated_minutes: number | null
           id: string
           interval_months: number
           name: string
@@ -224,8 +226,10 @@ export type Database = {
         Insert: {
           category_id?: string | null
           checklist_url?: string | null
+          checks?: string | null
           created_at?: string
           description?: string | null
+          estimated_minutes?: number | null
           id?: string
           interval_months: number
           name: string
@@ -235,8 +239,10 @@ export type Database = {
         Update: {
           category_id?: string | null
           checklist_url?: string | null
+          checks?: string | null
           created_at?: string
           description?: string | null
+          estimated_minutes?: number | null
           id?: string
           interval_months?: number
           name?: string
