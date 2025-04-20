@@ -68,8 +68,8 @@ export function CommentsDialog({ equipment, open, onOpenChange }: CommentsDialog
         return;
       }
 
-      // Convert the JSON data to our Comment type with proper type assertion
-      setComments(data ? data as Comment[] : []);
+      // Fix: Proper type assertion for the JSON data returned from the RPC call
+      setComments(data ? (data as unknown as Comment[]) : []);
     } catch (error) {
       console.error("Error loading comments:", error);
       toast.error("Fehler beim Laden der Kommentare");
