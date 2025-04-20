@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Equipment } from "@/hooks/useEquipment";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface DuplicateEquipmentDialogProps {

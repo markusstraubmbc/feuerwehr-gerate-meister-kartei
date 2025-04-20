@@ -65,8 +65,8 @@ export function CommentsDialog({ equipment, open, onOpenChange }: CommentsDialog
         return;
       }
 
-      // Fix: Properly assert the type of data
-      setComments((data || []) as Comment[]);
+      // Fix: Add proper type assertion for the data returned from Supabase RPC
+      setComments(data ? (data as unknown as Comment[]) : []);
     } catch (error) {
       console.error("Error loading comments:", error);
       toast.error("Fehler beim Laden der Kommentare");

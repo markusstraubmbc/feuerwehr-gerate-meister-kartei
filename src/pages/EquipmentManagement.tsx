@@ -204,7 +204,8 @@ const EquipmentManagement = () => {
         onOpenChange={setIsImportDialogOpen} 
       />
       
-      <style jsx global>{`
+      <style>
+        {`
         @media print {
           body * {
             visibility: hidden;
@@ -228,7 +229,8 @@ const EquipmentManagement = () => {
             display: none !important;
           }
         }
-      `}</style>
+      `}
+      </style>
     </div>
   );
 };
