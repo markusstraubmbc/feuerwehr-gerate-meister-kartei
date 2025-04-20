@@ -79,8 +79,10 @@ export function CompletedMaintenanceReport({
                     <div><strong>Zeit (Minuten):</strong> {record.minutes_spent || "-"}</div>
                   </div>
                   <div className="space-y-1">
-                    <div><strong>Standort:</strong> {record.equipment.location?.name || "Nicht zugewiesen"}</div>
-                    <div><strong>Kategorie:</strong> {record.equipment.category?.name || "Nicht zugewiesen"}</div>
+                    <div><strong>Standort:</strong> {record.equipment.location_id ? 
+                      (record.equipment.location?.name || "Nicht zugewiesen") : "Nicht zugewiesen"}</div>
+                    <div><strong>Kategorie:</strong> {record.equipment.category_id ? 
+                      (record.equipment.category?.name || "Nicht zugewiesen") : "Nicht zugewiesen"}</div>
                     <div><strong>Ausgeführt am:</strong> {record.performed_date ? 
                       format(new Date(record.performed_date), "dd.MM.yyyy", { locale: de }) : 
                       "-"}</div>

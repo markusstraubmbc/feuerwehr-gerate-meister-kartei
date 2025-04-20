@@ -1,3 +1,4 @@
+
 import * as XLSX from 'xlsx';
 import { MaintenanceRecord } from "@/hooks/useMaintenanceRecords";
 import { MaintenanceTemplate } from "@/hooks/useMaintenanceTemplates";
@@ -45,8 +46,10 @@ const exportCompletedReports = ({ records, templateName, startDate, endDate }: E
     'Zeit (Minuten)': record.minutes_spent || '-',
     'Geplant für': format(new Date(record.due_date), "dd.MM.yyyy", { locale: de }),
     'Inventarnummer': record.equipment.inventory_number || '-',
-    'Standort': record.equipment.location?.name || 'Nicht zugewiesen',
-    'Kategorie': record.equipment.category?.name || 'Nicht zugewiesen',
+    'Standort': record.equipment.location_id ? 
+      (record.equipment.location?.name || 'Nicht zugewiesen') : 'Nicht zugewiesen',
+    'Kategorie': record.equipment.category_id ?
+      (record.equipment.category?.name || 'Nicht zugewiesen') : 'Nicht zugewiesen',
     'Notizen': record.notes || '-'
   }));
   

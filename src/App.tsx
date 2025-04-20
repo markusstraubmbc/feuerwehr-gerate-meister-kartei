@@ -29,6 +29,7 @@ const queryClient = new QueryClient({
   },
 });
 
+// Update router configuration to use Outlet instead of direct children
 const router = createBrowserRouter([
   {
     path: "/",
