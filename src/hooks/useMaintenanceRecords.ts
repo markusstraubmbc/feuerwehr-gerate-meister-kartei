@@ -138,19 +138,69 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-            body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-            h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
-            h2 { color: #555; margin-top: 20px; }
-            .info-section { margin: 20px 0; border: 1px solid #ddd; padding: 15px; border-radius: 4px; }
-            .info-row { display: flex; margin-bottom: 10px; }
-            .info-label { font-weight: bold; width: 200px; }
-            .check-item { margin: 15px 0; padding-left: 30px; position: relative; }
-            .check-item:before { content: "☐"; position: absolute; left: 0; top: 0; font-size: 1.2em; }
-            .signature-section { margin-top: 50px; border-top: 1px solid #ccc; padding-top: 20px; }
-            .signature-line { margin-top: 70px; border-top: 1px solid #000; width: 250px; }
-            .time-info { background-color: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 15px; }
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 20px; 
+              line-height: 1.4; 
+              font-size: 10pt; 
+            }
+            h1 { 
+              color: #333; 
+              border-bottom: 2px solid #333; 
+              padding-bottom: 8px; 
+              font-size: 14pt;
+              margin-top: 0;
+            }
+            h2 { 
+              color: #555; 
+              margin-top: 15px; 
+              font-size: 12pt;
+            }
+            .info-section { 
+              margin: 15px 0; 
+              border: 1px solid #ddd; 
+              padding: 12px; 
+              border-radius: 4px; 
+            }
+            .info-row { 
+              display: flex; 
+              margin-bottom: 8px; 
+            }
+            .info-label { 
+              font-weight: bold; 
+              width: 160px; 
+            }
+            .check-item { 
+              margin: 10px 0; 
+              padding-left: 25px; 
+              position: relative; 
+            }
+            .check-item:before { 
+              content: "☐"; 
+              position: absolute; 
+              left: 0; 
+              top: 0; 
+              font-size: 1.1em; 
+            }
+            .signature-section { 
+              margin-top: 30px; 
+              border-top: 1px solid #ccc; 
+              padding-top: 15px; 
+            }
+            .signature-line { 
+              margin-top: 50px; 
+              border-top: 1px solid #000; 
+              width: 200px; 
+            }
+            .time-info { 
+              background-color: #f8f9fa; 
+              padding: 8px; 
+              border-radius: 4px; 
+              margin-top: 10px; 
+            }
             @media print {
-                body { font-size: 12pt; }
+                @page { size: portrait; }
+                body { font-size: 10pt; }
                 .no-print { display: none; }
                 .page-break { page-break-after: always; }
             }
@@ -223,11 +273,6 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
             </div>
         </div>
 
-        <div class="page-break"></div>
-
-        <h2>ANLAGEN UND ZUSÄTZLICHE DOKUMENTATION:</h2>
-        <p>Hier können Sie weitere Dokumentation, Fotos oder Notizen anhängen.</p>
-        
         <div class="no-print" style="text-align: center; margin-top: 30px;">
             <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Drucken</button>
         </div>

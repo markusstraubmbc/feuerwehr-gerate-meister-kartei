@@ -57,10 +57,41 @@ const EquipmentManagement = () => {
         ? locations.find(loc => loc.id === selectedLocation)?.name
         : 'Alle-Standorte'
     }`,
-    pageStyle: '@page { size: auto; margin: 10mm; } @media print { body { font-size: 12pt; } }',
+    pageStyle: `
+      @page { 
+        size: auto; 
+        margin: 10mm; 
+      } 
+      @media print { 
+        body { 
+          font-size: 12pt; 
+        }
+        .no-print { 
+          display: none !important; 
+        }
+        button, input, select { 
+          display: none !important; 
+        }
+      }
+    `,
+    onBeforeGetContent: () => {
+      // Add a print-only class to the container before printing
+      if (printRef.current) {
+        const element = printRef.current as HTMLElement;
+        element.classList.add('is-printing');
+      }
+      return Promise.resolve();
+    },
+    onAfterPrint: () => {
+      // Remove the print-only class after printing
+      if (printRef.current) {
+        const element = printRef.current as HTMLElement;
+        element.classList.remove('is-printing');
+      }
+    },
     onBeforePrint: () => {
       if (!printRef.current) {
-        toast("Drucken konnte nicht gestartet werden", {
+        toast.error("Drucken konnte nicht gestartet werden", {
           description: "Es gab ein Problem beim Vorbereiten der Druckansicht."
         });
       } else {
@@ -150,7 +181,7 @@ const EquipmentManagement = () => {
       </Card>
 
       <Drawer open={isNewEquipmentOpen} onOpenChange={setIsNewEquipmentOpen}>
-        <DrawerContent>
+        <DrawerContent className="max-h-[90vh] overflow-y-auto">
           <DrawerHeader>
             <DrawerTitle>Neue Ausrüstung anlegen</DrawerTitle>
             <DrawerDescription>
@@ -173,30 +204,31 @@ const EquipmentManagement = () => {
         onOpenChange={setIsImportDialogOpen} 
       />
       
-      <style>
-        {`
-          @media print {
-            body * {
-              visibility: hidden;
-            }
-            .print-container, .print-container * {
-              visibility: visible;
-            }
-            .print-container {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 100%;
-            }
-            .no-print {
-              display: none !important;
-            }
-            button, input, select {
-              display: none !important;
-            }
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden;
           }
-        `}
-      </style>
+          .print-container, .print-container * {
+            visibility: visible;
+          }
+          .print-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          .no-print, .no-print * {
+            display: none !important;
+          }
+          .action-buttons, button, input, select {
+            display: none !important;
+          }
+          .is-printing .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };
