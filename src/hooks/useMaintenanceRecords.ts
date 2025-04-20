@@ -92,6 +92,25 @@ export const getTemplateChecklistUrl = async (templateId: string): Promise<strin
   }
 };
 
+// Function to get latest comments for an equipment
+export const getLatestEquipmentComments = async (equipmentId: string, limit: number = 3): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase.rpc('get_equipment_comments', { 
+      equipment_id_param: equipmentId 
+    });
+    
+    if (error) {
+      console.error("Error loading comments:", error);
+      return [];
+    }
+    
+    return Array.isArray(data) ? (data as any[]).slice(0, limit) : [];
+  } catch (error) {
+    console.error("Error loading comments:", error);
+    return [];
+  }
+};
+
 // Function to generate custom checklist
 export const generateCustomChecklist = async (record: MaintenanceRecord): Promise<Blob | null> => {
   try {
@@ -124,10 +143,32 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
       checksList.push("Dokumentation der Prüfung vervollständigen");
     }
 
+    // Get latest comments for the equipment
+    const latestComments = await getLatestEquipmentComments(record.equipment_id);
+
     // Create check items HTML
     const checksHtml = checksList.map(check => 
       `<div class="check-item">${check}</div>`
     ).join('\n');
+    
+    // Create comments HTML if there are any
+    let commentsHtml = '';
+    if (latestComments && latestComments.length > 0) {
+      commentsHtml = `
+        <h2>LETZTE KOMMENTARE:</h2>
+        <div class="comments-section">
+          ${latestComments.map(comment => `
+            <div class="comment">
+              <div class="comment-header">
+                <strong>${comment.person?.first_name} ${comment.person?.last_name}</strong> 
+                <span class="comment-date">${new Date(comment.created_at).toLocaleDateString('de-DE')}</span>
+              </div>
+              <div class="comment-content">${comment.comment}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
     
     // Create a more detailed PDF-like content with proper formatting
     const content = `
@@ -141,37 +182,38 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
             body { 
               font-family: Arial, sans-serif; 
               margin: 20px; 
-              line-height: 1.4; 
-              font-size: 10pt; 
+              line-height: 1.3; 
+              font-size: 9pt; 
             }
             h1 { 
               color: #333; 
               border-bottom: 2px solid #333; 
               padding-bottom: 8px; 
-              font-size: 14pt;
+              font-size: 13pt;
               margin-top: 0;
             }
             h2 { 
               color: #555; 
               margin-top: 15px; 
-              font-size: 12pt;
+              font-size: 11pt;
+              margin-bottom: 8px;
             }
             .info-section { 
               margin: 15px 0; 
               border: 1px solid #ddd; 
-              padding: 12px; 
+              padding: 10px; 
               border-radius: 4px; 
             }
             .info-row { 
               display: flex; 
-              margin-bottom: 8px; 
+              margin-bottom: 6px; 
             }
             .info-label { 
               font-weight: bold; 
               width: 160px; 
             }
             .check-item { 
-              margin: 10px 0; 
+              margin: 8px 0; 
               padding-left: 25px; 
               position: relative; 
             }
@@ -183,24 +225,52 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
               font-size: 1.1em; 
             }
             .signature-section { 
-              margin-top: 30px; 
+              margin-top: 25px; 
               border-top: 1px solid #ccc; 
               padding-top: 15px; 
             }
             .signature-line { 
-              margin-top: 50px; 
+              margin-top: 40px; 
               border-top: 1px solid #000; 
               width: 200px; 
             }
             .time-info { 
               background-color: #f8f9fa; 
-              padding: 8px; 
+              padding: 6px; 
               border-radius: 4px; 
               margin-top: 10px; 
             }
+            .comments-section {
+              margin-top: 10px;
+              border: 1px solid #eee;
+              padding: 6px;
+              font-size: 8pt;
+              border-radius: 4px;
+            }
+            .comment {
+              margin-bottom: 8px;
+              padding-bottom: 6px;
+              border-bottom: 1px dotted #ccc;
+            }
+            .comment:last-child {
+              border-bottom: none;
+              margin-bottom: 0;
+            }
+            .comment-header {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 3px;
+            }
+            .comment-date {
+              color: #777;
+              font-size: 7pt;
+            }
+            .comment-content {
+              margin-top: 3px;
+            }
             @media print {
                 @page { size: portrait; }
-                body { font-size: 10pt; }
+                body { font-size: 9pt; }
                 .no-print { display: none; }
                 .page-break { page-break-after: always; }
             }
@@ -252,6 +322,8 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
         <h2>DURCHZUFÜHRENDE PRÜFUNGEN:</h2>
         
         ${checksHtml}
+        
+        ${commentsHtml}
         
         <div class="signature-section">
             <h2>BESTÄTIGUNG:</h2>
