@@ -47,9 +47,9 @@ const exportCompletedReports = ({ records, templateName, startDate, endDate }: E
     'Geplant für': format(new Date(record.due_date), "dd.MM.yyyy", { locale: de }),
     'Inventarnummer': record.equipment.inventory_number || '-',
     'Standort': record.equipment.location_id ? 
-      (record.equipment.location?.name || 'Nicht zugewiesen') : 'Nicht zugewiesen',
+      (record.equipment?.location?.name || 'Nicht zugewiesen') : 'Nicht zugewiesen',
     'Kategorie': record.equipment.category_id ?
-      (record.equipment.category?.name || 'Nicht zugewiesen') : 'Nicht zugewiesen',
+      (record.equipment?.category?.name || 'Nicht zugewiesen') : 'Nicht zugewiesen',
     'Notizen': record.notes || '-'
   }));
   

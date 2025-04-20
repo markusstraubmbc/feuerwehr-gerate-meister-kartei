@@ -3,9 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { MaintenanceTemplate } from "./useMaintenanceTemplates";
+import { Equipment } from "./useEquipment";
 
 export type MaintenanceRecord = Database["public"]["Tables"]["maintenance_records"]["Row"] & {
-  equipment: Database["public"]["Tables"]["equipment"]["Row"];
+  equipment: Equipment;
   template: MaintenanceTemplate | null;
   performer: Database["public"]["Tables"]["persons"]["Row"] | null;
   documentation_image_url?: string | null;
