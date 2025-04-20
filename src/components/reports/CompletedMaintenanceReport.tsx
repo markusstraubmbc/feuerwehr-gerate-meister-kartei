@@ -32,10 +32,10 @@ export function CompletedMaintenanceReport({
     <div className="space-y-6">
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle>Abgeschlossene Wartungen Bericht</CardTitle>
+          <CardTitle className="text-base">Abgeschlossene Wartungen Bericht</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-sm space-y-2">
+          <div className="text-xs space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <div><strong>Wartungsvorlage:</strong></div>
               <div>{templateName}</div>
@@ -58,19 +58,19 @@ export function CompletedMaintenanceReport({
       {records.length > 0 ? (
         records.map(record => (
           <Card key={record.id} className="page-break-inside-avoid">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <div className="flex flex-wrap justify-between items-center">
-                <CardTitle className="text-lg">
+                <CardTitle className="text-sm">
                   {record.equipment.name} - {record.template?.name || "Keine Vorlage"}
                 </CardTitle>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   {record.performed_date && format(new Date(record.performed_date), "dd.MM.yyyy", { locale: de })}
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-xs">
                   <div className="space-y-1">
                     <div><strong>Inventarnummer:</strong> {record.equipment.inventory_number || "Keine"}</div>
                     <div><strong>Verantwortlich:</strong> {record.performer ? 
@@ -90,19 +90,19 @@ export function CompletedMaintenanceReport({
                 </div>
                 
                 {record.notes && (
-                  <div className="mt-3">
-                    <h4 className="text-sm font-semibold mb-1">Anmerkungen:</h4>
-                    <div className="border rounded p-2 whitespace-pre-wrap text-sm">{record.notes}</div>
+                  <div className="mt-2">
+                    <h4 className="text-xs font-semibold mb-1">Anmerkungen:</h4>
+                    <div className="border rounded p-1 whitespace-pre-wrap text-xs">{record.notes}</div>
                   </div>
                 )}
                 
                 {record.documentation_image_url && (
-                  <div className="mt-3">
-                    <h4 className="text-sm font-semibold mb-1">Dokumentation:</h4>
+                  <div className="mt-2">
+                    <h4 className="text-xs font-semibold mb-1">Dokumentation:</h4>
                     <img 
                       src={record.documentation_image_url} 
                       alt="Dokumentation"
-                      className="border rounded max-h-[300px] object-contain mx-auto"
+                      className="border rounded max-h-[200px] object-contain mx-auto"
                     />
                   </div>
                 )}
@@ -112,7 +112,7 @@ export function CompletedMaintenanceReport({
         ))
       ) : (
         <Card>
-          <CardContent className="py-6 text-center text-muted-foreground">
+          <CardContent className="py-4 text-center text-muted-foreground text-xs">
             Keine abgeschlossenen Wartungen gefunden für diesen Zeitraum
           </CardContent>
         </Card>
@@ -126,6 +126,11 @@ export function CompletedMaintenanceReport({
         @media print {
           .print-container {
             padding: 20px;
+            font-size: 10px;
+          }
+          @page {
+            size: portrait;
+            margin: 10mm;
           }
         }
       `}</style>

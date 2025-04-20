@@ -33,25 +33,23 @@ export function DuplicateEquipmentDialog({ equipment, open, onOpenChange }: Dupl
     setIsProcessing(true);
     try {
       // Create a clean copy of the equipment object for duplication
-      const equipmentToDuplicate: any = {};
-      
-      // Copy only the fields we want to duplicate
-      // This avoids issues with nested objects that cause problems with supabase insert
-      equipmentToDuplicate.name = duplicateName.trim();
-      equipmentToDuplicate.inventory_number = equipment.inventory_number;
-      equipmentToDuplicate.barcode = equipment.barcode;
-      equipmentToDuplicate.serial_number = equipment.serial_number;
-      equipmentToDuplicate.manufacturer = equipment.manufacturer;
-      equipmentToDuplicate.model = equipment.model;
-      equipmentToDuplicate.status = equipment.status;
-      equipmentToDuplicate.notes = equipment.notes;
-      equipmentToDuplicate.purchase_date = equipment.purchase_date;
-      equipmentToDuplicate.replacement_date = equipment.replacement_date;
-      equipmentToDuplicate.last_check_date = equipment.last_check_date;
-      equipmentToDuplicate.next_check_date = equipment.next_check_date;
-      equipmentToDuplicate.category_id = equipment.category_id;
-      equipmentToDuplicate.location_id = equipment.location_id;
-      equipmentToDuplicate.responsible_person_id = equipment.responsible_person_id;
+      const equipmentToDuplicate: any = {
+        name: duplicateName.trim(),
+        inventory_number: equipment.inventory_number,
+        barcode: equipment.barcode,
+        serial_number: equipment.serial_number,
+        manufacturer: equipment.manufacturer,
+        model: equipment.model,
+        status: equipment.status,
+        notes: equipment.notes,
+        purchase_date: equipment.purchase_date,
+        replacement_date: equipment.replacement_date,
+        last_check_date: equipment.last_check_date,
+        next_check_date: equipment.next_check_date,
+        category_id: equipment.category_id,
+        location_id: equipment.location_id,
+        responsible_person_id: equipment.responsible_person_id
+      };
       
       const { data, error } = await supabase
         .from("equipment")

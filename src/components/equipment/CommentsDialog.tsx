@@ -69,7 +69,7 @@ export function CommentsDialog({ equipment, open, onOpenChange }: CommentsDialog
       }
 
       // Convert the JSON data to our Comment type with proper type assertion
-      setComments((data as unknown as Comment[]) || []);
+      setComments(data ? data as Comment[] : []);
     } catch (error) {
       console.error("Error loading comments:", error);
       toast.error("Fehler beim Laden der Kommentare");

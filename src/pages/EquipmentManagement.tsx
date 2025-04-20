@@ -161,10 +161,10 @@ const EquipmentManagement = () => {
               Bitte füllen Sie alle erforderlichen Felder aus.
             </DrawerDescription>
           </DrawerHeader>
-          <div className="px-4 py-2">
+          <div className="px-4 py-2 overflow-y-auto max-h-[60vh]">
             <NewEquipmentForm onSuccess={() => setIsNewEquipmentOpen(false)} />
           </div>
-          <DrawerFooter>
+          <DrawerFooter className="pt-2">
             <DrawerClose asChild>
               <Button variant="outline">Abbrechen</Button>
             </DrawerClose>

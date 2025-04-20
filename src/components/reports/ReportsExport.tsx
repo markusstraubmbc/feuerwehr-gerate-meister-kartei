@@ -5,8 +5,7 @@ import { MaintenanceTemplate } from "@/hooks/useMaintenanceTemplates";
 import { format, addMonths } from "date-fns";
 import { de } from "date-fns/locale";
 import { toast } from "sonner";
-import { useEquipment } from "@/hooks/useEquipment";
-import { usePersons } from "@/hooks/usePersons";
+import { Equipment } from "@/hooks/useEquipment";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ExportCompletedReportsProps {
@@ -82,118 +81,97 @@ const exportCompletedReports = ({ records, templateName, startDate, endDate }: E
   toast.success(`Bericht wurde als ${fileName} exportiert`);
 };
 
-const exportUpcomingReports = ({ templates, timeframe, endDate }: ExportUpcomingReportsProps) => {
+const exportUpcomingReports = async ({ templates, timeframe, endDate }: ExportUpcomingReportsProps) => {
   // This needs to be calculated here since we're outside of a React component
-  // and can't use the useEquipment and usePersons hooks
-  const calculateUpcomingMaintenance = async () => {
-    try {
-      const { data: equipmentList, error: equipmentError } = await supabase
-        .from("equipment")
-        .select(`
-          *,
-          category:category_id(id, name),
-          location:location_id(id, name)
-        `)
-        .order('name', { ascending: true });
-        
-      if (equipmentError) throw equipmentError;
+  try {
+    const { data: equipmentList, error: equipmentError } = await supabase
+      .from("equipment")
+      .select(`
+        *,
+        category:category_id (*),
+        location:location_id (*)
+      `)
+      .order('name', { ascending: true });
       
-      const { data: persons, error: personsError } = await supabase
-        .from("persons")
-        .select("*")
-        .order('last_name', { ascending: true });
-        
-      if (personsError) throw personsError;
+    if (equipmentError) throw equipmentError;
+    
+    const { data: persons, error: personsError } = await supabase
+      .from("persons")
+      .select("*")
+      .order('last_name', { ascending: true });
       
-      const { data: records, error: recordsError } = await supabase
-        .from("maintenance_records")
-        .select(`
-          *,
-          equipment:equipment_id (*),
-          template:template_id (*),
-          performer:performed_by (*)
-        `);
-        
-      if (recordsError) throw recordsError;
+    if (personsError) throw personsError;
+    
+    const { data: records, error: recordsError } = await supabase
+      .from("maintenance_records")
+      .select(`
+        *,
+        equipment:equipment_id (*),
+        template:template_id (*),
+        performer:performed_by (*)
+      `);
       
-      const now = new Date();
-      const upcomingMaintenance = [];
+    if (recordsError) throw recordsError;
+    
+    const now = new Date();
+    const upcomingMaintenance: any[] = [];
+    
+    for (const equipment of equipmentList || []) {
+      const relevantTemplates = equipment.category_id 
+        ? templates.filter(template => 
+            template.category_id === equipment.category_id || 
+            !template.category_id
+          )
+        : templates;
       
-      for (const equipment of equipmentList) {
-        const relevantTemplates = equipment.category_id 
-          ? templates.filter(template => 
-              template.category_id === equipment.category_id || 
-              !template.category_id
-            )
-          : templates;
+      for (const template of relevantTemplates) {
+        if (!template.interval_months) continue;
         
-        for (const template of relevantTemplates) {
-          if (!template.interval_months) continue;
+        const relatedRecords = records?.filter(
+          record => record.equipment_id === equipment.id && record.template_id === template.id
+        ).sort((a, b) => 
+          new Date(b.performed_date || b.due_date).getTime() - new Date(a.performed_date || a.due_date).getTime()
+        ) || [];
+        
+        const lastRecord = relatedRecords[0];
+        
+        let lastDate;
+        if (lastRecord?.performed_date) {
+          lastDate = new Date(lastRecord.performed_date);
+        } else {
+          lastDate = now;
+        }
+        
+        const nextDueDate = addMonths(lastDate, template.interval_months);
+        
+        // Only include if due date is before end date
+        if (nextDueDate <= endDate) {
+          const daysRemaining = Math.floor((nextDueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
           
-          const relatedRecords = records.filter(
-            record => record.equipment_id === equipment.id && record.template_id === template.id
-          ).sort((a, b) => 
-            new Date(b.performed_date || b.due_date).getTime() - new Date(a.performed_date || a.due_date).getTime()
-          );
-          
-          const lastRecord = relatedRecords[0];
-          
-          let lastDate;
-          if (lastRecord?.performed_date) {
-            lastDate = new Date(lastRecord.performed_date);
-          } else {
-            lastDate = now;
-          }
-          
-          const nextDueDate = addMonths(lastDate, template.interval_months);
-          
-          // Only include if due date is before end date
-          if (nextDueDate <= endDate) {
-            const daysRemaining = Math.floor((nextDueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-            
-            upcomingMaintenance.push({
-              equipment,
-              template,
-              nextDueDate,
-              daysRemaining,
-              existingRecord: relatedRecords.find(r => 
-                format(new Date(r.due_date), "yyyy-MM-dd") === format(nextDueDate, "yyyy-MM-dd")
-              ),
-              responsiblePerson: template.responsible_person_id ? 
-                persons.find(person => person.id === template.responsible_person_id) : null
-            });
-          }
+          upcomingMaintenance.push({
+            equipment,
+            template,
+            nextDueDate,
+            daysRemaining,
+            existingRecord: relatedRecords.find(r => 
+              format(new Date(r.due_date), "yyyy-MM-dd") === format(nextDueDate, "yyyy-MM-dd")
+            ),
+            responsiblePerson: template.responsible_person_id ? 
+              persons?.find(person => person.id === template.responsible_person_id) : null
+          });
         }
       }
-      
-      return upcomingMaintenance.sort((a, b) => a.nextDueDate.getTime() - b.nextDueDate.getTime());
-    } catch (error) {
-      console.error("Error calculating upcoming maintenance:", error);
-      toast.error("Fehler beim Berechnen der anstehenden Wartungen");
-      return [];
     }
-  };
-  
-  // Format timeframe for display
-  const getTimeframeLabel = () => {
-    switch (timeframe) {
-      case "week": return "nächste Woche";
-      case "month": return "nächster Monat";
-      case "quarter": return "nächstes Quartal";
-      case "year": return "nächstes Jahr";
-      default: return "nächster Monat";
-    }
-  };
-  
-  // Generate the report
-  calculateUpcomingMaintenance().then(upcomingMaintenance => {
-    if (!upcomingMaintenance || upcomingMaintenance.length === 0) {
+    
+    const sortedMaintenance = upcomingMaintenance.sort((a, b) => a.nextDueDate.getTime() - b.nextDueDate.getTime());
+    
+    if (sortedMaintenance.length === 0) {
       toast.info("Keine anstehenden Wartungen für den gewählten Zeitraum gefunden");
       return;
     }
     
     // Create worksheet with data
-    const exportData = upcomingMaintenance.map(item => ({
+    const exportData = sortedMaintenance.map(item => ({
       'Fällig am': format(item.nextDueDate, "dd.MM.yyyy", { locale: de }),
       'Ausrüstung': item.equipment.name,
       'Inventarnummer': item.equipment.inventory_number || '-',
@@ -203,12 +181,23 @@ const exportUpcomingReports = ({ templates, timeframe, endDate }: ExportUpcoming
         'Nicht zugewiesen',
       'Verbleibende Tage': item.daysRemaining,
       'Status': item.existingRecord ? 'Geplant' : 'Nicht geplant',
-      'Standort': item.equipment.location?.name || 'Nicht zugewiesen',
-      'Kategorie': item.equipment.category?.name || 'Nicht zugewiesen',
+      'Standort': item.equipment?.location?.name || 'Nicht zugewiesen',
+      'Kategorie': item.equipment?.category?.name || 'Nicht zugewiesen',
       'Intervall (Monate)': item.template.interval_months
     }));
     
     const worksheet = XLSX.utils.json_to_sheet(exportData);
+    
+    // Format timeframe for display
+    const getTimeframeLabel = () => {
+      switch (timeframe) {
+        case "week": return "nächste Woche";
+        case "month": return "nächster Monat";
+        case "quarter": return "nächstes Quartal";
+        case "year": return "nächstes Jahr";
+        default: return "nächster Monat";
+      }
+    };
     
     // Add report metadata at the top
     const metadataWs = XLSX.utils.aoa_to_sheet([
@@ -218,7 +207,7 @@ const exportUpcomingReports = ({ templates, timeframe, endDate }: ExportUpcoming
       ['Wartungsvorlagen:', templates.length === 1 
         ? templates[0].name 
         : `Alle (${templates.length} Vorlagen)`],
-      ['Anzahl anstehende Wartungen:', upcomingMaintenance.length.toString()],
+      ['Anzahl anstehende Wartungen:', sortedMaintenance.length.toString()],
       ['Bericht erstellt am:', format(new Date(), "dd.MM.yyyy HH:mm", { locale: de })],
       [''],
     ]);
@@ -235,8 +224,8 @@ const exportUpcomingReports = ({ templates, timeframe, endDate }: ExportUpcoming
     // Write file
     XLSX.writeFile(workbook, fileName);
     toast.success(`Bericht wurde als ${fileName} exportiert`);
-  }).catch(error => {
+  } catch (error) {
     console.error("Error exporting upcoming maintenance report:", error);
     toast.error("Fehler beim Exportieren des Berichts");
-  });
+  }
 };
