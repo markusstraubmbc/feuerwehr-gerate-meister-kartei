@@ -1,4 +1,3 @@
-
 import * as XLSX from 'xlsx';
 import { MaintenanceRecord } from "@/hooks/useMaintenanceRecords";
 import { MaintenanceTemplate } from "@/hooks/useMaintenanceTemplates";
@@ -7,6 +6,7 @@ import { de } from "date-fns/locale";
 import { toast } from "sonner";
 import { useEquipment } from "@/hooks/useEquipment";
 import { usePersons } from "@/hooks/usePersons";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ExportCompletedReportsProps {
   records: MaintenanceRecord[];

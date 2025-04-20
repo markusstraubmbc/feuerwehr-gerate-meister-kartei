@@ -20,7 +20,14 @@ import {
 import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-const sidebarItems = [
+type SidebarItem = {
+  title: string;
+  href: string;
+  icon: React.ReactNode;
+  subItems?: { title: string; href: string; icon: React.ReactNode }[];
+};
+
+const sidebarItems: SidebarItem[] = [
   {
     title: "Home",
     href: "/",

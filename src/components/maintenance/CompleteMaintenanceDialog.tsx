@@ -1,11 +1,11 @@
-
 import { useState, useCallback, useEffect } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
   DialogDescription,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -88,8 +88,7 @@ export function CompleteMaintenanceDialog({
         return;
       }
 
-      // Convert the JSON data to Comment type and limit to the latest 3
-      const comments = (data || []) as Comment[];
+      const comments = (data as unknown as Comment[]) || [];
       setEquipmentComments(comments.slice(0, 3));
     } catch (error) {
       console.error("Error loading equipment comments:", error);
@@ -183,10 +182,9 @@ export function CompleteMaintenanceDialog({
         
       if (uploadError) throw uploadError;
       
-      // Create a signed URL with 1 hour expiry
       const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('maintenance_docs')
-        .createSignedUrl(fileName, 60 * 60); // 1 hour in seconds
+        .createSignedUrl(fileName, 60 * 60);
         
       if (signedUrlError) throw signedUrlError;
         
@@ -198,7 +196,7 @@ export function CompleteMaintenanceDialog({
           performed_by: performerId,
           notes: notes || null,
           minutes_spent: minutesSpent ? parseInt(minutesSpent) : null,
-          documentation_image_url: fileName // Store just the filename
+          documentation_image_url: fileName
         })
         .eq('id', record.id);
         
@@ -371,7 +369,7 @@ export function CompleteMaintenanceDialog({
           )}
         </div>
         
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Abbrechen
           </Button>
@@ -383,7 +381,7 @@ export function CompleteMaintenanceDialog({
               </>
             ) : "Wartung abschließen"}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
