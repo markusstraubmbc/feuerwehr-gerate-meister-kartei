@@ -138,21 +138,22 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-            body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-            h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
-            h2 { color: #555; margin-top: 20px; }
-            .info-section { margin: 20px 0; border: 1px solid #ddd; padding: 15px; border-radius: 4px; }
-            .info-row { display: flex; margin-bottom: 10px; }
-            .info-label { font-weight: bold; width: 200px; }
-            .check-item { margin: 15px 0; padding-left: 30px; position: relative; }
-            .check-item:before { content: "☐"; position: absolute; left: 0; top: 0; font-size: 1.2em; }
-            .signature-section { margin-top: 50px; border-top: 1px solid #ccc; padding-top: 20px; }
-            .signature-line { margin-top: 70px; border-top: 1px solid #000; width: 250px; }
-            .time-info { background-color: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 15px; }
+            body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.5; font-size: 11pt; }
+            h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 8px; font-size: 16pt; }
+            h2 { color: #555; margin-top: 15px; font-size: 14pt; }
+            .info-section { margin: 15px 0; border: 1px solid #ddd; padding: 10px; border-radius: 4px; }
+            .info-row { display: flex; margin-bottom: 8px; }
+            .info-label { font-weight: bold; width: 180px; }
+            .check-item { margin: 12px 0; padding-left: 25px; position: relative; }
+            .check-item:before { content: "☐"; position: absolute; left: 0; top: 0; font-size: 1.1em; }
+            .signature-section { margin-top: 40px; border-top: 1px solid #ccc; padding-top: 15px; }
+            .signature-line { margin-top: 50px; border-top: 1px solid #000; width: 200px; }
+            .time-info { background-color: #f8f9fa; padding: 8px; border-radius: 4px; margin-top: 10px; }
             @media print {
-                body { font-size: 12pt; }
+                body { font-size: 10pt; }
                 .no-print { display: none; }
                 .page-break { page-break-after: always; }
+                @page { size: portrait; margin: 15mm; }
             }
         </style>
         <script>

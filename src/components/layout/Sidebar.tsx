@@ -1,100 +1,163 @@
 
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { 
-  Home, 
-  Package as PackageIcon, 
-  FileSearch, 
-  Settings, 
-  LayoutDashboard, 
-  Menu, 
-  X, 
-  CircleAlert,
-  Clock
+import { NavLink } from "react-router-dom";
+import {
+  Building,
+  Cog,
+  Database,
+  FileText,
+  Home,
+  Package,
+  Users,
+  Wrench,
+  LineChart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { useState } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-export function Sidebar() {
-  // On mobile, start with collapsed sidebar
-  const [expanded, setExpanded] = useState(window.innerWidth > 768);
-  
-  // Update expanded state when window resizes
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth <= 768) {
-        setExpanded(false);
-      }
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+const sidebarItems = [
+  {
+    title: "Home",
+    href: "/",
+    icon: <Home className="h-5 w-5" />,
+  },
+  {
+    title: "Dashboard",
+    href: "/dashboard",
+    icon: <LineChart className="h-5 w-5" />,
+  },
+  {
+    title: "Ausrüstung",
+    href: "/equipment",
+    icon: <Package className="h-5 w-5" />,
+  },
+  {
+    title: "Wartung",
+    href: "/maintenance",
+    icon: <Wrench className="h-5 w-5" />,
+  },
+  {
+    title: "Berichte",
+    href: "/reports",
+    icon: <FileText className="h-5 w-5" />,
+  },
+  {
+    title: "Personal",
+    href: "/person-management",
+    icon: <Users className="h-5 w-5" />,
+  },
+  {
+    title: "Standorte",
+    href: "/locations",
+    icon: <Building className="h-5 w-5" />,
+  },
+  {
+    title: "Inventar",
+    href: "/inventory",
+    icon: <Database className="h-5 w-5" />,
+  },
+  {
+    title: "Einstellungen",
+    href: "/settings",
+    icon: <Cog className="h-5 w-5" />,
+  },
+];
 
-  const toggleSidebar = () => {
-    setExpanded(!expanded);
+const Sidebar = () => {
+  const [collapsedItems, setCollapsedItems] = useState<Record<string, boolean>>(
+    {}
+  );
+
+  const toggleCollapse = (title: string) => {
+    setCollapsedItems((prev) => ({
+      ...prev,
+      [title]: !prev[title],
+    }));
   };
 
   return (
-    <aside 
-      className={cn(
-        "bg-sidebar flex flex-col border-r border-sidebar-border transition-all duration-300", 
-        expanded ? "w-64" : "w-16"
-      )}
-    >
-      <div className="flex items-center p-4 h-16">
-        {expanded ? (
-          <div className="flex items-center">
-            <CircleAlert className="h-6 w-6 text-fire-red" />
-            <h2 className="ml-2 text-lg font-bold text-white truncate">Feuerwehr Inventar</h2>
-          </div>
-        ) : (
-          <CircleAlert className="h-6 w-6 mx-auto text-fire-red" />
-        )}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={toggleSidebar} 
-          className="ml-auto text-sidebar-foreground hover:bg-sidebar-accent"
-        >
-          {expanded ? <X size={20} /> : <Menu size={20} />}
-        </Button>
-      </div>
-
-      <nav className="flex-1 px-2 py-4 space-y-1">
-        <NavItem to="/" icon={<LayoutDashboard size={20} />} label="Dashboard" expanded={expanded} />
-        <NavItem to="/equipment" icon={<PackageIcon size={20} />} label="Ausrüstung" expanded={expanded} />
-        <NavItem to="/maintenance" icon={<FileSearch size={20} />} label="Wartung" expanded={expanded} />
-        <NavItem to="/maintenance-time" icon={<Clock size={20} />} label="Zeitauswertung" expanded={expanded} />
-        <NavItem to="/settings" icon={<Settings size={20} />} label="Einstellungen" expanded={expanded} />
-      </nav>
-    </aside>
-  );
-}
-
-interface NavItemProps {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-  expanded: boolean;
-}
-
-function NavItem({ to, icon, label, expanded }: NavItemProps) {
-  return (
-    <Link 
-      to={to} 
-      className={cn(
-        "flex items-center p-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent group transition-colors",
-        !expanded && "justify-center"
-      )}
-    >
-      <span className="flex-shrink-0">{icon}</span>
-      {expanded && <span className="ml-3">{label}</span>}
-      {!expanded && (
-        <div className="absolute left-16 rounded-md px-2 py-1 ml-6 bg-sidebar-primary text-sidebar-primary-foreground text-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-          {label}
+    <ScrollArea className="h-full">
+      <div className="py-2 px-2 md:px-3">
+        <div className="flex flex-col gap-1">
+          {sidebarItems.map((item) => (
+            <div key={item.href} className="mb-1">
+              {item.subItems ? (
+                <Collapsible
+                  open={collapsedItems[item.title]}
+                  onOpenChange={() => toggleCollapse(item.title)}
+                >
+                  <CollapsibleTrigger className="w-full focus:outline-none">
+                    <div className="flex items-center p-2 rounded-md w-full hover:bg-muted text-muted-foreground hover:text-foreground ">
+                      {item.icon}
+                      <span className="ml-3 text-sm font-medium">
+                        {item.title}
+                      </span>
+                      <svg
+                        className={cn(
+                          "ml-auto h-5 w-5 transform transition-transform",
+                          collapsedItems[item.title] && "rotate-180"
+                        )}
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-4 mt-1">
+                    {item.subItems?.map((subItem) => (
+                      <NavLink
+                        key={subItem.href}
+                        to={subItem.href}
+                        className={({ isActive }) =>
+                          cn(
+                            "flex items-center p-2 rounded-md text-sm hover:bg-muted",
+                            isActive
+                              ? "bg-muted text-foreground font-medium"
+                              : "text-muted-foreground"
+                          )
+                        }
+                      >
+                        {subItem.icon}
+                        <span className="ml-3">{subItem.title}</span>
+                      </NavLink>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              ) : (
+                <NavLink
+                  to={item.href}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center p-2 rounded-md hover:bg-muted",
+                      isActive
+                        ? "bg-muted text-foreground font-medium"
+                        : "text-muted-foreground hover:text-foreground"
+                    )
+                  }
+                >
+                  {item.icon}
+                  <span className="ml-3 text-sm font-medium">{item.title}</span>
+                </NavLink>
+              )}
+            </div>
+          ))}
         </div>
-      )}
-    </Link>
+      </div>
+    </ScrollArea>
   );
-}
+};
+
+export default Sidebar;

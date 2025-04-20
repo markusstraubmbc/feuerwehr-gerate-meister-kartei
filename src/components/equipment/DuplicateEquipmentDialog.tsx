@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Equipment } from "@/hooks/useEquipment";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface DuplicateEquipmentDialogProps {
@@ -32,30 +32,30 @@ export function DuplicateEquipmentDialog({ equipment, open, onOpenChange }: Dupl
 
     setIsProcessing(true);
     try {
-      const equipmentToDuplicate = { ...equipment };
+      // Create a clean copy of the equipment object for duplication
+      const equipmentToDuplicate: any = {};
       
-      // Remove fields that shouldn't be duplicated
-      delete equipmentToDuplicate.id;
-      delete equipmentToDuplicate.created_at;
-      delete equipmentToDuplicate.updated_at;
+      // Copy only the fields we want to duplicate
+      // This avoids issues with nested objects that cause problems with supabase insert
+      equipmentToDuplicate.name = duplicateName.trim();
+      equipmentToDuplicate.inventory_number = equipment.inventory_number;
+      equipmentToDuplicate.barcode = equipment.barcode;
+      equipmentToDuplicate.serial_number = equipment.serial_number;
+      equipmentToDuplicate.manufacturer = equipment.manufacturer;
+      equipmentToDuplicate.model = equipment.model;
+      equipmentToDuplicate.status = equipment.status;
+      equipmentToDuplicate.notes = equipment.notes;
+      equipmentToDuplicate.purchase_date = equipment.purchase_date;
+      equipmentToDuplicate.replacement_date = equipment.replacement_date;
+      equipmentToDuplicate.last_check_date = equipment.last_check_date;
+      equipmentToDuplicate.next_check_date = equipment.next_check_date;
+      equipmentToDuplicate.category_id = equipment.category_id;
+      equipmentToDuplicate.location_id = equipment.location_id;
+      equipmentToDuplicate.responsible_person_id = equipment.responsible_person_id;
       
-      // Update certain fields for the duplicate
-      const newEquipment = {
-        ...equipmentToDuplicate,
-        name: duplicateName.trim(),
-        category_id: equipment.category_id,
-        location_id: equipment.location_id,
-        responsible_person_id: equipment.responsible_person_id
-      };
-      
-      // Remove any nested objects (they cause problems with the insert)
-      delete newEquipment.category;
-      delete newEquipment.location;
-      delete newEquipment.responsible_person;
-
       const { data, error } = await supabase
         .from("equipment")
-        .insert(newEquipment)
+        .insert(equipmentToDuplicate)
         .select()
         .single();
 
@@ -78,7 +78,7 @@ export function DuplicateEquipmentDialog({ equipment, open, onOpenChange }: Dupl
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Ausrüstung duplizieren</DialogTitle>
           <DialogDescription>

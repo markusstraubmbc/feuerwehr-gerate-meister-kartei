@@ -1,55 +1,103 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import "./App.css";
+import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Layout } from "./components/layout/Layout";
-import Dashboard from "./pages/Dashboard";
-import Equipment from "./pages/Equipment";
-import EquipmentManagement from "./pages/EquipmentManagement";
-import Maintenance from "./pages/Maintenance";
-import MaintenanceTime from "./pages/MaintenanceTime";
-import Locations from "./pages/Locations";
-import Settings from "./pages/Settings";
+import { Toaster } from "@/components/ui/toaster";
+
+import Layout from "@/components/layout/Layout";
+import Dashboard from "@/pages/Dashboard";
+import NotFound from "@/pages/NotFound";
+import Locations from "@/pages/Locations";
+import Equipment from "@/pages/Equipment";
+import EquipmentManagement from "@/pages/EquipmentManagement";
+import Inventory from "@/pages/Inventory";
 import PersonManagement from "./pages/PersonManagement";
-import NotFound from "./pages/NotFound";
-import MaintenanceTemplateSettings from "./pages/MaintenanceTemplateSettings";
+import Maintenance from "./pages/Maintenance";
+import Settings from "./pages/Settings";
 import EmailSettings from "./pages/EmailSettings";
+import MaintenanceTemplateSettings from "./pages/MaintenanceTemplateSettings";
+import MaintenanceTime from "./pages/MaintenanceTime";
+import Index from "./pages/Index";
+import Reports from "./pages/Reports";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 Minuten
+      refetchOnWindowFocus: false,
+      retry: 1,
     },
   },
 });
 
-const App = () => (
-  <BrowserRouter>
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Layout />,
+    errorElement: <NotFound />,
+    children: [
+      {
+        path: "",
+        element: <Index />,
+      },
+      {
+        path: "dashboard",
+        element: <Dashboard />,
+      },
+      {
+        path: "locations",
+        element: <Locations />,
+      },
+      {
+        path: "equipment",
+        element: <Equipment />,
+      },
+      {
+        path: "equipment-management",
+        element: <EquipmentManagement />,
+      },
+      {
+        path: "inventory",
+        element: <Inventory />,
+      },
+      {
+        path: "person-management",
+        element: <PersonManagement />,
+      },
+      {
+        path: "maintenance",
+        element: <Maintenance />,
+      },
+      {
+        path: "reports",
+        element: <Reports />,
+      },
+      {
+        path: "settings",
+        element: <Settings />,
+      },
+      {
+        path: "settings/email",
+        element: <EmailSettings />,
+      },
+      {
+        path: "settings/maintenance-templates",
+        element: <MaintenanceTemplateSettings />,
+      },
+      {
+        path: "settings/maintenance-time",
+        element: <MaintenanceTime />,
+      },
+    ],
+  },
+]);
+
+const App = () => {
+  return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/equipment" element={<EquipmentManagement />} />
-            <Route path="/equipment-management" element={<Navigate to="/equipment" replace />} />
-            <Route path="/maintenance" element={<Maintenance />} />
-            <Route path="/maintenance-time" element={<MaintenanceTime />} />
-            <Route path="/locations" element={<Locations />} />
-            <Route path="/person-management" element={<PersonManagement />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/settings/maintenance-templates" element={<MaintenanceTemplateSettings />} />
-            <Route path="/settings/email" element={<EmailSettings />} />
-            <Route path="/inventory" element={<Navigate to="/equipment" replace />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Layout>
-        <Toaster />
-        <Sonner />
-      </TooltipProvider>
+      <RouterProvider router={router} />
+      <Toaster />
     </QueryClientProvider>
-  </BrowserRouter>
-);
+  );
+};
 
 export default App;

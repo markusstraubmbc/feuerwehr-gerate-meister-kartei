@@ -38,7 +38,7 @@ const EquipmentManagement = () => {
   const [isNewEquipmentOpen, setIsNewEquipmentOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   
-  const printRef = useRef(null);
+  const printRef = useRef<HTMLDivElement>(null);
   const {
     searchTerm,
     selectedLocation,
@@ -57,10 +57,10 @@ const EquipmentManagement = () => {
         ? locations.find(loc => loc.id === selectedLocation)?.name
         : 'Alle-Standorte'
     }`,
-    pageStyle: '@page { size: auto; margin: 10mm; } @media print { body { font-size: 12pt; } }',
+    pageStyle: '@page { size: auto; margin: 10mm; }',
     onBeforePrint: () => {
       if (!printRef.current) {
-        toast("Drucken konnte nicht gestartet werden", {
+        toast.error("Drucken konnte nicht gestartet werden", {
           description: "Es gab ein Problem beim Vorbereiten der Druckansicht."
         });
       } else {
@@ -149,8 +149,12 @@ const EquipmentManagement = () => {
         </CardContent>
       </Card>
 
-      <Drawer open={isNewEquipmentOpen} onOpenChange={setIsNewEquipmentOpen}>
-        <DrawerContent>
+      <Drawer 
+        open={isNewEquipmentOpen} 
+        onOpenChange={setIsNewEquipmentOpen}
+        shouldScaleBackground={false}
+      >
+        <DrawerContent className="max-h-[90vh] overflow-y-auto">
           <DrawerHeader>
             <DrawerTitle>Neue Ausrüstung anlegen</DrawerTitle>
             <DrawerDescription>
@@ -188,10 +192,7 @@ const EquipmentManagement = () => {
               top: 0;
               width: 100%;
             }
-            .no-print {
-              display: none !important;
-            }
-            button, input, select {
+            .no-print, button, input, select {
               display: none !important;
             }
           }

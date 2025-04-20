@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { MaintenanceRecord, getTemplateChecklistUrl } from "@/hooks/useMaintenanceRecords";
+import { MaintenanceRecord } from "@/hooks/useMaintenanceRecords";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -89,7 +89,7 @@ export function CompleteMaintenanceDialog({
       }
 
       // Convert the JSON data to Comment type and limit to the latest 3
-      const comments = (data || []) as unknown as Comment[];
+      const comments = (data || []) as Comment[];
       setEquipmentComments(comments.slice(0, 3));
     } catch (error) {
       console.error("Error loading equipment comments:", error);
