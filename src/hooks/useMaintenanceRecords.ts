@@ -183,19 +183,19 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
               font-family: Arial, sans-serif; 
               margin: 20px; 
               line-height: 1.3; 
-              font-size: 9pt; 
+              font-size: 8pt; 
             }
             h1 { 
               color: #333; 
               border-bottom: 2px solid #333; 
               padding-bottom: 8px; 
-              font-size: 13pt;
+              font-size: 12pt;
               margin-top: 0;
             }
             h2 { 
               color: #555; 
               margin-top: 15px; 
-              font-size: 11pt;
+              font-size: 10pt;
               margin-bottom: 8px;
             }
             .info-section { 
@@ -244,8 +244,9 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
               margin-top: 10px;
               border: 1px solid #eee;
               padding: 6px;
-              font-size: 8pt;
+              font-size: 7pt;
               border-radius: 4px;
+              background-color: #f9f9f9;
             }
             .comment {
               margin-bottom: 8px;
@@ -263,14 +264,14 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
             }
             .comment-date {
               color: #777;
-              font-size: 7pt;
+              font-size: 6pt;
             }
             .comment-content {
               margin-top: 3px;
             }
             @media print {
                 @page { size: portrait; }
-                body { font-size: 9pt; }
+                body { font-size: 8pt; }
                 .no-print { display: none; }
                 .page-break { page-break-after: always; }
             }
