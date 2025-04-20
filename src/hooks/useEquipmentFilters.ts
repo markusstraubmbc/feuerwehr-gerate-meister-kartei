@@ -27,33 +27,30 @@ export const useEquipmentFilters = () => {
     person?: string;
     search?: string;
   }) => {
-    const newSearchParams = new URLSearchParams(searchParams.toString());
+    const newSearchParams = new URLSearchParams();
     
     if (filters.status) {
       newSearchParams.set('status', filters.status);
       setSelectedStatus(filters.status);
-    } else if (filters.status === '') {
-      newSearchParams.delete('status');
+    } else {
       setSelectedStatus(null);
     }
     
     if (filters.category && filters.category !== SELECT_ALL_VALUE) {
       newSearchParams.set('category', filters.category);
       setSelectedCategory(filters.category);
-    } else if (filters.category === '' || filters.category === SELECT_ALL_VALUE) {
-      newSearchParams.delete('category');
+    } else {
       setSelectedCategory(null);
     }
     
     if (filters.person && filters.person !== SELECT_ALL_VALUE) {
       newSearchParams.set('person', filters.person);
       setSelectedPerson(filters.person);
-    } else if (filters.person === '' || filters.person === SELECT_ALL_VALUE) {
-      newSearchParams.delete('person');
+    } else {
       setSelectedPerson(null);
     }
     
-    if (filters.search !== undefined) {
+    if (filters.search) {
       setSearchTerm(filters.search);
     }
     

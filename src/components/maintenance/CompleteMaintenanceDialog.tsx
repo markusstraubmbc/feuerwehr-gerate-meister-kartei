@@ -1,17 +1,17 @@
+
 import { useState, useCallback, useEffect } from "react";
 import {
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogDescription,
-  DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { MaintenanceRecord } from "@/hooks/useMaintenanceRecords";
+import { MaintenanceRecord, getTemplateChecklistUrl } from "@/hooks/useMaintenanceRecords";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -88,7 +88,8 @@ export function CompleteMaintenanceDialog({
         return;
       }
 
-      const comments = (data as unknown as Comment[]) || [];
+      // Convert the JSON data to Comment type and limit to the latest 3
+      const comments = (data || []) as unknown as Comment[];
       setEquipmentComments(comments.slice(0, 3));
     } catch (error) {
       console.error("Error loading equipment comments:", error);
@@ -182,9 +183,10 @@ export function CompleteMaintenanceDialog({
         
       if (uploadError) throw uploadError;
       
+      // Create a signed URL with 1 hour expiry
       const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('maintenance_docs')
-        .createSignedUrl(fileName, 60 * 60);
+        .createSignedUrl(fileName, 60 * 60); // 1 hour in seconds
         
       if (signedUrlError) throw signedUrlError;
         
@@ -196,7 +198,7 @@ export function CompleteMaintenanceDialog({
           performed_by: performerId,
           notes: notes || null,
           minutes_spent: minutesSpent ? parseInt(minutesSpent) : null,
-          documentation_image_url: fileName
+          documentation_image_url: fileName // Store just the filename
         })
         .eq('id', record.id);
         
@@ -369,7 +371,7 @@ export function CompleteMaintenanceDialog({
           )}
         </div>
         
-        <DialogFooter>
+        <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Abbrechen
           </Button>
@@ -381,7 +383,7 @@ export function CompleteMaintenanceDialog({
               </>
             ) : "Wartung abschließen"}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

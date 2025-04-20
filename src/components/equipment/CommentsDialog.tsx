@@ -42,25 +42,22 @@ export function CommentsDialog({ equipment, open, onOpenChange }: CommentsDialog
   const [newComment, setNewComment] = useState("");
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const { data: persons = [] } = usePersons();
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (open && equipment?.id) {
+    if (open && equipment) {
       loadComments();
     }
-  }, [open, equipment?.id]);
+  }, [open, equipment]);
 
   const loadComments = async () => {
     if (!equipment?.id) return;
-    
-    setIsLoading(true);
+
     try {
-      const { data, error } = await supabase
-        .rpc('get_equipment_comments', { 
-          equipment_id_param: equipment.id 
-        });
+      const { data, error } = await supabase.rpc('get_equipment_comments', { 
+        equipment_id_param: equipment.id 
+      });
       
       if (error) {
         console.error("Error loading comments:", error);
@@ -68,13 +65,11 @@ export function CommentsDialog({ equipment, open, onOpenChange }: CommentsDialog
         return;
       }
 
-      // Fix: Proper type assertion for the JSON data returned from the RPC call
-      setComments(data ? (data as unknown as Comment[]) : []);
+      // Convert the JSON data to our Comment type with proper type assertion
+      setComments((data || []) as unknown as Comment[]);
     } catch (error) {
       console.error("Error loading comments:", error);
       toast.error("Fehler beim Laden der Kommentare");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -86,12 +81,11 @@ export function CommentsDialog({ equipment, open, onOpenChange }: CommentsDialog
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
-        .rpc('add_equipment_comment', {
-          equipment_id_param: equipment.id,
-          person_id_param: selectedPersonId,
-          comment_param: newComment.trim()
-        });
+      const { error } = await supabase.rpc('add_equipment_comment', {
+        equipment_id_param: equipment.id,
+        person_id_param: selectedPersonId,
+        comment_param: newComment.trim()
+      });
 
       if (error) {
         console.error("Error adding comment:", error);
@@ -123,9 +117,7 @@ export function CommentsDialog({ equipment, open, onOpenChange }: CommentsDialog
 
         <div className="space-y-4">
           <div className="space-y-4 max-h-[40vh] overflow-y-auto p-2 border rounded-md">
-            {isLoading ? (
-              <p className="text-center py-4">Kommentare werden geladen...</p>
-            ) : comments.length === 0 ? (
+            {comments.length === 0 ? (
               <p className="text-center text-muted-foreground py-4">
                 Keine Kommentare vorhanden
               </p>

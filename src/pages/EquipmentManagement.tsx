@@ -38,7 +38,7 @@ const EquipmentManagement = () => {
   const [isNewEquipmentOpen, setIsNewEquipmentOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   
-  const printRef = useRef<HTMLDivElement>(null);
+  const printRef = useRef(null);
   const {
     searchTerm,
     selectedLocation,
@@ -57,10 +57,10 @@ const EquipmentManagement = () => {
         ? locations.find(loc => loc.id === selectedLocation)?.name
         : 'Alle-Standorte'
     }`,
-    pageStyle: '@page { size: auto; margin: 10mm; }',
+    pageStyle: '@page { size: auto; margin: 10mm; } @media print { body { font-size: 12pt; } }',
     onBeforePrint: () => {
       if (!printRef.current) {
-        toast.error("Drucken konnte nicht gestartet werden", {
+        toast("Drucken konnte nicht gestartet werden", {
           description: "Es gab ein Problem beim Vorbereiten der Druckansicht."
         });
       } else {
@@ -149,22 +149,18 @@ const EquipmentManagement = () => {
         </CardContent>
       </Card>
 
-      <Drawer 
-        open={isNewEquipmentOpen} 
-        onOpenChange={setIsNewEquipmentOpen}
-        shouldScaleBackground={false}
-      >
-        <DrawerContent className="max-h-[90vh] overflow-y-auto">
+      <Drawer open={isNewEquipmentOpen} onOpenChange={setIsNewEquipmentOpen}>
+        <DrawerContent>
           <DrawerHeader>
             <DrawerTitle>Neue Ausrüstung anlegen</DrawerTitle>
             <DrawerDescription>
               Bitte füllen Sie alle erforderlichen Felder aus.
             </DrawerDescription>
           </DrawerHeader>
-          <div className="px-4 py-2 overflow-y-auto max-h-[60vh]">
+          <div className="px-4 py-2">
             <NewEquipmentForm onSuccess={() => setIsNewEquipmentOpen(false)} />
           </div>
-          <DrawerFooter className="pt-2">
+          <DrawerFooter>
             <DrawerClose asChild>
               <Button variant="outline">Abbrechen</Button>
             </DrawerClose>
@@ -192,7 +188,10 @@ const EquipmentManagement = () => {
               top: 0;
               width: 100%;
             }
-            .no-print, button, input, select {
+            .no-print {
+              display: none !important;
+            }
+            button, input, select {
               display: none !important;
             }
           }

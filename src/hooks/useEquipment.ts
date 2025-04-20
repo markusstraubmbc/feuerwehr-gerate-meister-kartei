@@ -7,9 +7,9 @@ import { Location } from "./useLocations";
 import { Person } from "./usePersons";
 
 export type Equipment = Database["public"]["Tables"]["equipment"]["Row"] & {
-  category?: Category | null;
-  location?: Location | null;
-  responsible_person?: Person | null;
+  category?: Category;
+  location?: Location;
+  responsible_person?: Person;
 };
 
 export const useEquipment = () => {
@@ -20,9 +20,9 @@ export const useEquipment = () => {
         .from("equipment")
         .select(`
           *,
-          category:category_id (*),
-          location:location_id (*),
-          responsible_person:responsible_person_id (*)
+          category:category_id(id, name),
+          location:location_id(id, name),
+          responsible_person:responsible_person_id(id, first_name, last_name)
         `)
         .order('name', { ascending: true });
 
@@ -30,24 +30,4 @@ export const useEquipment = () => {
       return data as Equipment[];
     },
   });
-};
-
-export const getEquipmentById = async (id: string): Promise<Equipment | null> => {
-  const { data, error } = await supabase
-    .from("equipment")
-    .select(`
-      *,
-      category:category_id (*),
-      location:location_id (*),
-      responsible_person:responsible_person_id (*)
-    `)
-    .eq("id", id)
-    .single();
-
-  if (error) {
-    console.error("Error fetching equipment:", error);
-    return null;
-  }
-
-  return data as Equipment;
 };

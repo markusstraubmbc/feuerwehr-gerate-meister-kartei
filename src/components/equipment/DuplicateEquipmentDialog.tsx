@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Equipment } from "@/hooks/useEquipment";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface DuplicateEquipmentDialogProps {
@@ -32,28 +32,30 @@ export function DuplicateEquipmentDialog({ equipment, open, onOpenChange }: Dupl
 
     setIsProcessing(true);
     try {
-      // Create a clean copy of the equipment object for duplication
-      const equipmentToDuplicate: any = {
+      const equipmentToDuplicate = { ...equipment };
+      
+      // Remove fields that shouldn't be duplicated
+      delete equipmentToDuplicate.id;
+      delete equipmentToDuplicate.created_at;
+      delete equipmentToDuplicate.updated_at;
+      
+      // Update certain fields for the duplicate
+      const newEquipment = {
+        ...equipmentToDuplicate,
         name: duplicateName.trim(),
-        inventory_number: equipment.inventory_number,
-        barcode: equipment.barcode,
-        serial_number: equipment.serial_number,
-        manufacturer: equipment.manufacturer,
-        model: equipment.model,
-        status: equipment.status,
-        notes: equipment.notes,
-        purchase_date: equipment.purchase_date,
-        replacement_date: equipment.replacement_date,
-        last_check_date: equipment.last_check_date,
-        next_check_date: equipment.next_check_date,
         category_id: equipment.category_id,
         location_id: equipment.location_id,
         responsible_person_id: equipment.responsible_person_id
       };
       
+      // Remove any nested objects (they cause problems with the insert)
+      delete newEquipment.category;
+      delete newEquipment.location;
+      delete newEquipment.responsible_person;
+
       const { data, error } = await supabase
         .from("equipment")
-        .insert(equipmentToDuplicate)
+        .insert(newEquipment)
         .select()
         .single();
 
@@ -76,7 +78,7 @@ export function DuplicateEquipmentDialog({ equipment, open, onOpenChange }: Dupl
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Ausrüstung duplizieren</DialogTitle>
           <DialogDescription>
