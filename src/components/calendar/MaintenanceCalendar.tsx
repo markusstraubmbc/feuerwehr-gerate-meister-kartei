@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Calendar, Download, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,19 +8,12 @@ import { format, addDays, isAfter, isBefore } from "date-fns";
 import { de } from "date-fns/locale";
 import { toast } from "sonner";
 import { CalendarFilters } from "./CalendarFilters";
-
-interface CalendarFiltersState {
-  personId?: string;
-  templateId?: string;
-  includeCompleted: boolean;
-  includeOverdue: boolean;
-  includeUpcoming: boolean;
-}
+import type { CalendarFilters as CalendarFiltersType } from "./CalendarFilters";
 
 export function MaintenanceCalendar() {
   const { data: maintenanceRecords = [] } = useMaintenanceRecords();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [filters, setFilters] = useState<CalendarFiltersState>({
+  const [filters, setFilters] = useState<CalendarFiltersType>({
     includeCompleted: true,
     includeOverdue: true,
     includeUpcoming: true

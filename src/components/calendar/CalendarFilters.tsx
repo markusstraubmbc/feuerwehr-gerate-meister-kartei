@@ -9,17 +9,17 @@ import { Switch } from "@/components/ui/switch";
 import { usePersons } from "@/hooks/usePersons";
 import { useMaintenanceTemplates } from "@/hooks/useMaintenanceTemplates";
 
-interface CalendarFilterProps {
-  onFiltersChange: (filters: CalendarFilters) => void;
-  currentFilters: CalendarFilters;
-}
-
-export interface CalendarFilters {
+interface CalendarFilters {
   personId?: string;
   templateId?: string;
   includeCompleted: boolean;
   includeOverdue: boolean;
   includeUpcoming: boolean;
+}
+
+interface CalendarFilterProps {
+  onFiltersChange: (filters: CalendarFilters) => void;
+  currentFilters: CalendarFilters;
 }
 
 export function CalendarFilters({ onFiltersChange, currentFilters }: CalendarFilterProps) {
@@ -129,3 +129,5 @@ export function CalendarFilters({ onFiltersChange, currentFilters }: CalendarFil
     </Card>
   );
 }
+
+export type { CalendarFilters };
