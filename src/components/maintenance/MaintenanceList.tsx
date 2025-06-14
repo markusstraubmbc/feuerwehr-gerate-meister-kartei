@@ -424,6 +424,7 @@ export const MaintenanceList = ({
                         size="sm" 
                         className="h-8 w-8 p-0" 
                         onClick={() => downloadChecklist(record)}
+                        title="Checkliste herunterladen"
                       >
                         <FileDown className="h-4 w-4" />
                       </Button>
@@ -434,6 +435,7 @@ export const MaintenanceList = ({
                       size="sm" 
                       className="h-8 w-8 p-0" 
                       onClick={() => downloadCustomChecklist(record)}
+                      title="Angepasste Checkliste herunterladen"
                     >
                       <FileDown className="h-4 w-4 text-blue-600" />
                     </Button>
