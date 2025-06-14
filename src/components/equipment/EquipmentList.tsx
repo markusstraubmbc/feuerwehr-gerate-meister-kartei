@@ -15,7 +15,8 @@ import {
   Copy,
   Printer,
   Filter,
-  MessageCircle
+  MessageCircle,
+  FileDown
 } from "lucide-react";
 import { EquipmentStatusBadge } from "./EquipmentStatusBadge";
 import { Equipment } from "@/hooks/useEquipment";
@@ -23,7 +24,6 @@ import { EditEquipmentForm } from "./EditEquipmentForm";
 import { DeleteEquipmentDialog } from "./DeleteEquipmentDialog";
 import { BarcodeDialog } from "./BarcodeDialog";
 import { DuplicateEquipmentDialog } from "./DuplicateEquipmentDialog";
-import { useReactToPrint } from "react-to-print";
 import { toast } from "@/components/ui/sonner";
 import { useCategories } from "@/hooks/useCategories";
 import { usePersons } from "@/hooks/usePersons";
@@ -39,6 +39,7 @@ import { SELECT_ALL_VALUE, SELECT_NONE_VALUE } from "@/lib/constants";
 import { format } from "date-fns";
 import { CommentsDialog } from "./CommentsDialog";
 import { EquipmentCommentsInfo } from "./EquipmentCommentsInfo";
+import { useEquipmentPrintExport } from "./EquipmentPrintExport";
 
 interface EquipmentListProps {
   equipment: Equipment[];
@@ -76,47 +77,36 @@ export function EquipmentList({
   
   const printRef = useRef<HTMLDivElement>(null);
 
-  const handlePrint = useReactToPrint({
-    content: () => printRef.current,
-    documentTitle: 'Ausrüstungsliste-Gefiltert',
-    pageStyle: `
-      @page { 
-        size: A4 landscape; 
-        margin: 10mm; 
-      } 
-      @media print { 
-        body { 
-          font-size: 10pt; 
-        }
-        .no-print, .print\\:hidden { 
-          display: none !important; 
-        }
-        table {
-          width: 100% !important;
-          font-size: 10pt !important;
-        }
-        th, td {
-          padding: 4px !important;
-          border: 1px solid #ccc !important;
-        }
-        .print-title {
-          display: block !important;
-          text-align: center;
-          font-size: 16pt;
-          font-weight: bold;
-          margin-bottom: 10px;
-        }
-      }
-    `,
-    onBeforePrint: () => {
-      if (!printRef.current) {
-        toast("Drucken konnte nicht gestartet werden", {
-          description: "Es gab ein Problem beim Vorbereiten der Druckansicht."
-        });
-      } else {
-        console.log('Printing filtered equipment list...');
-      }
+  // Apply filters to get filtered equipment
+  const filteredEquipment = equipment.filter(item => {
+    if (selectedStatus && selectedStatus !== "status_all" && item.status !== selectedStatus) {
+      return false;
     }
+    
+    if (selectedCategory && selectedCategory !== SELECT_ALL_VALUE && item.category_id !== selectedCategory) {
+      return false;
+    }
+    
+    if (selectedPerson && selectedPerson !== SELECT_ALL_VALUE && item.responsible_person_id !== selectedPerson) {
+      return false;
+    }
+    
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        (item.name && item.name.toLowerCase().includes(searchLower)) ||
+        (item.inventory_number && item.inventory_number.toLowerCase().includes(searchLower)) ||
+        (item.serial_number && item.serial_number.toLowerCase().includes(searchLower)) ||
+        (item.barcode && item.barcode.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    return true;
+  });
+
+  const { handlePrint, handlePdfDownload } = useEquipmentPrintExport({ 
+    equipment: filteredEquipment, 
+    printRef 
   });
 
   const handleEdit = (item: Equipment) => {
@@ -169,32 +159,6 @@ export function EquipmentList({
       });
     }
   };
-
-  const filteredEquipment = equipment.filter(item => {
-    if (selectedStatus && selectedStatus !== "status_all" && item.status !== selectedStatus) {
-      return false;
-    }
-    
-    if (selectedCategory && selectedCategory !== SELECT_ALL_VALUE && item.category_id !== selectedCategory) {
-      return false;
-    }
-    
-    if (selectedPerson && selectedPerson !== SELECT_ALL_VALUE && item.responsible_person_id !== selectedPerson) {
-      return false;
-    }
-    
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        (item.name && item.name.toLowerCase().includes(searchLower)) ||
-        (item.inventory_number && item.inventory_number.toLowerCase().includes(searchLower)) ||
-        (item.serial_number && item.serial_number.toLowerCase().includes(searchLower)) ||
-        (item.barcode && item.barcode.toLowerCase().includes(searchLower))
-      );
-    }
-    
-    return true;
-  });
 
   return (
     <>
@@ -259,28 +223,33 @@ export function EquipmentList({
           </Select>
         </div>
         
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => {
-            setSearchTerm("");
-            setSelectedStatus("");
-            setSelectedCategory("");
-            setSelectedPerson("");
-            if (onFilterChange) {
-              onFilterChange({ status: "", category: "", person: "", search: "" });
-            }
-          }}
-          className="min-w-[100px]"
-        >
-          <Filter className="h-4 w-4 mr-2" />
-          Zurücksetzen
-        </Button>
-        
-        <div>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              setSearchTerm("");
+              setSelectedStatus("");
+              setSelectedCategory("");
+              setSelectedPerson("");
+              if (onFilterChange) {
+                onFilterChange({ status: "", category: "", person: "", search: "" });
+              }
+            }}
+            className="min-w-[100px]"
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            Zurücksetzen
+          </Button>
+          
           <Button variant="outline" size="sm" onClick={handlePrint}>
             <Printer className="h-4 w-4 mr-2" />
             Drucken
+          </Button>
+          
+          <Button variant="outline" size="sm" onClick={handlePdfDownload}>
+            <FileDown className="h-4 w-4 mr-2" />
+            PDF
           </Button>
         </div>
       </div>
@@ -289,10 +258,13 @@ export function EquipmentList({
         <div ref={printRef}>
           <div className="print-title" style={{ display: 'none' }}>
             Ausrüstungsliste - {new Date().toLocaleDateString('de-DE')}
+          </div>
+          <div className="print-info" style={{ display: 'none' }}>
             {filteredEquipment.length !== equipment.length && (
-              <div style={{ fontSize: '12pt', fontWeight: 'normal', marginTop: '5px' }}>
-                Gefilterte Ansicht: {filteredEquipment.length} von {equipment.length} Einträgen
-              </div>
+              <>Gefilterte Ansicht: {filteredEquipment.length} von {equipment.length} Einträgen</>
+            )}
+            {filteredEquipment.length === equipment.length && (
+              <>Gesamt: {equipment.length} Einträge</>
             )}
           </div>
           <Table>

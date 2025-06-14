@@ -1,12 +1,12 @@
-import { useState, useRef } from "react";
+
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   FileDown,
   FileUp,
-  Plus,
-  Printer
+  Plus
 } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
 import { EquipmentList } from "@/components/equipment/EquipmentList";
@@ -23,8 +23,6 @@ import {
 import { useLocations } from "@/hooks/useLocations";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ImportEquipmentDialog } from "@/components/equipment/ImportEquipmentDialog";
-import { useReactToPrint } from "react-to-print";
-import { toast } from "sonner";
 import { EquipmentFilters } from "@/components/equipment/EquipmentFilters";
 import { useEquipmentFilters } from "@/hooks/useEquipmentFilters";
 import { exportEquipmentToExcel } from "@/components/equipment/EquipmentExport";
@@ -37,7 +35,6 @@ const EquipmentManagement = () => {
   const [isNewEquipmentOpen, setIsNewEquipmentOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   
-  const printRef = useRef(null);
   const {
     searchTerm,
     selectedLocation,
@@ -48,56 +45,6 @@ const EquipmentManagement = () => {
     handleFilterChange,
     resetFilters
   } = useEquipmentFilters();
-
-  const handlePrintByLocation = useReactToPrint({
-    content: () => printRef.current,
-    documentTitle: `Ausrüstungsliste-${
-      selectedLocation && locations
-        ? locations.find(loc => loc.id === selectedLocation)?.name
-        : 'Alle-Standorte'
-    }`,
-    pageStyle: `
-      @page { 
-        size: auto; 
-        margin: 10mm; 
-      } 
-      @media print { 
-        body { 
-          font-size: 12pt; 
-        }
-        .no-print { 
-          display: none !important; 
-        }
-        button, input, select { 
-          display: none !important; 
-        }
-      }
-    `,
-    onBeforeGetContent: () => {
-      // Add a print-only class to the container before printing
-      if (printRef.current) {
-        const element = printRef.current as HTMLElement;
-        element.classList.add('is-printing');
-      }
-      return Promise.resolve();
-    },
-    onAfterPrint: () => {
-      // Remove the print-only class after printing
-      if (printRef.current) {
-        const element = printRef.current as HTMLElement;
-        element.classList.remove('is-printing');
-      }
-    },
-    onBeforePrint: () => {
-      if (!printRef.current) {
-        toast.error("Drucken konnte nicht gestartet werden", {
-          description: "Es gab ein Problem beim Vorbereiten der Druckansicht."
-        });
-      } else {
-        console.log('Printing equipment list...');
-      }
-    }
-  });
 
   const handleExportToExcel = () => {
     if (!equipment) return;
@@ -135,13 +82,9 @@ const EquipmentManagement = () => {
           <h1 className="text-2xl font-bold tracking-tight">Ausrüstungsverwaltung</h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={handlePrintByLocation}>
-            <Printer className="h-4 w-4 mr-2" />
-            {isMobile ? '' : 'Drucken'}
-          </Button>
           <Button variant="outline" size="sm" onClick={handleExportToExcel}>
             <FileDown className="h-4 w-4 mr-2" />
-            {isMobile ? '' : 'Exportieren'}
+            {isMobile ? '' : 'Excel Export'}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setIsImportDialogOpen(true)}>
             <FileUp className="h-4 w-4 mr-2" />
@@ -159,23 +102,21 @@ const EquipmentManagement = () => {
           <CardTitle>Ausrüstung verwalten</CardTitle>
         </CardHeader>
         <CardContent>
-          <div ref={printRef} className="print-container">
-            <EquipmentFilters 
-              searchTerm={searchTerm}
-              selectedCategory={selectedCategory}
-              selectedPerson={selectedPerson}
-              selectedStatus={selectedStatus}
-              onFilterChange={handleFilterChange}
-              onReset={resetFilters}
-            />
-            <EquipmentList 
-              equipment={equipment || []} 
-              statusFilter={selectedStatus || undefined}
-              categoryFilter={selectedCategory || undefined}
-              personFilter={selectedPerson || undefined}
-              onFilterChange={handleFilterChange}
-            />
-          </div>
+          <EquipmentFilters 
+            searchTerm={searchTerm}
+            selectedCategory={selectedCategory}
+            selectedPerson={selectedPerson}
+            selectedStatus={selectedStatus}
+            onFilterChange={handleFilterChange}
+            onReset={resetFilters}
+          />
+          <EquipmentList 
+            equipment={equipment || []} 
+            statusFilter={selectedStatus || undefined}
+            categoryFilter={selectedCategory || undefined}
+            personFilter={selectedPerson || undefined}
+            onFilterChange={handleFilterChange}
+          />
         </CardContent>
       </Card>
 
@@ -202,33 +143,6 @@ const EquipmentManagement = () => {
         open={isImportDialogOpen} 
         onOpenChange={setIsImportDialogOpen} 
       />
-      
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          .print-container, .print-container * {
-            visibility: visible;
-          }
-          .print-container {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          .no-print, .no-print * {
-            display: none !important;
-          }
-          .action-buttons, button, input, select {
-            display: none !important;
-          }
-          .is-printing .no-print {
-            display: none !important;
-          }
-        }
-      `}} />
     </div>
   );
 };
