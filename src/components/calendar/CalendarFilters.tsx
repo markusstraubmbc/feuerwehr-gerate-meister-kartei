@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Filter, Calendar, User, Wrench } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { usePersons } from "@/hooks/usePersons";
 import { useMaintenanceTemplates } from "@/hooks/useMaintenanceTemplates";
 
-interface CalendarFilters {
+export interface CalendarFilters {
   personId?: string;
   templateId?: string;
   includeCompleted: boolean;
