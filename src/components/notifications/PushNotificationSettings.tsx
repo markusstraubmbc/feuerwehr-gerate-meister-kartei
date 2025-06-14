@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Smartphone } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -76,12 +75,27 @@ export function PushNotificationSettings() {
       // Schritt 1: Service Worker registrieren
       console.log('Registriere Service Worker...');
       const registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/'
+        scope: '/',
+        updateViaCache: 'none'
       });
       
       console.log('Service Worker erfolgreich registriert:', registration);
       
       // Warten bis Service Worker aktiv ist
+      if (registration.installing) {
+        console.log('Service Worker wird installiert...');
+        await new Promise<void>((resolve) => {
+          const checkState = () => {
+            if (registration.installing?.state === 'installed') {
+              resolve();
+            } else {
+              registration.installing?.addEventListener('statechange', checkState);
+            }
+          };
+          checkState();
+        });
+      }
+      
       await navigator.serviceWorker.ready;
       console.log('Service Worker ist bereit');
       
@@ -178,16 +192,6 @@ export function PushNotificationSettings() {
           icon: '/favicon.ico',
           badge: '/favicon.ico',
           tag: 'test-notification',
-          actions: [
-            {
-              action: 'view',
-              title: 'Anzeigen'
-            },
-            {
-              action: 'close',
-              title: 'Schließen'
-            }
-          ],
           requireInteraction: true
         });
         
