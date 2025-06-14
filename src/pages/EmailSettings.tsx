@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -144,7 +143,17 @@ const EmailSettings = () => {
   // Handle test emails
   const sendTestEmail = async (type: string) => {
     try {
-      const { data: authSession } = await supabase.auth.getSession();
+      const { data: authData, error: authError } = await supabase.auth.getSession();
+      
+      if (authError) {
+        throw new Error(`Authentifizierungsfehler: ${authError.message}`);
+      }
+
+      if (!authData.session) {
+        throw new Error("Keine aktive Sitzung gefunden. Bitte melden Sie sich erneut an.");
+      }
+
+      console.log('Sending test email for type:', type);
       
       const response = await fetch(
         "https://pkhkswzixavvildtoxxt.supabase.co/functions/v1/email-scheduler",
@@ -152,28 +161,31 @@ const EmailSettings = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${authSession?.session?.access_token || ''}`,
+            "Authorization": `Bearer ${authData.session.access_token}`,
           },
           body: JSON.stringify({ type }),
         }
       );
 
-      const result = await response.json();
-
-      if (response.ok) {
-        toast({
-          title: "Test-E-Mail gesendet",
-          description: `${type === "upcoming" ? "Wartungsbenachrichtigung" : "Monatlicher Bericht"} wurde an alle Empfänger gesendet.`,
-        });
-      } else {
-        throw new Error(result.error || "Unbekannter Fehler");
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Email function response error:', response.status, errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
+
+      const result = await response.json();
+      console.log('Email function result:', result);
+
+      toast({
+        title: "Test-E-Mail gesendet",
+        description: `${type === "upcoming" ? "Wartungsbenachrichtigung" : "Monatlicher Bericht"} wurde erfolgreich gesendet.`,
+      });
     } catch (error: any) {
       console.error("Error sending test email:", error);
       toast({
         variant: "destructive",
-        title: "Fehler",
-        description: `Test-E-Mail konnte nicht gesendet werden: ${error.message}`,
+        title: "Fehler beim Senden der Test-E-Mail",
+        description: error.message || "Unbekannter Fehler beim Senden der E-Mail.",
       });
     }
   };

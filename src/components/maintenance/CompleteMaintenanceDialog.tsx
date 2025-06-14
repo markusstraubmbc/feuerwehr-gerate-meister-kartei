@@ -88,9 +88,9 @@ export function CompleteMaintenanceDialog({
         return;
       }
 
-      // Convert the JSON data to Comment type and limit to the latest 3
+      // Convert the JSON data to Comment type and limit to the latest 5
       const comments = (data || []) as unknown as Comment[];
-      setEquipmentComments(comments.slice(0, 3));
+      setEquipmentComments(comments.slice(0, 5));
     } catch (error) {
       console.error("Error loading equipment comments:", error);
     } finally {
@@ -251,10 +251,10 @@ export function CompleteMaintenanceDialog({
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-2">
                 <MessageSquare className="h-4 w-4" />
-                <h3 className="text-sm font-medium">Letzte Kommentare zur Ausrüstung</h3>
+                <h3 className="text-sm font-medium">Letzte 5 Kommentare zur Ausrüstung</h3>
               </div>
               <Card className="p-3">
-                <div className="space-y-3 max-h-[150px] overflow-y-auto">
+                <div className="space-y-3 max-h-[200px] overflow-y-auto">
                   {equipmentComments.map((comment) => (
                     <div key={comment.id} className="border-b pb-2 last:border-b-0 last:pb-0">
                       <div className="flex justify-between items-start text-sm">

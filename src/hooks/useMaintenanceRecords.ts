@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -93,7 +92,7 @@ export const getTemplateChecklistUrl = async (templateId: string): Promise<strin
 };
 
 // Function to get latest comments for an equipment
-export const getLatestEquipmentComments = async (equipmentId: string, limit: number = 3): Promise<any[]> => {
+export const getLatestEquipmentComments = async (equipmentId: string, limit: number = 5): Promise<any[]> => {
   try {
     const { data, error } = await supabase.rpc('get_equipment_comments', { 
       equipment_id_param: equipmentId 
@@ -143,8 +142,8 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
       checksList.push("Dokumentation der Prüfung vervollständigen");
     }
 
-    // Get latest comments for the equipment
-    const latestComments = await getLatestEquipmentComments(record.equipment_id);
+    // Get latest 5 comments for the equipment
+    const latestComments = await getLatestEquipmentComments(record.equipment_id, 5);
 
     // Create check items HTML
     const checksHtml = checksList.map(check => 
@@ -155,7 +154,7 @@ export const generateCustomChecklist = async (record: MaintenanceRecord): Promis
     let commentsHtml = '';
     if (latestComments && latestComments.length > 0) {
       commentsHtml = `
-        <h2>LETZTE KOMMENTARE:</h2>
+        <h2>LETZTE 5 KOMMENTARE:</h2>
         <div class="comments-section">
           ${latestComments.map(comment => `
             <div class="comment">
