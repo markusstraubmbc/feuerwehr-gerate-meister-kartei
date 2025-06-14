@@ -29,6 +29,10 @@ import { EquipmentCommentsInfo } from "./EquipmentCommentsInfo";
 import { useEquipmentPrintExport } from "./EquipmentPrintExport";
 import { EquipmentOverviewDialog } from "./EquipmentOverviewDialog";
 import { useAllEquipmentComments } from "@/hooks/useEquipmentComments";
+import { useEquipmentComments } from "@/hooks/useEquipmentComments";
+import { useEquipmentMissions } from "@/hooks/useEquipmentMissions";
+import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
+import { generateEquipmentDetailsPdf } from "./EquipmentDetailsPdfExport";
 
 interface EquipmentListProps {
   equipment: Equipment[];
@@ -62,6 +66,7 @@ export function EquipmentList({
   
   const printRef = useRef<HTMLDivElement>(null);
   const { data: allComments } = useAllEquipmentComments();
+  const { data: maintenanceRecords = [] } = useMaintenanceRecords();
 
   // Apply filters to get filtered equipment
   const filteredEquipment = equipment.filter(item => {
@@ -99,6 +104,30 @@ export function EquipmentList({
   const getCommentCount = (equipmentId: string): number => {
     if (!allComments) return 0;
     return allComments.filter(comment => comment.equipment_id === equipmentId).length;
+  };
+
+  const handlePdfExportForEquipment = async (equipmentItem: Equipment) => {
+    try {
+      // Fetch comments for this equipment
+      const { data: comments = [] } = await useEquipmentComments(equipmentItem.id);
+      
+      // Fetch missions for this equipment
+      const { data: missions = [] } = await useEquipmentMissions(equipmentItem.id);
+      
+      // Filter maintenance records for this equipment
+      const equipmentMaintenance = maintenanceRecords.filter(
+        record => record.equipment_id === equipmentItem.id
+      );
+
+      generateEquipmentDetailsPdf({
+        equipment: equipmentItem,
+        comments,
+        missions,
+        maintenanceRecords: equipmentMaintenance
+      });
+    } catch (error) {
+      console.error('Error generating PDF for equipment:', error);
+    }
   };
 
   const handleEdit = (item: Equipment) => {
@@ -216,6 +245,14 @@ export function EquipmentList({
                     </TableCell>
                     <TableCell className="text-right print:hidden">
                       <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handlePdfExportForEquipment(item)}
+                          title="PDF-Detailbericht erstellen"
+                        >
+                          <FileDown className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
