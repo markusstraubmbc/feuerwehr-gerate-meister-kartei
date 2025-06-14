@@ -28,9 +28,15 @@ export function BarcodeDialog({ equipment, open, onOpenChange }: BarcodeDialogPr
   });
 
   // Generate URL for QR code
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${
     encodeURIComponent(equipment.barcode || equipment.inventory_number || equipment.id)
   }`;
+
+  // Generate URL for Barcode with better parameters
+  const barcodeUrl = equipment.barcode ? 
+    `https://bwipjs-api.metafloor.com/?bcid=code128&text=${
+      encodeURIComponent(equipment.barcode)
+    }&scale=2&height=10&includetext=true&textxalign=center&backgroundcolor=FFFFFF` : null;
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -46,28 +52,30 @@ export function BarcodeDialog({ equipment, open, onOpenChange }: BarcodeDialogPr
           </TabsList>
           
           <div ref={printRef} className="p-4">
-            <div className="text-center mb-2">
-              <p className="text-sm font-medium">Inventarnummer: {equipment.inventory_number || "-"}</p>
-              <p className="text-sm text-muted-foreground">{equipment.name}</p>
+            <div className="text-center mb-4">
+              <p className="text-sm font-medium">{equipment.name}</p>
+              <p className="text-xs text-muted-foreground">Inventarnummer: {equipment.inventory_number || "-"}</p>
             </div>
             
             <TabsContent value="barcode" className="mt-2">
               <div className="flex flex-col items-center gap-4">
-                <div className="h-40 w-full flex items-center justify-center border rounded bg-white">
-                  {equipment.barcode ? (
-                    <div className="text-center">
-                      <svg id="barcode"></svg>
-                      {/* We'll use JsBarcode to render this in useEffect */}
+                <div className="w-full min-h-[120px] flex items-center justify-center border rounded bg-white p-2">
+                  {barcodeUrl ? (
+                    <div className="text-center w-full">
                       <img 
-                        src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${
-                          encodeURIComponent(equipment.barcode)
-                        }&scale=3&includetext=true&textxalign=center`} 
+                        src={barcodeUrl}
                         alt="Barcode" 
-                        className="max-w-full max-h-32"
+                        className="max-w-full h-auto mx-auto"
+                        style={{ maxHeight: '100px', width: 'auto' }}
+                        onError={(e) => {
+                          console.error("Barcode loading error:", e);
+                          e.currentTarget.style.display = 'none';
+                        }}
                       />
+                      <p className="text-xs mt-2 font-mono">{equipment.barcode}</p>
                     </div>
                   ) : (
-                    <span className="text-muted-foreground">Kein Barcode verfügbar</span>
+                    <span className="text-muted-foreground text-sm">Kein Barcode verfügbar</span>
                   )}
                 </div>
               </div>
@@ -75,15 +83,25 @@ export function BarcodeDialog({ equipment, open, onOpenChange }: BarcodeDialogPr
             
             <TabsContent value="qrcode" className="mt-2">
               <div className="flex flex-col items-center gap-4">
-                <div className="h-40 w-full flex items-center justify-center border rounded bg-white">
+                <div className="w-full min-h-[120px] flex items-center justify-center border rounded bg-white p-2">
                   {equipment.barcode || equipment.inventory_number ? (
-                    <img 
-                      src={qrCodeUrl}
-                      alt="QR Code" 
-                      className="max-h-32"
-                    />
+                    <div className="text-center">
+                      <img 
+                        src={qrCodeUrl}
+                        alt="QR Code" 
+                        className="mx-auto"
+                        style={{ width: '150px', height: '150px' }}
+                        onError={(e) => {
+                          console.error("QR Code loading error:", e);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      <p className="text-xs mt-2 font-mono">
+                        {equipment.barcode || equipment.inventory_number}
+                      </p>
+                    </div>
                   ) : (
-                    <span className="text-muted-foreground">Kein QR-Code verfügbar</span>
+                    <span className="text-muted-foreground text-sm">Kein QR-Code verfügbar</span>
                   )}
                 </div>
               </div>
@@ -98,11 +116,7 @@ export function BarcodeDialog({ equipment, open, onOpenChange }: BarcodeDialogPr
           </Button>
           <Button variant="outline" className="flex-1" asChild>
             <a 
-              href={activeTab === "barcode" 
-                ? `https://bwipjs-api.metafloor.com/?bcid=code128&text=${
-                    encodeURIComponent(equipment.barcode || equipment.inventory_number || "")
-                  }&scale=3&includetext=true&textxalign=center` 
-                : qrCodeUrl} 
+              href={activeTab === "barcode" && barcodeUrl ? barcodeUrl : qrCodeUrl} 
               download={`${activeTab}-${equipment.inventory_number || equipment.name}.png`}
             >
               <Download className="mr-2 h-4 w-4" />
