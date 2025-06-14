@@ -36,9 +36,11 @@ export function ViewMaintenanceDialog({
       if (record.template?.id) {
         setIsLoadingChecklist(true);
         try {
+          console.log("Fetching checklist for template:", record.template.id);
+          
           const { data, error } = await supabase
             .from('maintenance_templates')
-            .select('*')
+            .select('checklist_url')
             .eq('id', record.template.id)
             .single();
             
@@ -48,25 +50,34 @@ export function ViewMaintenanceDialog({
             return;
           }
           
+          console.log("Template data:", data);
+          
           if (data?.checklist_url) {
-            // Verify that the file exists in storage before setting the URL
             try {
+              // Create signed URL for the checklist
               const { data: signedUrlData, error: signedUrlError } = await supabase
                 .storage
                 .from('checklists')
-                .createSignedUrl(data.checklist_url, 60 * 60); // 1 hour expiry
+                .createSignedUrl(data.checklist_url, 3600); // 1 hour expiry
+              
+              console.log("Signed URL response:", { signedUrlData, signedUrlError });
               
               if (signedUrlError) {
                 console.error("Error creating signed URL:", signedUrlError);
                 setChecklistUrl(null);
+              } else if (signedUrlData?.signedUrl) {
+                setChecklistUrl(signedUrlData.signedUrl);
+                console.log("Checklist URL set:", signedUrlData.signedUrl);
               } else {
-                setChecklistUrl(signedUrlData?.signedUrl || null);
+                console.warn("No signed URL returned");
+                setChecklistUrl(null);
               }
             } catch (storageError) {
               console.error("Storage error:", storageError);
               setChecklistUrl(null);
             }
           } else {
+            console.log("No checklist_url in template data");
             setChecklistUrl(null);
           }
         } catch (error) {
@@ -75,6 +86,9 @@ export function ViewMaintenanceDialog({
         } finally {
           setIsLoadingChecklist(false);
         }
+      } else {
+        console.log("No template ID found");
+        setChecklistUrl(null);
       }
     };
     
@@ -86,26 +100,23 @@ export function ViewMaintenanceDialog({
   const handleDownloadCustomChecklist = async () => {
     setIsGeneratingPdf(true);
     try {
+      console.log("Generating custom checklist for record:", record.id);
       const blob = await generateCustomChecklist(record);
       if (blob) {
-        // Create a more reliable download mechanism
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
         link.download = `wartung-checkliste-${record.equipment.name.replace(/[^a-zA-Z0-9]/g, '_')}-${format(new Date(record.due_date), 'yyyy-MM-dd')}.html`;
         
-        // Append to body, click, and remove
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
-        // Clean up the URL object
-        setTimeout(() => {
-          window.URL.revokeObjectURL(url);
-        }, 100);
+        window.URL.revokeObjectURL(url);
         
         toast.success("Checkliste wurde erfolgreich heruntergeladen");
       } else {
+        console.error("No blob generated");
         toast.error("Fehler beim Generieren der Checkliste");
       }
     } catch (error) {
@@ -122,31 +133,47 @@ export function ViewMaintenanceDialog({
       return;
     }
     
+    console.log("Downloading original checklist from:", checklistUrl);
+    
     try {
-      // Try to download the original checklist
-      const response = await fetch(checklistUrl);
+      // Use a more direct approach with proper error handling
+      const response = await fetch(checklistUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/pdf,*/*'
+        }
+      });
+      
+      console.log("Fetch response:", { status: response.status, statusText: response.statusText });
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
       const blob = await response.blob();
+      console.log("Blob created:", { size: blob.size, type: blob.type });
+      
+      // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `original-checkliste-${record.template?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'template'}.pdf`;
+      
+      // Determine file extension from content type or URL
+      const fileExtension = blob.type.includes('pdf') ? 'pdf' : 'file';
+      const fileName = `original-checkliste-${record.template?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'template'}.${fileExtension}`;
+      
+      link.download = fileName;
       
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      setTimeout(() => {
-        window.URL.revokeObjectURL(url);
-      }, 100);
+      window.URL.revokeObjectURL(url);
       
-      toast.success("Original-Checkliste wurde heruntergeladen");
+      toast.success("Original-Checkliste wurde erfolgreich heruntergeladen");
     } catch (error) {
       console.error("Error downloading original checklist:", error);
-      toast.error("Fehler beim Herunterladen der Original-Checkliste");
+      toast.error(`Fehler beim Herunterladen: ${error.message}`);
     }
   };
 

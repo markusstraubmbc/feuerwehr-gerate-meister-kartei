@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -18,10 +17,78 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    const { type, test_email } = await req.json();
-    console.log(`Processing ${type} notifications, test_email: ${test_email}`);
+    const requestBody = await req.json();
+    const { type, testEmail, message, subject } = requestBody;
+    
+    console.log(`Processing ${type} notifications, testEmail: ${testEmail}`);
 
-    if (type === "upcoming") {
+    if (type === "test") {
+      // Handle test email
+      if (!testEmail) {
+        return new Response(
+          JSON.stringify({ error: "Test email address is required" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+
+      // Check if RESEND_API_KEY is available
+      const apiKey = Deno.env.get("RESEND_API_KEY");
+      if (!apiKey) {
+        return new Response(
+          JSON.stringify({ error: "RESEND_API_KEY not configured" }),
+          {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+
+      try {
+        const emailResult = await resend.emails.send({
+          from: "Wartungsmanagement <onboarding@resend.dev>",
+          to: [testEmail],
+          subject: subject || "Test-E-Mail - Feuerwehr Inventar",
+          html: `
+            <h2>Test-E-Mail</h2>
+            <p>Hallo,</p>
+            <p>${message || 'Dies ist eine Test-E-Mail vom Feuerwehr Inventar System.'}</p>
+            <p>Wenn Sie diese E-Mail erhalten haben, funktioniert die E-Mail-Konfiguration korrekt.</p>
+            <p>Mit freundlichen Grüßen<br>Ihr Wartungsmanagement-Team</p>
+          `,
+        });
+
+        console.log("Test email sent successfully:", emailResult);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: `Test-E-Mail wurde erfolgreich an ${testEmail} gesendet`,
+            emailId: emailResult.data?.id
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+
+      } catch (emailError) {
+        console.error("Error sending test email:", emailError);
+        return new Response(
+          JSON.stringify({ 
+            error: `Fehler beim Senden der E-Mail: ${emailError.message}`,
+            details: emailError
+          }),
+          {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+
+    } else if (type === "upcoming") {
       // Get settings
       const { data: settings } = await supabase
         .from("settings")
@@ -54,10 +121,10 @@ serve(async (req) => {
       const emailDetails = [];
 
       for (const maintenance of maintenanceData || []) {
-        if (!maintenance.performer?.email && !test_email) continue;
+        if (!maintenance.performer?.email && !testEmail) continue;
         
-        const recipient = test_email || maintenance.performer.email;
-        const recipientName = test_email ? "Test User" : `${maintenance.performer.first_name} ${maintenance.performer.last_name}`;
+        const recipient = testEmail || maintenance.performer.email;
+        const recipientName = testEmail ? "Test User" : `${maintenance.performer.first_name} ${maintenance.performer.last_name}`;
         
         const dueDate = new Date(maintenance.due_date).toLocaleDateString('de-DE');
         
@@ -145,8 +212,8 @@ serve(async (req) => {
       const emailDetails = [];
 
       // Send to test email if provided, otherwise to all persons with email
-      const recipients = test_email ? 
-        [{ email: test_email, first_name: "Test", last_name: "User" }] : 
+      const recipients = testEmail ? 
+        [{ email: testEmail, first_name: "Test", last_name: "User" }] : 
         (persons || []);
 
       for (const person of recipients) {

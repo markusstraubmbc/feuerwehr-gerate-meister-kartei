@@ -6,6 +6,7 @@ import { Home, Wrench, CalendarCheck, Clock, Package, Settings } from 'lucide-re
 const AppSidebar = () => {
   const [systemName, setSystemName] = useState('Feuerwehr Inventar');
   const [logoUrl, setLogoUrl] = useState('');
+  const [logoSize, setLogoSize] = useState('48');
   const [backgroundColor, setBackgroundColor] = useState('#1e293b');
   const [textColor, setTextColor] = useState('#ffffff');
   const [selectedColor, setSelectedColor] = useState('#3b82f6');
@@ -15,6 +16,7 @@ const AppSidebar = () => {
     // Load initial values from localStorage
     setSystemName(localStorage.getItem('systemName') || 'Feuerwehr Inventar');
     setLogoUrl(localStorage.getItem('systemLogo') || '');
+    setLogoSize(localStorage.getItem('logoSize') || '48');
     setBackgroundColor(localStorage.getItem('menuBackgroundColor') || '#1e293b');
     setTextColor(localStorage.getItem('menuTextColor') || '#ffffff');
     setSelectedColor(localStorage.getItem('menuSelectedColor') || '#3b82f6');
@@ -28,6 +30,10 @@ const AppSidebar = () => {
       setLogoUrl(event.detail);
     };
 
+    const handleLogoSizeChange = (event: CustomEvent) => {
+      setLogoSize(event.detail);
+    };
+
     const handleSystemColorsChange = (event: CustomEvent) => {
       setBackgroundColor(event.detail.backgroundColor);
       setTextColor(event.detail.textColor);
@@ -36,11 +42,13 @@ const AppSidebar = () => {
 
     window.addEventListener('systemNameChanged', handleSystemNameChange as EventListener);
     window.addEventListener('systemLogoChanged', handleSystemLogoChange as EventListener);
+    window.addEventListener('logoSizeChanged', handleLogoSizeChange as EventListener);
     window.addEventListener('systemColorsChanged', handleSystemColorsChange as EventListener);
 
     return () => {
       window.removeEventListener('systemNameChanged', handleSystemNameChange as EventListener);
       window.removeEventListener('systemLogoChanged', handleSystemLogoChange as EventListener);
+      window.removeEventListener('logoSizeChanged', handleLogoSizeChange as EventListener);
       window.removeEventListener('systemColorsChanged', handleSystemColorsChange as EventListener);
     };
   }, []);
@@ -66,7 +74,12 @@ const AppSidebar = () => {
           <img 
             src={logoUrl} 
             alt="System Logo" 
-            className="h-12 w-12 object-contain rounded"
+            style={{
+              width: `${logoSize}px`,
+              height: `${logoSize}px`,
+              objectFit: 'contain'
+            }}
+            className="rounded"
           />
         )}
         <h1 
