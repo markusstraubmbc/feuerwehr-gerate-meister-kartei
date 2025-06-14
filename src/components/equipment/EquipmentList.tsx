@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import {
   Table,
@@ -29,6 +28,7 @@ import { CommentsDialog } from "./CommentsDialog";
 import { EquipmentCommentsInfo } from "./EquipmentCommentsInfo";
 import { useEquipmentPrintExport } from "./EquipmentPrintExport";
 import { EquipmentOverviewDialog } from "./EquipmentOverviewDialog";
+import { useAllEquipmentComments } from "@/hooks/useEquipmentComments";
 
 interface EquipmentListProps {
   equipment: Equipment[];
@@ -61,6 +61,7 @@ export function EquipmentList({
   const [isOverviewDialogOpen, setIsOverviewDialogOpen] = useState(false);
   
   const printRef = useRef<HTMLDivElement>(null);
+  const { data: allComments } = useAllEquipmentComments();
 
   // Apply filters to get filtered equipment
   const filteredEquipment = equipment.filter(item => {
@@ -93,6 +94,12 @@ export function EquipmentList({
     equipment: filteredEquipment, 
     printRef 
   });
+
+  // Function to get comment count for an equipment item
+  const getCommentCount = (equipmentId: string): number => {
+    if (!allComments) return 0;
+    return allComments.filter(comment => comment.equipment_id === equipmentId).length;
+  };
 
   const handleEdit = (item: Equipment) => {
     setSelectedEquipment(item);
@@ -154,7 +161,7 @@ export function EquipmentList({
                 <TableHead className="hidden md:table-cell">Standort</TableHead>
                 <TableHead className="hidden md:table-cell">Kategorie</TableHead>
                 <TableHead className="hidden md:table-cell">Status</TableHead>
-                <TableHead className="hidden lg:table-cell">Kommentare</TableHead>
+                <TableHead className="hidden lg:table-cell">Anzahl Kommentare</TableHead>
                 <TableHead className="hidden md:table-cell">Ersetzt am</TableHead>
                 <TableHead className="hidden md:table-cell">Letzte Wartung</TableHead>
                 <TableHead className="hidden md:table-cell">Nächste Wartung</TableHead>
@@ -183,7 +190,20 @@ export function EquipmentList({
                       <EquipmentStatusBadge status={item.status} />
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
-                      <EquipmentCommentsInfo equipmentId={item.id} />
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{getCommentCount(item.id)}</span>
+                        {getCommentCount(item.id) > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleComments(item)}
+                            className="h-6 px-2 text-xs"
+                          >
+                            <MessageCircle className="h-3 w-3 mr-1" />
+                            Anzeigen
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {item.replacement_date ? format(new Date(item.replacement_date), "dd.MM.yyyy") : "-"}
