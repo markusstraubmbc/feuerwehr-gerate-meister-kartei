@@ -22,8 +22,8 @@ export function PersonalizedNotificationSettings() {
   const { data: persons = [] } = usePersons();
   const { data: templates = [] } = useMaintenanceTemplates();
   const [rules, setRules] = useState<NotificationRule[]>([]);
-  const [selectedPerson, setSelectedPerson] = useState<string>("");
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+  const [selectedPerson, setSelectedPerson] = useState<string>("no_person_selected");
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("no_template_selected");
 
   useEffect(() => {
     // Load saved rules from localStorage
@@ -44,13 +44,16 @@ export function PersonalizedNotificationSettings() {
   };
 
   const addRule = () => {
-    if (!selectedPerson && !selectedTemplate) {
+    const personId = selectedPerson === "no_person_selected" ? undefined : selectedPerson;
+    const templateId = selectedTemplate === "no_template_selected" ? undefined : selectedTemplate;
+    
+    if (!personId && !templateId) {
       toast.error('Bitte wählen Sie eine Person oder einen Wartungstyp aus');
       return;
     }
 
     const existingRule = rules.find(r => 
-      r.personId === selectedPerson && r.templateId === selectedTemplate
+      r.personId === personId && r.templateId === templateId
     );
 
     if (existingRule) {
@@ -60,15 +63,15 @@ export function PersonalizedNotificationSettings() {
 
     const newRule: NotificationRule = {
       id: Date.now().toString(),
-      personId: selectedPerson || undefined,
-      templateId: selectedTemplate || undefined,
+      personId,
+      templateId,
       pushEnabled: true,
       emailEnabled: true,
     };
 
     saveRules([...rules, newRule]);
-    setSelectedPerson("");
-    setSelectedTemplate("");
+    setSelectedPerson("no_person_selected");
+    setSelectedTemplate("no_template_selected");
   };
 
   const updateRule = (ruleId: string, updates: Partial<NotificationRule>) => {
@@ -119,7 +122,7 @@ export function PersonalizedNotificationSettings() {
                 <SelectValue placeholder="Alle Personen" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Alle Personen</SelectItem>
+                <SelectItem value="no_person_selected">Alle Personen</SelectItem>
                 {persons.map((person) => (
                   <SelectItem key={person.id} value={person.id}>
                     {person.first_name} {person.last_name}
@@ -136,7 +139,7 @@ export function PersonalizedNotificationSettings() {
                 <SelectValue placeholder="Alle Wartungstypen" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Alle Wartungstypen</SelectItem>
+                <SelectItem value="no_template_selected">Alle Wartungstypen</SelectItem>
                 {templates.map((template) => (
                   <SelectItem key={template.id} value={template.id}>
                     {template.name}

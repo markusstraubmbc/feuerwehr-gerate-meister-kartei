@@ -54,14 +54,14 @@ export function CalendarFilters({ onFiltersChange, currentFilters }: CalendarFil
           <div>
             <Label htmlFor="person-filter">Verantwortliche Person</Label>
             <Select 
-              value={currentFilters.personId || "all"} 
-              onValueChange={(value) => updateFilter('personId', value === "all" ? undefined : value)}
+              value={currentFilters.personId || "all_persons"} 
+              onValueChange={(value) => updateFilter('personId', value === "all_persons" ? undefined : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Alle Personen" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle Personen</SelectItem>
+                <SelectItem value="all_persons">Alle Personen</SelectItem>
                 {persons.map((person) => (
                   <SelectItem key={person.id} value={person.id}>
                     {person.first_name} {person.last_name}
@@ -74,14 +74,14 @@ export function CalendarFilters({ onFiltersChange, currentFilters }: CalendarFil
           <div>
             <Label htmlFor="template-filter">Wartungstyp</Label>
             <Select 
-              value={currentFilters.templateId || "all"} 
-              onValueChange={(value) => updateFilter('templateId', value === "all" ? undefined : value)}
+              value={currentFilters.templateId || "all_templates"} 
+              onValueChange={(value) => updateFilter('templateId', value === "all_templates" ? undefined : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Alle Wartungstypen" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle Wartungstypen</SelectItem>
+                <SelectItem value="all_templates">Alle Wartungstypen</SelectItem>
                 {templates.map((template) => (
                   <SelectItem key={template.id} value={template.id}>
                     {template.name}

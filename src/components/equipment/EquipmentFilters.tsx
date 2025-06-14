@@ -77,7 +77,7 @@ export const EquipmentFilters = ({
         </Select>
         
         <Select 
-          value={selectedStatus || ''} 
+          value={selectedStatus || "status_all"} 
           onValueChange={(value) => onFilterChange({ status: value })}
         >
           <SelectTrigger className="w-full sm:w-40">
