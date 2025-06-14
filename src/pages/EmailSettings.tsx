@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +27,7 @@ const EmailSettings = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [settings, setSettings] = useState<EmailSettings>(DEFAULT_SETTINGS);
+  const [testEmailAddress, setTestEmailAddress] = useState("");
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["email-settings"],
@@ -143,8 +144,17 @@ const EmailSettings = () => {
 
   // Handle test emails
   const sendTestEmail = async (type: string) => {
+    if (!testEmailAddress) {
+      toast({
+        variant: "destructive",
+        title: "E-Mail-Adresse erforderlich",
+        description: "Bitte geben Sie eine E-Mail-Adresse ein.",
+      });
+      return;
+    }
+
     try {
-      console.log('Sending test email for type:', type);
+      console.log('Sending test email for type:', type, 'to:', testEmailAddress);
       
       const response = await fetch(
         "https://pkhkswzixavvildtoxxt.supabase.co/functions/v1/email-scheduler",
@@ -152,9 +162,12 @@ const EmailSettings = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            "Authorization": `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBraGtzd3ppeGF2dmlsZHRveHh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDYyMzgsImV4cCI6MjA2MDMyMjIzOH0.534s7M7d-iQ43VIDthJ3uBLxqJPRg5o7TsMyeP2VoJo`,
           },
-          body: JSON.stringify({ type }),
+          body: JSON.stringify({ 
+            type,
+            test_email: testEmailAddress
+          }),
         }
       );
 
@@ -169,7 +182,7 @@ const EmailSettings = () => {
 
       toast({
         title: "Test-E-Mail gesendet",
-        description: `${type === "upcoming" ? "Wartungsbenachrichtigung" : "Monatlicher Bericht"} wurde erfolgreich gesendet.`,
+        description: `${type === "upcoming" ? "Wartungsbenachrichtigung" : "Monatlicher Bericht"} wurde an ${testEmailAddress} gesendet.`,
       });
     } catch (error: any) {
       console.error("Error sending test email:", error);
@@ -273,17 +286,36 @@ const EmailSettings = () => {
             <p className="text-sm">
               Hier können Sie Test-E-Mails senden, um die E-Mail-Funktionalität zu überprüfen.
             </p>
+            
+            <div className="space-y-2">
+              <Label htmlFor="test_email">Test E-Mail-Adresse</Label>
+              <Input
+                id="test_email"
+                type="email"
+                placeholder="test@example.com"
+                value={testEmailAddress}
+                onChange={(e) => setTestEmailAddress(e.target.value)}
+              />
+              <p className="text-sm text-gray-500">
+                Geben Sie die E-Mail-Adresse ein, an die die Test-E-Mail gesendet werden soll.
+              </p>
+            </div>
+            
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 onClick={() => sendTestEmail("upcoming")}
                 variant="outline"
+                disabled={!testEmailAddress}
               >
+                <Send className="mr-2 h-4 w-4" />
                 Wartungsbenachrichtigung testen
               </Button>
               <Button
                 onClick={() => sendTestEmail("monthly-report")}
                 variant="outline"
+                disabled={!testEmailAddress}
               >
+                <Send className="mr-2 h-4 w-4" />
                 Monatlichen Bericht testen
               </Button>
             </div>

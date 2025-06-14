@@ -1,3 +1,4 @@
+
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import {
@@ -7,12 +8,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MaintenanceRecord } from "@/hooks/useMaintenanceRecords";
+import { MaintenanceRecord, generateCustomChecklist } from "@/hooks/useMaintenanceRecords";
 import { MaintenanceStatusBadge } from "./MaintenanceStatusBadge";
 import { FileDown, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 
 interface ViewMaintenanceDialogProps {
   record: MaintenanceRecord;
@@ -27,6 +29,7 @@ export function ViewMaintenanceDialog({
 }: ViewMaintenanceDialogProps) {
   const [checklistUrl, setChecklistUrl] = useState<string | null>(null);
   const [isLoadingChecklist, setIsLoadingChecklist] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   
   useEffect(() => {
     const fetchTemplateChecklist = async () => {
@@ -57,10 +60,31 @@ export function ViewMaintenanceDialog({
     }
   }, [record, open]);
   
-  const generateCustomChecklist = async () => {
-    // In a real implementation, this would use a library like PDFLib or jsPDF
-    // to generate a custom PDF with equipment information and the checklist
-    alert("Diese Funktion würde eine angepasste Checkliste generieren und herunterladen.");
+  const handleDownloadCustomChecklist = async () => {
+    setIsGeneratingPdf(true);
+    try {
+      const blob = await generateCustomChecklist(record);
+      if (blob) {
+        // Create a download link
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `wartung-checkliste-${record.equipment.name.replace(/[^a-zA-Z0-9]/g, '_')}-${format(new Date(record.due_date), 'yyyy-MM-dd')}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        toast.success("Checkliste wurde heruntergeladen");
+      } else {
+        toast.error("Fehler beim Generieren der Checkliste");
+      }
+    } catch (error) {
+      console.error("Error generating checklist:", error);
+      toast.error("Fehler beim Herunterladen der Checkliste");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   return (
@@ -148,15 +172,31 @@ export function ViewMaintenanceDialog({
                     </a>
                   </Button>
                   
-                  <Button variant="outline" className="w-full" onClick={generateCustomChecklist}>
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={handleDownloadCustomChecklist}
+                    disabled={isGeneratingPdf}
+                  >
                     <FileDown className="mr-2 h-4 w-4" />
-                    Angepasste Checkliste herunterladen
+                    {isGeneratingPdf ? "Generiere..." : "Angepasste Checkliste herunterladen"}
                   </Button>
                 </>
               ) : isLoadingChecklist ? (
                 <p className="text-sm text-muted-foreground">Lade Checkliste...</p>
               ) : (
-                <p className="text-sm text-muted-foreground">Keine Checkliste verfügbar</p>
+                <>
+                  <p className="text-sm text-muted-foreground">Keine Original-Checkliste verfügbar</p>
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={handleDownloadCustomChecklist}
+                    disabled={isGeneratingPdf}
+                  >
+                    <FileDown className="mr-2 h-4 w-4" />
+                    {isGeneratingPdf ? "Generiere..." : "Standard-Checkliste herunterladen"}
+                  </Button>
+                </>
               )}
             </div>
           </div>

@@ -9,13 +9,14 @@ serve(async (req) => {
   }
 
   try {
+    const { type, test_email } = await req.json();
+    
+    console.log(`Email scheduler called with type: ${type}, test_email: ${test_email}`);
+    
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "https://pkhkswzixavvildtoxxt.supabase.co";
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
 
-    // Determine which notification to trigger based on request parameters
-    const { type } = await req.json();
-
-    // Call the maintenance-notifications function
+    // Call the maintenance notifications function
     const response = await fetch(
       `${SUPABASE_URL}/functions/v1/maintenance-notifications`,
       {
@@ -24,27 +25,34 @@ serve(async (req) => {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
         },
-        body: JSON.stringify({ type })
+        body: JSON.stringify({ 
+          type,
+          test_email: test_email || undefined
+        })
       }
     );
 
     const result = await response.json();
-    
+    console.log("Maintenance notifications result:", result);
+
     return new Response(
       JSON.stringify({
-        success: response.ok,
+        success: true,
         message: `Triggered ${type} notifications`,
-        result
+        result: result
       }),
       {
-        status: response.status,
+        status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );
   } catch (error) {
     console.error("Error in email-scheduler function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
