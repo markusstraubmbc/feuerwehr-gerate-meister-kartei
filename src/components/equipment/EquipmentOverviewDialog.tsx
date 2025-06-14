@@ -13,14 +13,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Equipment } from "@/hooks/useEquipment";
 import { useEquipmentComments } from "@/hooks/useEquipmentComments";
-import { useMissionEquipment } from "@/hooks/useMissionEquipment";
+import { useEquipmentMissions } from "@/hooks/useEquipmentMissions";
 import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
-import { useMissions } from "@/hooks/useMissions";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { Calendar, MessageSquare, Wrench, MapPin, Target } from "lucide-react";
 import { EquipmentStatusBadge } from "./EquipmentStatusBadge";
 import { MaintenanceStatusBadge } from "@/components/maintenance/MaintenanceStatusBadge";
+import { EquipmentMissionsTab } from "./EquipmentMissionsTab";
 
 interface EquipmentOverviewDialogProps {
   equipment: Equipment;
@@ -35,7 +35,7 @@ export function EquipmentOverviewDialog({
 }: EquipmentOverviewDialogProps) {
   const { data: comments = [] } = useEquipmentComments(equipment.id);
   const { data: maintenanceRecords = [] } = useMaintenanceRecords();
-  const { data: missions = [] } = useMissions();
+  const { data: equipmentMissions = [] } = useEquipmentMissions(equipment.id);
   
   // Filter maintenance records for this equipment
   const equipmentMaintenance = maintenanceRecords.filter(
@@ -49,13 +49,6 @@ export function EquipmentOverviewDialog({
   const upcomingMaintenance = equipmentMaintenance.filter(
     record => record.status === 'ausstehend' || record.status === 'geplant'
   );
-
-  // Filter missions where this equipment was used
-  const equipmentMissions = missions.filter(mission => {
-    // Note: This is a simplified check. In reality, we'd need to query mission_equipment table
-    // For now, we'll show a placeholder
-    return false; // Will be implemented when mission_equipment data is properly connected
-  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -239,25 +232,7 @@ export function EquipmentOverviewDialog({
             </TabsContent>
 
             <TabsContent value="missions" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Target className="h-5 w-5" />
-                    Einsätze & Übungen
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center p-6">
-                    <Target className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="font-medium mb-2">Einsätze/Übungen werden noch entwickelt</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Die Anzeige der Einsätze und Übungen, bei denen diese Ausrüstung verwendet wurde, 
-                      wird in einer zukünftigen Version implementiert. Die Datenbank-Struktur ist bereits 
-                      vorbereitet (mission_equipment Tabelle).
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <EquipmentMissionsTab equipmentId={equipment.id} />
             </TabsContent>
           </Tabs>
         </div>
