@@ -7,8 +7,6 @@ import {
   Settings,
   Wrench,
   Clock,
-  MapPin,
-  Users,
   Target,
   Calendar,
   Bell,
@@ -35,8 +33,6 @@ const navigation = [
   { name: "Einsätze & Übungen", href: "/missions", icon: Target },
   { name: "Kalender", href: "/calendar", icon: Calendar },
   { name: "Benachrichtigungen", href: "/notifications", icon: Bell },
-  { name: "Standorte", href: "/locations", icon: MapPin },
-  { name: "Personen", href: "/person-management", icon: Users },
   { name: "Einstellungen", href: "/settings", icon: Settings },
 ];
 
