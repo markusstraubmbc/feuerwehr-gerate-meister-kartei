@@ -70,6 +70,7 @@ const Maintenance = () => {
   const [selectedPersonId, setSelectedPersonId] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [selectedUpcomingTemplateId, setSelectedUpcomingTemplateId] = useState("");
   const [upcomingMaintenanceFilter, setUpcomingMaintenanceFilter] = useState("unplanned");
   const [upcomingMaintenanceSearchTerm, setUpcomingMaintenanceSearchTerm] = useState("");
   const [maintenanceSearchTerm, setMaintenanceSearchTerm] = useState("");
@@ -238,6 +239,10 @@ const Maintenance = () => {
     }
     
     if (selectedCategoryId && selectedCategoryId !== SELECT_ALL_VALUE && item.equipment.category_id !== selectedCategoryId) {
+      return false;
+    }
+    
+    if (selectedUpcomingTemplateId && selectedUpcomingTemplateId !== SELECT_ALL_VALUE && item.template.id !== selectedUpcomingTemplateId) {
       return false;
     }
     
@@ -639,30 +644,45 @@ const Maintenance = () => {
         
         <CollapsibleContent>
           <div className="p-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Select value={upcomingMaintenanceFilter} onValueChange={setUpcomingMaintenanceFilter}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Filter" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Alle anzeigen</SelectItem>
-                    <SelectItem value="planned">Geplante</SelectItem>
-                    <SelectItem value="unplanned">Nicht geplante</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <div className="relative flex-1">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Suchen..."
-                    className="pl-8"
-                    value={upcomingMaintenanceSearchTerm}
-                    onChange={(e) => setUpcomingMaintenanceSearchTerm(e.target.value)}
-                  />
-                </div>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
+              <Select value={upcomingMaintenanceFilter} onValueChange={setUpcomingMaintenanceFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Alle anzeigen</SelectItem>
+                  <SelectItem value="planned">Geplante</SelectItem>
+                  <SelectItem value="unplanned">Nicht geplante</SelectItem>
+                </SelectContent>
+              </Select>
               
+              <Select value={selectedUpcomingTemplateId} onValueChange={setSelectedUpcomingTemplateId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Alle Wartungsvorlagen" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={SELECT_ALL_VALUE}>Alle Wartungsvorlagen</SelectItem>
+                  {templates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Suchen..."
+                  className="pl-8"
+                  value={upcomingMaintenanceSearchTerm}
+                  onChange={(e) => setUpcomingMaintenanceSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row justify-between mb-4 gap-2">
+              <div></div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleExportUpcoming}>
                   <FileDown className="h-4 w-4 mr-2" />

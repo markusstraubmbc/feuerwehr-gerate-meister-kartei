@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,32 +9,80 @@ import { Save, Send, ArrowLeft, Mail, RefreshCw, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useGlobalSettings } from "@/components/layout/GlobalSettingsProvider";
+import { useUpdateSystemSetting } from "@/hooks/useSystemSettings";
 
 const EmailSettings = () => {
   const navigate = useNavigate();
+  const { settings, isLoading: settingsLoading } = useGlobalSettings();
+  const updateSettingMutation = useUpdateSystemSetting();
   const [isTestingEmail, setIsTestingEmail] = useState(false);
   
   // Email configuration state
   const [emailConfig, setEmailConfig] = useState({
-    enabled: localStorage.getItem('emailNotificationsEnabled') === 'true',
-    fromEmail: localStorage.getItem('emailFromAddress') || '',
-    senderDomain: localStorage.getItem('emailSenderDomain') || 'mailsend.straub-it.de',
-    recipientEmails: localStorage.getItem('emailRecipients') || '',
-    reminderDays: parseInt(localStorage.getItem('reminderDays') || '7'),
-    monthlyReport: localStorage.getItem('monthlyReportEnabled') === 'true',
-    testEmail: localStorage.getItem('testEmailAddress') || ''
+    enabled: false,
+    fromEmail: '',
+    senderDomain: 'mailsend.straub-it.de',
+    recipientEmails: '',
+    reminderDays: 7,
+    monthlyReport: false,
+    testEmail: ''
   });
 
-  const handleSave = () => {
-    localStorage.setItem('emailNotificationsEnabled', emailConfig.enabled.toString());
-    localStorage.setItem('emailFromAddress', emailConfig.fromEmail);
-    localStorage.setItem('emailSenderDomain', emailConfig.senderDomain);
-    localStorage.setItem('emailRecipients', emailConfig.recipientEmails);
-    localStorage.setItem('reminderDays', emailConfig.reminderDays.toString());
-    localStorage.setItem('monthlyReportEnabled', emailConfig.monthlyReport.toString());
-    localStorage.setItem('testEmailAddress', emailConfig.testEmail);
-    
-    toast.success('E-Mail-Einstellungen wurden gespeichert');
+  // Load settings from database when available
+  useEffect(() => {
+    if (!settingsLoading && settings) {
+      setEmailConfig({
+        enabled: settings.emailNotificationsEnabled || false,
+        fromEmail: settings.emailFromAddress || '',
+        senderDomain: settings.emailSenderDomain || 'mailsend.straub-it.de',
+        recipientEmails: settings.emailRecipients || '',
+        reminderDays: settings.reminderDays || 7,
+        monthlyReport: settings.monthlyReportEnabled || false,
+        testEmail: settings.testEmailAddress || ''
+      });
+    }
+  }, [settings, settingsLoading]);
+
+  const handleSave = async () => {
+    try {
+      // Save all email settings to database
+      await Promise.all([
+        updateSettingMutation.mutateAsync({
+          key: 'emailNotificationsEnabled',
+          value: emailConfig.enabled
+        }),
+        updateSettingMutation.mutateAsync({
+          key: 'emailFromAddress',
+          value: emailConfig.fromEmail
+        }),
+        updateSettingMutation.mutateAsync({
+          key: 'emailSenderDomain',
+          value: emailConfig.senderDomain
+        }),
+        updateSettingMutation.mutateAsync({
+          key: 'emailRecipients',
+          value: emailConfig.recipientEmails
+        }),
+        updateSettingMutation.mutateAsync({
+          key: 'reminderDays',
+          value: emailConfig.reminderDays
+        }),
+        updateSettingMutation.mutateAsync({
+          key: 'monthlyReportEnabled',
+          value: emailConfig.monthlyReport
+        }),
+        updateSettingMutation.mutateAsync({
+          key: 'testEmailAddress',
+          value: emailConfig.testEmail
+        })
+      ]);
+
+      toast.success('E-Mail-Einstellungen wurden gespeichert');
+    } catch (error) {
+      console.error('Error saving email settings:', error);
+      toast.error('Fehler beim Speichern der E-Mail-Einstellungen');
+    }
   };
 
   const handleTestEmail = async () => {
@@ -87,6 +134,10 @@ const EmailSettings = () => {
     }
   };
 
+  if (settingsLoading) {
+    return <div>Lädt Einstellungen...</div>;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
@@ -132,7 +183,7 @@ const EmailSettings = () => {
                 onChange={(e) => 
                   setEmailConfig(prev => ({ ...prev, fromEmail: e.target.value }))
                 }
-                placeholder="system@mailsend.straub-it.de"
+                placeholder="wartungsmanagement@mailsend.straub-it.de"
               />
             </div>
 
@@ -153,7 +204,7 @@ const EmailSettings = () => {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                Diese Domain muss bei Ihrem E-Mail-Provider verifiziert sein
+                Diese Domain muss bei Ihrem E-Mail-Provider verifiziert sein (Standard: mailsend.straub-it.de)
               </p>
             </div>
             
@@ -253,7 +304,10 @@ const EmailSettings = () => {
         </Card>
 
         <div className="flex justify-end">
-          <Button onClick={handleSave}>
+          <Button 
+            onClick={handleSave}
+            disabled={updateSettingMutation.isPending}
+          >
             <Save className="mr-2 h-4 w-4" />
             Einstellungen speichern
           </Button>

@@ -1,0 +1,103 @@
+
+import React, { createContext, useContext, useEffect } from "react";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+
+interface GlobalSettingsContextType {
+  settings: { [key: string]: any };
+  isLoading: boolean;
+}
+
+const GlobalSettingsContext = createContext<GlobalSettingsContextType>({
+  settings: {},
+  isLoading: true,
+});
+
+export const useGlobalSettings = () => {
+  return useContext(GlobalSettingsContext);
+};
+
+interface GlobalSettingsProviderProps {
+  children: React.ReactNode;
+}
+
+export const GlobalSettingsProvider: React.FC<GlobalSettingsProviderProps> = ({
+  children,
+}) => {
+  const { data: settings = {}, isLoading } = useSystemSettings();
+
+  // Apply global settings to the document
+  useEffect(() => {
+    if (!isLoading && settings) {
+      // Apply theme colors
+      if (settings.primaryColor) {
+        document.documentElement.style.setProperty(
+          "--primary",
+          settings.primaryColor
+        );
+      }
+
+      if (settings.secondaryColor) {
+        document.documentElement.style.setProperty(
+          "--secondary",
+          settings.secondaryColor
+        );
+      }
+
+      // Apply logo
+      if (settings.companyLogo) {
+        const favicon = document.querySelector(
+          'link[rel="icon"]'
+        ) as HTMLLinkElement;
+        if (favicon) {
+          favicon.href = settings.companyLogo;
+        }
+      }
+
+      // Apply company name to document title
+      if (settings.companyName) {
+        document.title = `${settings.companyName} - Inventar System`;
+      }
+
+      // Apply email settings to localStorage for compatibility
+      if (settings.emailNotificationsEnabled !== undefined) {
+        localStorage.setItem(
+          "emailNotificationsEnabled",
+          settings.emailNotificationsEnabled.toString()
+        );
+      }
+
+      if (settings.emailFromAddress) {
+        localStorage.setItem("emailFromAddress", settings.emailFromAddress);
+      }
+
+      if (settings.emailSenderDomain) {
+        localStorage.setItem("emailSenderDomain", settings.emailSenderDomain);
+      }
+
+      if (settings.emailRecipients) {
+        localStorage.setItem("emailRecipients", settings.emailRecipients);
+      }
+
+      if (settings.reminderDays) {
+        localStorage.setItem("reminderDays", settings.reminderDays.toString());
+      }
+
+      if (settings.monthlyReportEnabled !== undefined) {
+        localStorage.setItem(
+          "monthlyReportEnabled",
+          settings.monthlyReportEnabled.toString()
+        );
+      }
+
+      if (settings.testEmailAddress) {
+        localStorage.setItem("testEmailAddress", settings.testEmailAddress);
+      }
+    }
+  }, [settings, isLoading]);
+
+  return (
+    <GlobalSettingsContext.Provider value={{ settings, isLoading }}>
+      {children}
+    </GlobalSettingsContext.Provider>
+  );
+};
