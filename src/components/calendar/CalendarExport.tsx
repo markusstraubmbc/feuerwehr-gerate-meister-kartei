@@ -39,9 +39,11 @@ export function CalendarExport({ filteredRecords, filters, totalRecords }: Calen
         const timestamp = format(now, 'yyyyMMddTHHmmss') + 'Z';
         
         const status = record.status === 'abgeschlossen' ? 'COMPLETED' : 'NEEDS-ACTION';
-        const summary = `${record.status === 'abgeschlossen' ? '[ERLEDIGT] ' : ''}Wartung: ${record.equipment.name}`;
+        const inventoryInfo = record.equipment.inventory_number ? ` (Inv.-Nr.: ${record.equipment.inventory_number})` : '';
+        const summary = `${record.status === 'abgeschlossen' ? '[ERLEDIGT] ' : ''}Wartung: ${record.equipment.name}${inventoryInfo}`;
         const description = [
           `Ausrüstung: ${record.equipment.name}`,
+          `Inventarnummer: ${record.equipment.inventory_number || 'Nicht zugewiesen'}`,
           `Barcode: ${record.equipment.barcode || 'Nicht verfügbar'}`,
           `Wartungstyp: ${record.template?.name || 'Keine Vorlage'}`,
           `Status: ${record.status}`,

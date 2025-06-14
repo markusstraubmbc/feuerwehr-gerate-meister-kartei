@@ -28,6 +28,9 @@ export function CompletedMaintenanceCard({ records, filters }: CompletedMaintena
               <div key={record.id} className="flex justify-between items-center p-2 bg-green-50 rounded">
                 <div>
                   <p className="font-medium text-sm">{record.equipment.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Inv.-Nr.: {record.equipment.inventory_number || "Nicht zugewiesen"}
+                  </p>
                   <p className="text-xs text-muted-foreground">{record.template?.name}</p>
                   {record.performer && (
                     <p className="text-xs text-muted-foreground">
