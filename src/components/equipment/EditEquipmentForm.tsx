@@ -1,640 +1,270 @@
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { useState } from "react";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { Equipment } from "@/hooks/useEquipment";
 import { useCategories } from "@/hooks/useCategories";
 import { useLocations } from "@/hooks/useLocations";
 import { usePersons } from "@/hooks/usePersons";
-import { useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Equipment } from "@/hooks/useEquipment";
-import { useState } from "react";
-import { CheckCircle2, Upload, X } from "lucide-react";
-import { format } from "date-fns";
-import { SELECT_NONE_VALUE } from "@/lib/constants";
 
-const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Der Name muss mindestens 2 Zeichen lang sein.",
-  }),
-  category_id: z.string().nullable(),
-  location_id: z.string().nullable(),
-  responsible_person_id: z.string().nullable(),
-  inventory_number: z.string().nullable(),
-  serial_number: z.string().nullable(),
-  barcode: z.string().nullable(),
-  manufacturer: z.string().nullable(),
-  model: z.string().nullable(),
-  status: z.enum(["einsatzbereit", "wartung", "defekt", "prüfung fällig"]),
-  purchase_date: z.date().nullable(),
-  replacement_date: z.date().nullable(),
-  last_check_date: z.date().nullable(),
-  next_check_date: z.date().nullable(),
-  notes: z.string().nullable(),
-});
-
-interface Props {
+interface EditEquipmentFormProps {
   equipment: Equipment;
   onSuccess: () => void;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
 }
 
-export function EditEquipmentForm({ equipment, onSuccess }: Props) {
-  const { data: categories } = useCategories();
-  const { data: locations } = useLocations();
-  const { data: persons } = usePersons();
-  const [isSaving, setIsSaving] = useState(false);
+export function EditEquipmentForm({ equipment, onSuccess }: EditEquipmentFormProps) {
+  const [isOpen, setIsOpen] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: categories = [] } = useCategories();
+  const { data: locations = [] } = useLocations();
+  const { data: persons = [] } = usePersons();
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: equipment.name,
-      category_id: equipment.category_id || null,
-      location_id: equipment.location_id || null,
-      responsible_person_id: equipment.responsible_person_id || null,
-      inventory_number: equipment.inventory_number || null,
-      serial_number: equipment.serial_number || null,
-      barcode: equipment.barcode || null,
-      manufacturer: equipment.manufacturer || null,
-      model: equipment.model || null,
-      status: equipment.status as "einsatzbereit" | "wartung" | "defekt" | "prüfung fällig",
-      purchase_date: equipment.purchase_date ? new Date(equipment.purchase_date) : null,
-      replacement_date: equipment.replacement_date ? new Date(equipment.replacement_date) : null,
-      last_check_date: equipment.last_check_date ? new Date(equipment.last_check_date) : null,
-      next_check_date: equipment.next_check_date ? new Date(equipment.next_check_date) : null,
-      notes: equipment.notes || "",
-    },
+  const [formData, setFormData] = useState({
+    name: equipment.name || "",
+    inventory_number: equipment.inventory_number || "",
+    serial_number: equipment.serial_number || "",
+    manufacturer: equipment.manufacturer || "",
+    model: equipment.model || "",
+    category_id: equipment.category_id || "",
+    location_id: equipment.location_id || "",
+    responsible_person_id: equipment.responsible_person_id || "",
+    status: equipment.status || "einsatzbereit",
+    purchase_date: equipment.purchase_date || "",
+    replacement_date: equipment.replacement_date || "",
+    notes: equipment.notes || "",
   });
 
-  useEffect(() => {
-    form.reset({
-      name: equipment.name,
-      category_id: equipment.category_id || null,
-      location_id: equipment.location_id || null,
-      responsible_person_id: equipment.responsible_person_id || null,
-      inventory_number: equipment.inventory_number || null,
-      serial_number: equipment.serial_number || null,
-      barcode: equipment.barcode || null,
-      manufacturer: equipment.manufacturer || null,
-      model: equipment.model || null,
-      status: equipment.status as "einsatzbereit" | "wartung" | "defekt" | "prüfung fällig",
-      purchase_date: equipment.purchase_date ? new Date(equipment.purchase_date) : null,
-      replacement_date: equipment.replacement_date ? new Date(equipment.replacement_date) : null,
-      last_check_date: equipment.last_check_date ? new Date(equipment.last_check_date) : null,
-      next_check_date: equipment.next_check_date ? new Date(equipment.next_check_date) : null,
-      notes: equipment.notes || "",
-    });
-  }, [equipment, form]);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsSaving(true);
     try {
-      // Convert Date objects to ISO strings for the API
-      const formattedValues = {
-        ...values,
-        purchase_date: values.purchase_date?.toISOString() || null,
-        replacement_date: values.replacement_date?.toISOString() || null,
-        last_check_date: values.last_check_date?.toISOString() || null,
-        next_check_date: values.next_check_date?.toISOString() || null
-      };
-
       const { error } = await supabase
         .from("equipment")
-        .update(formattedValues)
+        .update({
+          name: formData.name,
+          inventory_number: formData.inventory_number || null,
+          serial_number: formData.serial_number || null,
+          manufacturer: formData.manufacturer || null,
+          model: formData.model || null,
+          category_id: formData.category_id || null,
+          location_id: formData.location_id || null,
+          responsible_person_id: formData.responsible_person_id || null,
+          status: formData.status as any,
+          purchase_date: formData.purchase_date || null,
+          replacement_date: formData.replacement_date || null,
+          notes: formData.notes || null,
+        })
         .eq("id", equipment.id);
 
-      if (error) {
-        console.error("Update error:", error);
-        toast.error("Es gab ein Problem beim Aktualisieren des Geräts.");
-      } else {
-        toast.success("Das Gerät wurde erfolgreich aktualisiert.");
-        queryClient.invalidateQueries({ queryKey: ["equipment"] });
-        onSuccess();
-      }
+      if (error) throw error;
+
+      toast({
+        title: "Erfolg",
+        description: "Ausrüstung wurde erfolgreich aktualisiert.",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["equipment"] });
+      onSuccess();
     } catch (error) {
-      console.error("Unexpected error:", error);
-      toast.error("Es gab ein unerwartetes Problem.");
+      console.error("Error updating equipment:", error);
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Aktualisieren der Ausrüstung.",
+        variant: "destructive",
+      });
     } finally {
-      setIsSaving(false);
+      setIsSubmitting(false);
     }
-  }
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+    onSuccess();
+  };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Ausrüstungsdetails</CardTitle>
-            <CardDescription>
-              Bearbeiten Sie die Details der Ausrüstung.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Name der Ausrüstung" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Ausrüstung bearbeiten</DialogTitle>
+          <DialogDescription>
+            Bearbeiten Sie die Details für {equipment.name}
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="inventory_number">Inventarnummer</Label>
+              <Input
+                id="inventory_number"
+                value={formData.inventory_number}
+                onChange={(e) => setFormData({ ...formData, inventory_number: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="serial_number">Seriennummer</Label>
+              <Input
+                id="serial_number"
+                value={formData.serial_number}
+                onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="manufacturer">Hersteller</Label>
+              <Input
+                id="manufacturer"
+                value={formData.manufacturer}
+                onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="model">Modell</Label>
+              <Input
+                id="model"
+                value={formData.model}
+                onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="category">Kategorie</Label>
+              <Select value={formData.category_id} onValueChange={(value) => setFormData({ ...formData, category_id: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Kategorie auswählen" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Keine Kategorie</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="location">Standort</Label>
+              <Select value={formData.location_id} onValueChange={(value) => setFormData({ ...formData, location_id: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Standort auswählen" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Kein Standort</SelectItem>
+                  {locations.map((location) => (
+                    <SelectItem key={location.id} value={location.id}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="responsible_person">Verantwortliche Person</Label>
+              <Select value={formData.responsible_person_id} onValueChange={(value) => setFormData({ ...formData, responsible_person_id: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Person auswählen" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Keine Person</SelectItem>
+                  {persons.map((person) => (
+                    <SelectItem key={person.id} value={person.id}>
+                      {person.first_name} {person.last_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="status">Status</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="einsatzbereit">Einsatzbereit</SelectItem>
+                  <SelectItem value="prüfung fällig">Prüfung fällig</SelectItem>
+                  <SelectItem value="wartung">Wartung</SelectItem>
+                  <SelectItem value="defekt">Defekt</SelectItem>
+                  <SelectItem value="aussortiert">Aussortiert</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="purchase_date">Kaufdatum</Label>
+              <Input
+                id="purchase_date"
+                type="date"
+                value={formData.purchase_date}
+                onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="replacement_date">Ersatzdatum</Label>
+              <Input
+                id="replacement_date"
+                type="date"
+                value={formData.replacement_date}
+                onChange={(e) => setFormData({ ...formData, replacement_date: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="notes">Notizen</Label>
+            <Textarea
+              id="notes"
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={3}
             />
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="category_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Kategorie</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || SELECT_NONE_VALUE}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Kategorie auswählen" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={SELECT_NONE_VALUE}>Keine Kategorie</SelectItem>
-                        {categories?.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="location_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Standort</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || SELECT_NONE_VALUE}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Standort auswählen" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={SELECT_NONE_VALUE}>Kein Standort</SelectItem>
-                        {locations?.map((location) => (
-                          <SelectItem key={location.id} value={location.id}>
-                            {location.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="responsible_person_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Verantwortliche Person</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || SELECT_NONE_VALUE}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Person auswählen" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={SELECT_NONE_VALUE}>Keine Person</SelectItem>
-                        {persons?.map((person) => (
-                          <SelectItem key={person.id} value={person.id}>
-                            {`${person.first_name} ${person.last_name}`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Status auswählen" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="einsatzbereit">Einsatzbereit</SelectItem>
-                        <SelectItem value="wartung">Wartung</SelectItem>
-                        <SelectItem value="defekt">Defekt</SelectItem>
-                        <SelectItem value="prüfung fällig">Prüfung fällig</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Inventar Details</CardTitle>
-            <CardDescription>
-              Fügen Sie zusätzliche Inventarinformationen hinzu.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="inventory_number"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Inventarnummer</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Inventarnummer" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="serial_number"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Seriennummer</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Seriennummer" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="barcode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Barcode</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Barcode" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="manufacturer"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Hersteller</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Hersteller" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="model"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Modell</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Modell" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Datum Details</CardTitle>
-            <CardDescription>
-              Fügen Sie wichtige Daten für die Ausrüstung hinzu.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="purchase_date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Kaufdatum</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className="w-[240px] pl-3 text-left font-normal"
-                          >
-                            {field.value ? (
-                              format(field.value, "dd.MM.yyyy")
-                            ) : (
-                              <span>Kaufdatum auswählen</span>
-                            )}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        className="w-auto p-0"
-                        align="start"
-                      >
-                        <Calendar
-                          mode="single"
-                          captionLayout="dropdown"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
-                          }
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="replacement_date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Ersatzdatum</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className="w-[240px] pl-3 text-left font-normal"
-                          >
-                            {field.value ? (
-                              format(field.value, "dd.MM.yyyy")
-                            ) : (
-                              <span>Ersatzdatum auswählen</span>
-                            )}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        className="w-auto p-0"
-                        align="start"
-                      >
-                        <Calendar
-                          mode="single"
-                          captionLayout="dropdown"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date < new Date("1900-01-01")
-                          }
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="last_check_date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Letztes Checkdatum</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className="w-[240px] pl-3 text-left font-normal"
-                          >
-                            {field.value ? (
-                              format(field.value, "dd.MM.yyyy")
-                            ) : (
-                              <span>Letztes Checkdatum auswählen</span>
-                            )}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        className="w-auto p-0"
-                        align="start"
-                      >
-                        <Calendar
-                          mode="single"
-                          captionLayout="dropdown"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
-                          }
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="next_check_date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Nächstes Checkdatum</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className="w-[240px] pl-3 text-left font-normal"
-                          >
-                            {field.value ? (
-                              format(field.value, "dd.MM.yyyy")
-                            ) : (
-                              <span>Nächstes Checkdatum auswählen</span>
-                            )}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        className="w-auto p-0"
-                        align="start"
-                      >
-                        <Calendar
-                          mode="single"
-                          captionLayout="dropdown"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date < new Date("1900-01-01")
-                          }
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Notizen</CardTitle>
-            <CardDescription>
-              Fügen Sie zusätzliche Notizen zur Ausrüstung hinzu.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Notizen zur Ausrüstung"
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
-
-        <CardFooter className="flex justify-between">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">
-                Ausrüstung löschen
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>
-                  Bist du dir wirklich sicher?
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  Diese Aktion kann nicht rückgängig gemacht werden. Alle Daten
-                  im Zusammenhang mit dieser Ausrüstung werden dauerhaft
-                  gelöscht.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>
-                  Abbrechen
-                </AlertDialogCancel>
-                <AlertDialogAction>
-                  Löschen
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          <Button type="submit" disabled={isSaving}>
-            {isSaving ? (
-              <>
-                Speichern...
-                <svg className="animate-spin h-5 w-5 ml-2" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              </>
-            ) : (
-              "Ausrüstung speichern"
-            )}
-          </Button>
-        </CardFooter>
-      </form>
-    </Form>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Abbrechen
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Speichern..." : "Speichern"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
