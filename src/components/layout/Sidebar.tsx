@@ -46,12 +46,15 @@ export function Sidebar() {
 
   return (
     <SidebarBase 
+      className="bg-sidebar"
       style={{
-        backgroundColor: settings?.menuBackgroundColor || undefined,
-        color: settings?.menuTextColor || undefined,
-      }}
+        '--sidebar-background': settings?.menuBackgroundColor || '#1e293b',
+        '--sidebar-foreground': settings?.menuTextColor || '#ffffff',
+        backgroundColor: settings?.menuBackgroundColor || '#1e293b',
+        color: settings?.menuTextColor || '#ffffff',
+      } as React.CSSProperties}
     >
-      <SidebarHeader>
+      <SidebarHeader className="bg-inherit">
         <div className="px-4 py-2 flex items-center gap-3">
           {logo && (
             <img 
@@ -67,16 +70,16 @@ export function Sidebar() {
           )}
           <h1 
             className="text-xl font-bold"
-            style={{ color: settings?.menuTextColor || undefined }}
+            style={{ color: settings?.menuTextColor || '#ffffff' }}
           >
             {systemName}
           </h1>
         </div>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="bg-inherit">
         <SidebarGroup>
           <SidebarGroupLabel 
-            style={{ color: settings?.menuTextColor || undefined }}
+            style={{ color: settings?.menuTextColor || '#ffffff' }}
           >
             Navigation
           </SidebarGroupLabel>
@@ -91,13 +94,13 @@ export function Sidebar() {
                         cn(
                           "flex items-center gap-2 w-full px-2 py-2 rounded-md transition-colors",
                           isActive 
-                            ? "font-medium text-white" 
+                            ? "font-medium" 
                             : "hover:bg-opacity-20 hover:bg-white"
                         )
                       }
                       style={({ isActive }) => ({
-                        backgroundColor: isActive ? settings?.menuSelectedColor || '#3b82f6' : undefined,
-                        color: isActive ? '#ffffff' : settings?.menuTextColor || undefined,
+                        backgroundColor: isActive ? settings?.menuSelectedColor || '#3b82f6' : 'transparent',
+                        color: isActive ? '#ffffff' : settings?.menuTextColor || '#ffffff',
                       })}
                     >
                       <item.icon className="h-4 w-4" />
