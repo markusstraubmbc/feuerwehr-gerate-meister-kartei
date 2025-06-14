@@ -13,13 +13,14 @@ import { MaintenanceStatusBadge } from "./MaintenanceStatusBadge";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
-import { FileCheck, Eye, Printer, FileDown, Trash2, PenLine, Filter } from "lucide-react";
+import { FileCheck, Eye, FileDown, Trash2, PenLine, Filter } from "lucide-react";
 import type { MaintenanceRecord } from "@/hooks/useMaintenanceRecords";
 import { getTemplateChecklistUrl, generateCustomChecklist } from "@/hooks/useMaintenanceRecords";
 import { CompleteMaintenanceDialog } from "./CompleteMaintenanceDialog";
 import { ViewMaintenanceDialog } from "./ViewMaintenanceDialog";
-import { useReactToPrint } from "react-to-print";
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -61,20 +62,52 @@ export const MaintenanceList = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string>(SELECT_ALL_VALUE);
   
-  const printRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const { data: templates = [] } = useMaintenanceTemplates();
   
-  const handlePrint = useReactToPrint({
-    content: () => printRef.current,
-    documentTitle: 'Wartungsaufzeichnungen',
-    pageStyle: '@page { size: auto; margin: 10mm; } @media print { body { font-size: 12pt; } }',
-    onBeforePrint: () => {
-      if (!printRef.current) {
-        toast.error('Fehler beim Vorbereiten der Druckansicht');
-      }
-    },
-  });
+  const handleExportToPDF = () => {
+    try {
+      const doc = new jsPDF();
+      
+      // Title
+      doc.setFontSize(16);
+      doc.text('Wartungsaufzeichnungen', 14, 15);
+      
+      // Date
+      doc.setFontSize(10);
+      doc.text(`Erstellt am: ${new Date().toLocaleDateString('de-DE')}`, 14, 25);
+      
+      // Prepare data for PDF
+      const tableData = filteredRecords.map(record => [
+        record.due_date ? format(new Date(record.due_date), "dd.MM.yyyy", { locale: de }) : '-',
+        record.equipment?.name || '',
+        record.template?.name || 'Keine Vorlage',
+        record.status,
+        record.performer ? `${record.performer.first_name} ${record.performer.last_name}` : 'Nicht zugewiesen',
+        record.performed_date ? format(new Date(record.performed_date), "dd.MM.yyyy", { locale: de }) : '-',
+        record.minutes_spent?.toString() || '-'
+      ]);
+      
+      // Add table
+      autoTable(doc, {
+        head: [['Fällig am', 'Ausrüstung', 'Wartungstyp', 'Status', 'Verantwortlich', 'Durchgeführt am', 'Zeit (Min)']],
+        body: tableData,
+        startY: 35,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [66, 139, 202] },
+        margin: { top: 35 }
+      });
+      
+      // Save the PDF
+      const fileName = `Wartungsaufzeichnungen-${new Date().toISOString().slice(0, 10)}.pdf`;
+      doc.save(fileName);
+      
+      toast.success('PDF wurde erfolgreich erstellt');
+    } catch (error) {
+      console.error('PDF Export error:', error);
+      toast.error('Fehler beim Erstellen der PDF');
+    }
+  };
 
   const handleComplete = (record: MaintenanceRecord) => {
     setSelectedRecord(record);
@@ -290,133 +323,131 @@ export const MaintenanceList = ({
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={handleExportToExcel}>
             <FileDown className="mr-2 h-4 w-4" />
-            Exportieren
+            Excel Export
           </Button>
-          <Button variant="outline" size="sm" onClick={handlePrint}>
-            <Printer className="mr-2 h-4 w-4" />
-            Drucken
+          <Button variant="outline" size="sm" onClick={handleExportToPDF}>
+            <FileDown className="mr-2 h-4 w-4" />
+            PDF Export
           </Button>
         </div>
       </div>
       
-      <div ref={printRef}>
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Fällig am</TableHead>
-                <TableHead>Ausrüstung</TableHead>
-                <TableHead>Wartungstyp</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Verantwortlich</TableHead>
-                <TableHead>Durchgeführt am</TableHead>
-                <TableHead>Zeit (Min)</TableHead>
-                <TableHead>Aktionen</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredRecords.map((record) => (
-                <TableRow key={record.id}>
-                  <TableCell>
-                    {format(new Date(record.due_date), "dd.MM.yyyy", { locale: de })}
-                  </TableCell>
-                  <TableCell>{record.equipment.name}</TableCell>
-                  <TableCell>{record.template?.name || "Keine Vorlage"}</TableCell>
-                  <TableCell>
-                    <MaintenanceStatusBadge status={record.status} />
-                  </TableCell>
-                  <TableCell>
-                    {record.performer ? 
-                      `${record.performer.first_name} ${record.performer.last_name}` : 
-                      "Nicht zugewiesen"
-                    }
-                  </TableCell>
-                  <TableCell>
-                    {record.performed_date ? 
-                      format(new Date(record.performed_date), "dd.MM.yyyy", { locale: de }) : 
-                      "-"
-                    }
-                  </TableCell>
-                  <TableCell>
-                    {record.minutes_spent || "-"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="h-8 w-8 p-0" 
-                        onClick={() => handleView(record)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      
-                      {record.status !== "abgeschlossen" && (
-                        <>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="h-8 w-8 p-0" 
-                            onClick={() => handleComplete(record)}
-                          >
-                            <FileCheck className="h-4 w-4" />
-                          </Button>
-                          
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="h-8 w-8 p-0" 
-                            onClick={() => handleEdit(record)}
-                          >
-                            <PenLine className="h-4 w-4" />
-                          </Button>
-                          
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="h-8 w-8 p-0 text-red-500 hover:bg-red-50" 
-                            onClick={() => handleDelete(record)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
-                      
-                      {record.template?.checklist_url && (
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Fällig am</TableHead>
+              <TableHead>Ausrüstung</TableHead>
+              <TableHead>Wartungstyp</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Verantwortlich</TableHead>
+              <TableHead>Durchgeführt am</TableHead>
+              <TableHead>Zeit (Min)</TableHead>
+              <TableHead>Aktionen</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredRecords.map((record) => (
+              <TableRow key={record.id}>
+                <TableCell>
+                  {format(new Date(record.due_date), "dd.MM.yyyy", { locale: de })}
+                </TableCell>
+                <TableCell>{record.equipment.name}</TableCell>
+                <TableCell>{record.template?.name || "Keine Vorlage"}</TableCell>
+                <TableCell>
+                  <MaintenanceStatusBadge status={record.status} />
+                </TableCell>
+                <TableCell>
+                  {record.performer ? 
+                    `${record.performer.first_name} ${record.performer.last_name}` : 
+                    "Nicht zugewiesen"
+                  }
+                </TableCell>
+                <TableCell>
+                  {record.performed_date ? 
+                    format(new Date(record.performed_date), "dd.MM.yyyy", { locale: de }) : 
+                    "-"
+                  }
+                </TableCell>
+                <TableCell>
+                  {record.minutes_spent || "-"}
+                </TableCell>
+                <TableCell>
+                  <div className="flex space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 w-8 p-0" 
+                      onClick={() => handleView(record)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    
+                    {record.status !== "abgeschlossen" && (
+                      <>
                         <Button 
                           variant="outline" 
                           size="sm" 
                           className="h-8 w-8 p-0" 
-                          onClick={() => downloadChecklist(record)}
+                          onClick={() => handleComplete(record)}
                         >
-                          <FileDown className="h-4 w-4" />
+                          <FileCheck className="h-4 w-4" />
                         </Button>
-                      )}
-                      
+                        
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 w-8 p-0" 
+                          onClick={() => handleEdit(record)}
+                        >
+                          <PenLine className="h-4 w-4" />
+                        </Button>
+                        
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-red-500 hover:bg-red-50" 
+                          onClick={() => handleDelete(record)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                    
+                    {record.template?.checklist_url && (
                       <Button 
                         variant="outline" 
                         size="sm" 
                         className="h-8 w-8 p-0" 
-                        onClick={() => downloadCustomChecklist(record)}
+                        onClick={() => downloadChecklist(record)}
                       >
-                        <FileDown className="h-4 w-4 text-blue-600" />
+                        <FileDown className="h-4 w-4" />
                       </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              
-              {filteredRecords.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center">
-                    Keine Wartungsaufzeichnungen gefunden
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </Card>
-      </div>
+                    )}
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 w-8 p-0" 
+                      onClick={() => downloadCustomChecklist(record)}
+                    >
+                      <FileDown className="h-4 w-4 text-blue-600" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+            
+            {filteredRecords.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={8} className="h-24 text-center">
+                  Keine Wartungsaufzeichnungen gefunden
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
       
       {selectedRecord && (
         <>

@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import {
   Table,
@@ -13,7 +14,6 @@ import {
   Trash2,
   Barcode,
   Copy,
-  Printer,
   Filter,
   MessageCircle,
   FileDown
@@ -104,7 +104,7 @@ export function EquipmentList({
     return true;
   });
 
-  const { handlePrint, handlePdfDownload } = useEquipmentPrintExport({ 
+  const { handlePdfDownload } = useEquipmentPrintExport({ 
     equipment: filteredEquipment, 
     printRef 
   });
@@ -240,11 +240,6 @@ export function EquipmentList({
           >
             <Filter className="h-4 w-4 mr-2" />
             Zurücksetzen
-          </Button>
-          
-          <Button variant="outline" size="sm" onClick={handlePrint}>
-            <Printer className="h-4 w-4 mr-2" />
-            Drucken
           </Button>
           
           <Button variant="outline" size="sm" onClick={handlePdfDownload}>

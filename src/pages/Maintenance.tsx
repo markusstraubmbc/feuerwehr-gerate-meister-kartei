@@ -7,6 +7,7 @@ import { useCategories } from "@/hooks/useCategories";
 import { MaintenanceList } from "@/components/maintenance/MaintenanceList";
 import { NewMaintenanceForm } from "@/components/maintenance/NewMaintenanceForm";
 import { ViewMaintenanceDialog } from "@/components/maintenance/ViewMaintenanceDialog";
+import { QuickCompleteMaintenanceDialog } from "@/components/maintenance/QuickCompleteMaintenanceDialog";
 import { Button } from "@/components/ui/button";
 import { 
   Plus, 
@@ -18,7 +19,8 @@ import {
   ChevronUp,
   Search,
   ArrowLeft,
-  Eye
+  Eye,
+  FileCheck
 } from "lucide-react";
 import {
   Drawer,
@@ -43,6 +45,8 @@ import { de } from "date-fns/locale";
 import { toast } from "sonner";
 import { useReactToPrint } from "react-to-print";
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -61,6 +65,7 @@ const Maintenance = () => {
   const { data: categories = [], isLoading: categoriesLoading } = useCategories();
   
   const [isNewMaintenanceOpen, setIsNewMaintenanceOpen] = useState(false);
+  const [isQuickCompleteOpen, setIsQuickCompleteOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("pending");
   const [completedTab, setCompletedTab] = useState("recent");
   const [selectedPersonId, setSelectedPersonId] = useState("");
@@ -280,53 +285,75 @@ const Maintenance = () => {
 
   const handleExportUpcoming = () => {
     try {
-      const exportData = filteredUpcomingMaintenance.map(item => ({
-        'Ausrüstung': item.equipment.name,
-        'Wartungsvorlage': item.template.name,
-        'Letzte Wartung': format(item.lastDate, "dd.MM.yyyy", { locale: de }),
-        'Nächste Wartung': format(item.nextDueDate, "dd.MM.yyyy", { locale: de }),
-        'Verbleibende Tage': item.daysRemaining,
-        'Status': item.existingRecord ? 'Geplant' : 'Nicht geplant',
-        'Verantwortlich': item.responsiblePerson ? 
-          `${item.responsiblePerson.first_name} ${item.responsiblePerson.last_name}` : 
-          'Nicht zugewiesen'
-      }));
+      const doc = new jsPDF();
       
-      const worksheet = XLSX.utils.json_to_sheet(exportData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Anstehende Wartungen');
+      doc.setFontSize(16);
+      doc.text('Anstehende Wartungen', 14, 15);
       
-      XLSX.writeFile(workbook, `Anstehende-Wartungen-${new Date().toISOString().slice(0, 10)}.xlsx`);
-      toast.success("Export erfolgreich abgeschlossen");
+      doc.setFontSize(10);
+      doc.text(`Erstellt am: ${new Date().toLocaleDateString('de-DE')}`, 14, 25);
+      
+      const tableData = filteredUpcomingMaintenance.map(item => [
+        item.equipment.name,
+        item.template.name,
+        format(item.lastDate, "dd.MM.yyyy", { locale: de }),
+        format(item.nextDueDate, "dd.MM.yyyy", { locale: de }),
+        item.daysRemaining.toString(),
+        item.existingRecord ? 'Geplant' : 'Nicht geplant',
+        item.responsiblePerson ? `${item.responsiblePerson.first_name} ${item.responsiblePerson.last_name}` : 'Nicht zugewiesen'
+      ]);
+      
+      autoTable(doc, {
+        head: [['Ausrüstung', 'Wartungsvorlage', 'Letzte Wartung', 'Nächste Wartung', 'Verbleibende Tage', 'Status', 'Verantwortlich']],
+        body: tableData,
+        startY: 35,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [66, 139, 202] },
+        margin: { top: 35 }
+      });
+      
+      doc.save(`Anstehende-Wartungen-${new Date().toISOString().slice(0, 10)}.pdf`);
+      toast.success("PDF wurde erfolgreich erstellt");
     } catch (error) {
-      console.error('Export error:', error);
-      toast.error("Fehler beim Exportieren der Daten");
+      console.error('PDF Export error:', error);
+      toast.error("Fehler beim Erstellen der PDF");
     }
   };
   
   const handleExportCompleted = () => {
     try {
-      const exportData = filteredCompletedRecords.map(record => ({
-        'Ausrüstung': record.equipment.name,
-        'Wartungsvorlage': record.template?.name || 'Keine Vorlage',
-        'Fällig am': format(new Date(record.due_date), "dd.MM.yyyy", { locale: de }),
-        'Durchgeführt am': record.performed_date ? format(new Date(record.performed_date), "dd.MM.yyyy", { locale: de }) : '-',
-        'Verantwortlich': record.performer ? 
-          `${record.performer.first_name} ${record.performer.last_name}` : 
-          'Nicht zugewiesen',
-        'Zeit (Minuten)': record.minutes_spent || '-',
-        'Notizen': record.notes || ''
-      }));
+      const doc = new jsPDF();
       
-      const worksheet = XLSX.utils.json_to_sheet(exportData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Abgeschlossene Wartungen');
+      doc.setFontSize(16);
+      doc.text('Abgeschlossene Wartungen', 14, 15);
       
-      XLSX.writeFile(workbook, `Abgeschlossene-Wartungen-${new Date().toISOString().slice(0, 10)}.xlsx`);
-      toast.success("Export erfolgreich abgeschlossen");
+      doc.setFontSize(10);
+      doc.text(`Erstellt am: ${new Date().toLocaleDateString('de-DE')}`, 14, 25);
+      
+      const tableData = filteredCompletedRecords.map(record => [
+        record.equipment.name,
+        record.template?.name || 'Keine Vorlage',
+        format(new Date(record.due_date), "dd.MM.yyyy", { locale: de }),
+        record.performed_date ? format(new Date(record.performed_date), "dd.MM.yyyy", { locale: de }) : '-',
+        record.performer ? `${record.performer.first_name} ${record.performer.last_name}` : 'Nicht zugewiesen',
+        record.minutes_spent?.toString() || '-',
+        record.notes || ''
+      ]);
+      
+      autoTable(doc, {
+        head: [['Ausrüstung', 'Wartungsvorlage', 'Fällig am', 'Durchgeführt am', 'Verantwortlich', 'Zeit (Min)', 'Notizen']],
+        body: tableData,
+        startY: 35,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [66, 139, 202] },
+        margin: { top: 35 }
+      });
+      
+      doc.save(`Abgeschlossene-Wartungen-${new Date().toISOString().slice(0, 10)}.pdf`);
+      toast.success("PDF wurde erfolgreich erstellt");
     } catch (error) {
-      console.error('Export error:', error);
-      toast.error("Fehler beim Exportieren der Daten");
+      console.error('PDF Export error:', error);
+      toast.error("Fehler beim Erstellen der PDF");
     }
   };
 
@@ -418,6 +445,14 @@ const Maintenance = () => {
           <h1 className="text-2xl font-bold tracking-tight">Wartung</h1>
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setIsQuickCompleteOpen(true)}
+          >
+            <FileCheck className="h-4 w-4 mr-2" />
+            Wartung abschließen
+          </Button>
           <Button size="sm" onClick={() => setIsNewMaintenanceOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Neue Wartung
@@ -516,7 +551,7 @@ const Maintenance = () => {
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={handleExportCompleted}>
                     <FileDown className="mr-2 h-4 w-4" />
-                    Exportieren
+                    PDF Export
                   </Button>
                   <Button variant="outline" size="sm" onClick={handlePrintCompleted}>
                     <Printer className="mr-2 h-4 w-4" />
@@ -632,7 +667,7 @@ const Maintenance = () => {
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleExportUpcoming}>
                   <FileDown className="h-4 w-4 mr-2" />
-                  Exportieren
+                  PDF Export
                 </Button>
                 <Button variant="outline" size="sm" onClick={handlePrintUpcoming}>
                   <Printer className="h-4 w-4 mr-2" />
@@ -787,6 +822,11 @@ const Maintenance = () => {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+      
+      <QuickCompleteMaintenanceDialog
+        open={isQuickCompleteOpen}
+        onOpenChange={setIsQuickCompleteOpen}
+      />
       
       {selectedRecord && isViewDialogOpen && (
         <ViewMaintenanceDialog
