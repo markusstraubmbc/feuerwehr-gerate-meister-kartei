@@ -118,6 +118,48 @@ export type Database = {
           },
         ]
       }
+      equipment_comments: {
+        Row: {
+          comment: string
+          created_at: string
+          equipment_id: string
+          id: string
+          person_id: string
+          updated_at: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          equipment_id: string
+          id?: string
+          person_id: string
+          updated_at?: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          equipment_id?: string
+          id?: string
+          person_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_comments_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_comments_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           created_at: string
