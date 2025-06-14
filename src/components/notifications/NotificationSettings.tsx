@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Bell, Smartphone, Mail, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -113,7 +112,7 @@ export function NotificationSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5" />
-            Benachrichtigungseinstellungen
+            Allgemeine Benachrichtigungseinstellungen
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -241,6 +240,8 @@ export function NotificationSettings() {
           </div>
         </CardContent>
       </Card>
+
+      <PersonalizedNotificationSettings />
     </div>
   );
 }
