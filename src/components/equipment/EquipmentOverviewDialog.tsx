@@ -17,10 +17,11 @@ import { useEquipmentMissions } from "@/hooks/useEquipmentMissions";
 import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { Calendar, MessageSquare, Wrench, MapPin, Target } from "lucide-react";
+import { Calendar, MessageSquare, Wrench, MapPin, Target, FileDown } from "lucide-react";
 import { EquipmentStatusBadge } from "./EquipmentStatusBadge";
 import { MaintenanceStatusBadge } from "@/components/maintenance/MaintenanceStatusBadge";
 import { EquipmentMissionsTab } from "./EquipmentMissionsTab";
+import { generateEquipmentDetailsPdf } from "./EquipmentDetailsPdfExport";
 
 interface EquipmentOverviewDialogProps {
   equipment: Equipment;
@@ -50,17 +51,34 @@ export function EquipmentOverviewDialog({
     record => record.status === 'ausstehend' || record.status === 'geplant'
   );
 
+  const handlePdfExport = () => {
+    generateEquipmentDetailsPdf({
+      equipment,
+      comments,
+      missions: equipmentMissions,
+      maintenanceRecords: equipmentMaintenance
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <span>{equipment.name}</span>
-            <EquipmentStatusBadge status={equipment.status} />
-          </DialogTitle>
-          <DialogDescription>
-            Detaillierte Übersicht für {equipment.inventory_number || "Keine Inventarnummer"}
-          </DialogDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <DialogTitle className="flex items-center gap-2">
+                <span>{equipment.name}</span>
+                <EquipmentStatusBadge status={equipment.status} />
+              </DialogTitle>
+              <DialogDescription>
+                Detaillierte Übersicht für {equipment.inventory_number || "Keine Inventarnummer"}
+              </DialogDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={handlePdfExport}>
+              <FileDown className="h-4 w-4 mr-2" />
+              PDF Export
+            </Button>
+          </div>
         </DialogHeader>
 
         <div className="space-y-4">
