@@ -15,7 +15,8 @@ import {
   Barcode,
   Copy,
   MessageCircle,
-  FileDown
+  FileDown,
+  Eye
 } from "lucide-react";
 import { EquipmentStatusBadge } from "./EquipmentStatusBadge";
 import { Equipment } from "@/hooks/useEquipment";
@@ -27,6 +28,7 @@ import { format } from "date-fns";
 import { CommentsDialog } from "./CommentsDialog";
 import { EquipmentCommentsInfo } from "./EquipmentCommentsInfo";
 import { useEquipmentPrintExport } from "./EquipmentPrintExport";
+import { EquipmentOverviewDialog } from "./EquipmentOverviewDialog";
 
 interface EquipmentListProps {
   equipment: Equipment[];
@@ -56,6 +58,7 @@ export function EquipmentList({
   const [isBarcodeDialogOpen, setIsBarcodeDialogOpen] = useState(false);
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const [isCommentsDialogOpen, setIsCommentsDialogOpen] = useState(false);
+  const [isOverviewDialogOpen, setIsOverviewDialogOpen] = useState(false);
   
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -114,6 +117,11 @@ export function EquipmentList({
   const handleComments = (item: Equipment) => {
     setSelectedEquipment(item);
     setIsCommentsDialogOpen(true);
+  };
+
+  const handleOverview = (item: Equipment) => {
+    setSelectedEquipment(item);
+    setIsOverviewDialogOpen(true);
   };
 
   return (
@@ -191,6 +199,14 @@ export function EquipmentList({
                         <Button
                           variant="ghost"
                           size="icon"
+                          onClick={() => handleOverview(item)}
+                          title="Übersicht anzeigen"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleBarcode(item)}
                         >
                           <Barcode className="h-4 w-4" />
@@ -260,6 +276,11 @@ export function EquipmentList({
             equipment={selectedEquipment}
             open={isCommentsDialogOpen}
             onOpenChange={setIsCommentsDialogOpen}
+          />
+          <EquipmentOverviewDialog
+            equipment={selectedEquipment}
+            open={isOverviewDialogOpen}
+            onOpenChange={setIsOverviewDialogOpen}
           />
         </>
       )}
