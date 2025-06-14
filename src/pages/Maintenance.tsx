@@ -6,9 +6,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MaintenanceList } from "@/components/maintenance/MaintenanceList";
 import { NewMaintenanceForm } from "@/components/maintenance/NewMaintenanceForm";
 import { AutoMaintenanceGenerator } from "@/components/maintenance/AutoMaintenanceGenerator";
+import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
 
 const Maintenance = () => {
   const [showNewForm, setShowNewForm] = useState(false);
+  const { data: maintenanceRecords = [] } = useMaintenanceRecords();
+
+  const pendingRecords = maintenanceRecords.filter(record => record.status === 'ausstehend');
+  const completedRecords = maintenanceRecords.filter(record => record.status === 'abgeschlossen');
+  const overdueRecords = maintenanceRecords.filter(record => 
+    record.status === 'ausstehend' && new Date(record.due_date) < new Date()
+  );
 
   return (
     <div className="space-y-6">
@@ -36,25 +44,25 @@ const Maintenance = () => {
         </TabsList>
 
         <TabsContent value="all">
-          <MaintenanceList />
+          <MaintenanceList records={maintenanceRecords} />
         </TabsContent>
 
         <TabsContent value="pending">
-          <MaintenanceList statusFilter="ausstehend" />
+          <MaintenanceList records={pendingRecords} />
         </TabsContent>
 
         <TabsContent value="completed">
-          <MaintenanceList statusFilter="abgeschlossen" />
+          <MaintenanceList records={completedRecords} />
         </TabsContent>
 
         <TabsContent value="overdue">
-          <MaintenanceList statusFilter="ausstehend" showOverdueOnly />
+          <MaintenanceList records={overdueRecords} />
         </TabsContent>
       </Tabs>
 
       <NewMaintenanceForm 
-        open={showNewForm} 
-        onOpenChange={setShowNewForm}
+        isOpen={showNewForm} 
+        onClose={() => setShowNewForm(false)}
       />
     </div>
   );
