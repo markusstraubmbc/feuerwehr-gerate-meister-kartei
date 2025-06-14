@@ -1,56 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+
+import React from 'react';
+import { NavLink } from 'react-router-dom';
 import { Home, Wrench, CalendarCheck, Clock, Settings } from 'lucide-react';
+import { useGlobalSettings } from './GlobalSettingsProvider';
 
 const AppSidebar = () => {
-  const [systemName, setSystemName] = useState('Feuerwehr Inventar');
-  const [logoUrl, setLogoUrl] = useState('');
-  const [logoSize, setLogoSize] = useState('48');
-  const [backgroundColor, setBackgroundColor] = useState('#1e293b');
-  const [textColor, setTextColor] = useState('#ffffff');
-  const [selectedColor, setSelectedColor] = useState('#3b82f6');
-  const location = useLocation();
+  const { settings } = useGlobalSettings();
 
-  useEffect(() => {
-    // Load initial values from localStorage
-    setSystemName(localStorage.getItem('systemName') || 'Feuerwehr Inventar');
-    setLogoUrl(localStorage.getItem('systemLogo') || '');
-    setLogoSize(localStorage.getItem('logoSize') || '48');
-    setBackgroundColor(localStorage.getItem('menuBackgroundColor') || '#1e293b');
-    setTextColor(localStorage.getItem('menuTextColor') || '#ffffff');
-    setSelectedColor(localStorage.getItem('menuSelectedColor') || '#3b82f6');
-
-    // Listen for system changes
-    const handleSystemNameChange = (event: CustomEvent) => {
-      setSystemName(event.detail);
-    };
-
-    const handleSystemLogoChange = (event: CustomEvent) => {
-      setLogoUrl(event.detail);
-    };
-
-    const handleLogoSizeChange = (event: CustomEvent) => {
-      setLogoSize(event.detail);
-    };
-
-    const handleSystemColorsChange = (event: CustomEvent) => {
-      setBackgroundColor(event.detail.backgroundColor);
-      setTextColor(event.detail.textColor);
-      setSelectedColor(event.detail.selectedColor);
-    };
-
-    window.addEventListener('systemNameChanged', handleSystemNameChange as EventListener);
-    window.addEventListener('systemLogoChanged', handleSystemLogoChange as EventListener);
-    window.addEventListener('logoSizeChanged', handleLogoSizeChange as EventListener);
-    window.addEventListener('systemColorsChanged', handleSystemColorsChange as EventListener);
-
-    return () => {
-      window.removeEventListener('systemNameChanged', handleSystemNameChange as EventListener);
-      window.removeEventListener('systemLogoChanged', handleSystemLogoChange as EventListener);
-      window.removeEventListener('logoSizeChanged', handleLogoSizeChange as EventListener);
-      window.removeEventListener('systemColorsChanged', handleSystemColorsChange as EventListener);
-    };
-  }, []);
+  const systemName = settings.companyName || 'Feuerwehr Inventar';
+  const logoUrl = settings.companyLogo || '';
+  const logoSize = settings.logoSize || '48';
+  const backgroundColor = settings.menuBackgroundColor || '#1e293b';
+  const textColor = settings.menuTextColor || '#ffffff';
+  const selectedColor = settings.menuSelectedColor || '#3b82f6';
 
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
     isActive 

@@ -5,32 +5,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useSystemSettings, useUpdateSystemSetting } from "@/hooks/useSystemSettings";
 
 const SystemSettings = () => {
+  const { data: settings = {}, isLoading } = useSystemSettings();
+  const updateSetting = useUpdateSystemSetting();
+  
   const [systemName, setSystemName] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState('');
-  const [logoSize, setLogoSize] = useState('48'); // Default 48px
+  const [logoSize, setLogoSize] = useState('48');
   const [backgroundColor, setBackgroundColor] = useState('#1e293b');
   const [textColor, setTextColor] = useState('#ffffff');
   const [selectedColor, setSelectedColor] = useState('#3b82f6');
 
   useEffect(() => {
-    // Load saved settings from localStorage
-    const savedName = localStorage.getItem('systemName');
-    const savedLogo = localStorage.getItem('systemLogo');
-    const savedLogoSize = localStorage.getItem('logoSize');
-    const savedBackgroundColor = localStorage.getItem('menuBackgroundColor');
-    const savedTextColor = localStorage.getItem('menuTextColor');
-    const savedSelectedColor = localStorage.getItem('menuSelectedColor');
-
-    if (savedName) setSystemName(savedName);
-    if (savedLogo) setLogoPreview(savedLogo);
-    if (savedLogoSize) setLogoSize(savedLogoSize);
-    if (savedBackgroundColor) setBackgroundColor(savedBackgroundColor);
-    if (savedTextColor) setTextColor(savedTextColor);
-    if (savedSelectedColor) setSelectedColor(savedSelectedColor);
-  }, []);
+    if (!isLoading && settings) {
+      setSystemName(settings.companyName || 'Feuerwehr Inventar');
+      setLogoPreview(settings.companyLogo || '');
+      setLogoSize(settings.logoSize || '48');
+      setBackgroundColor(settings.menuBackgroundColor || '#1e293b');
+      setTextColor(settings.menuTextColor || '#ffffff');
+      setSelectedColor(settings.menuSelectedColor || '#3b82f6');
+    }
+  }, [settings, isLoading]);
 
   const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -47,35 +45,54 @@ const SystemSettings = () => {
     }
   };
 
-  const handleSave = () => {
-    // Save system name
-    localStorage.setItem('systemName', systemName);
-    
-    // Save logo if one was selected
-    if (logoFile && logoPreview) {
-      localStorage.setItem('systemLogo', logoPreview);
-    }
-    
-    // Save logo size
-    localStorage.setItem('logoSize', logoSize);
-    
-    // Save colors
-    localStorage.setItem('menuBackgroundColor', backgroundColor);
-    localStorage.setItem('menuTextColor', textColor);
-    localStorage.setItem('menuSelectedColor', selectedColor);
+  const handleSave = async () => {
+    try {
+      // Save system name
+      await updateSetting.mutateAsync({
+        key: 'companyName',
+        value: systemName
+      });
+      
+      // Save logo if one was selected
+      if (logoPreview) {
+        await updateSetting.mutateAsync({
+          key: 'companyLogo',
+          value: logoPreview
+        });
+      }
+      
+      // Save logo size
+      await updateSetting.mutateAsync({
+        key: 'logoSize',
+        value: logoSize
+      });
+      
+      // Save colors
+      await updateSetting.mutateAsync({
+        key: 'menuBackgroundColor',
+        value: backgroundColor
+      });
+      
+      await updateSetting.mutateAsync({
+        key: 'menuTextColor',
+        value: textColor
+      });
+      
+      await updateSetting.mutateAsync({
+        key: 'menuSelectedColor',
+        value: selectedColor
+      });
 
-    // Dispatch custom events to update components
-    window.dispatchEvent(new CustomEvent('systemNameChanged', { detail: systemName }));
-    if (logoPreview) {
-      window.dispatchEvent(new CustomEvent('systemLogoChanged', { detail: logoPreview }));
+      toast.success('Systemeinstellungen wurden gespeichert');
+    } catch (error) {
+      console.error('Error saving system settings:', error);
+      toast.error('Fehler beim Speichern der Systemeinstellungen');
     }
-    window.dispatchEvent(new CustomEvent('logoSizeChanged', { detail: logoSize }));
-    window.dispatchEvent(new CustomEvent('systemColorsChanged', { 
-      detail: { backgroundColor, textColor, selectedColor } 
-    }));
-
-    toast.success('Systemeinstellungen wurden gespeichert');
   };
+
+  if (isLoading) {
+    return <div>Lade Einstellungen...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -232,8 +249,8 @@ const SystemSettings = () => {
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={handleSave}>
-          Einstellungen speichern
+        <Button onClick={handleSave} disabled={updateSetting.isPending}>
+          {updateSetting.isPending ? 'Speichere...' : 'Einstellungen speichern'}
         </Button>
       </div>
     </div>
