@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import {
   Table,
@@ -28,7 +29,6 @@ import { CommentsDialog } from "./CommentsDialog";
 import { EquipmentCommentsInfo } from "./EquipmentCommentsInfo";
 import { useEquipmentPrintExport } from "./EquipmentPrintExport";
 import { EquipmentOverviewDialog } from "./EquipmentOverviewDialog";
-import { useAllEquipmentComments } from "@/hooks/useAllEquipmentComments";
 import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
 import { generateEquipmentDetailsPdf } from "./EquipmentDetailsPdfExport";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,7 +64,6 @@ export function EquipmentList({
   const [isOverviewDialogOpen, setIsOverviewDialogOpen] = useState(false);
   
   const printRef = useRef<HTMLDivElement>(null);
-  const { data: allComments } = useAllEquipmentComments();
   const { data: maintenanceRecords = [] } = useMaintenanceRecords();
 
   // Apply filters to get filtered equipment
@@ -100,10 +99,35 @@ export function EquipmentList({
   });
 
   // Function to get comment count for an equipment item
-  const getCommentCount = (equipmentId: string): number => {
-    if (!allComments) return 0;
-    return allComments.filter(comment => comment.equipment_id === equipmentId).length;
+  const getCommentCount = async (equipmentId: string): Promise<number> => {
+    try {
+      const { count } = await supabase
+        .from("equipment_comments")
+        .select("*", { count: "exact", head: true })
+        .eq("equipment_id", equipmentId);
+      return count || 0;
+    } catch (error) {
+      console.error('Error fetching comment count:', error);
+      return 0;
+    }
   };
+
+  const [commentCounts, setCommentCounts] = useState<{ [key: string]: number }>({});
+
+  // Load comment counts for all equipment
+  React.useEffect(() => {
+    const loadCommentCounts = async () => {
+      const counts: { [key: string]: number } = {};
+      for (const item of filteredEquipment) {
+        counts[item.id] = await getCommentCount(item.id);
+      }
+      setCommentCounts(counts);
+    };
+    
+    if (filteredEquipment.length > 0) {
+      loadCommentCounts();
+    }
+  }, [filteredEquipment]);
 
   const handlePdfExportForEquipment = async (equipmentItem: Equipment) => {
     try {
@@ -112,7 +136,7 @@ export function EquipmentList({
         .from("equipment_comments")
         .select(`
           *,
-          person:created_by (
+          person:person_id (
             id,
             first_name,
             last_name
@@ -128,8 +152,8 @@ export function EquipmentList({
           mission:missions (
             id,
             title,
-            date,
-            type,
+            mission_date,
+            mission_type,
             description,
             location
           )
@@ -247,8 +271,8 @@ export function EquipmentList({
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{getCommentCount(item.id)}</span>
-                        {getCommentCount(item.id) > 0 && (
+                        <span className="font-medium">{commentCounts[item.id] || 0}</span>
+                        {(commentCounts[item.id] || 0) > 0 && (
                           <Button
                             variant="ghost"
                             size="sm"
