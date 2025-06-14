@@ -28,11 +28,10 @@ import { CommentsDialog } from "./CommentsDialog";
 import { EquipmentCommentsInfo } from "./EquipmentCommentsInfo";
 import { useEquipmentPrintExport } from "./EquipmentPrintExport";
 import { EquipmentOverviewDialog } from "./EquipmentOverviewDialog";
-import { useAllEquipmentComments } from "@/hooks/useEquipmentComments";
-import { useEquipmentComments } from "@/hooks/useEquipmentComments";
-import { useEquipmentMissions } from "@/hooks/useEquipmentMissions";
+import { useAllEquipmentComments } from "@/hooks/useAllEquipmentComments";
 import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
 import { generateEquipmentDetailsPdf } from "./EquipmentDetailsPdfExport";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EquipmentListProps {
   equipment: Equipment[];
@@ -108,11 +107,39 @@ export function EquipmentList({
 
   const handlePdfExportForEquipment = async (equipmentItem: Equipment) => {
     try {
-      // Fetch comments for this equipment
-      const { data: comments = [] } = await useEquipmentComments(equipmentItem.id);
-      
-      // Fetch missions for this equipment
-      const { data: missions = [] } = await useEquipmentMissions(equipmentItem.id);
+      // Fetch comments for this equipment using Supabase directly
+      const { data: comments = [] } = await supabase
+        .from("equipment_comments")
+        .select(`
+          *,
+          person:created_by (
+            id,
+            first_name,
+            last_name
+          )
+        `)
+        .eq("equipment_id", equipmentItem.id)
+        .order("created_at", { ascending: false });
+
+      // Fetch missions for this equipment using Supabase directly
+      const { data: missionEquipment = [] } = await supabase
+        .from("mission_equipment")
+        .select(`
+          mission:missions (
+            id,
+            title,
+            date,
+            type,
+            description,
+            location
+          )
+        `)
+        .eq("equipment_id", equipmentItem.id);
+
+      // Extract missions from the junction table data
+      const missions = missionEquipment
+        .map(me => me.mission)
+        .filter(Boolean);
       
       // Filter maintenance records for this equipment
       const equipmentMaintenance = maintenanceRecords.filter(
@@ -121,8 +148,8 @@ export function EquipmentList({
 
       generateEquipmentDetailsPdf({
         equipment: equipmentItem,
-        comments,
-        missions,
+        comments: comments || [],
+        missions: missions || [],
         maintenanceRecords: equipmentMaintenance
       });
     } catch (error) {
