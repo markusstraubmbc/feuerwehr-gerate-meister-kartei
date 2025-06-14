@@ -118,8 +118,13 @@ export function Sidebar() {
                         color: isActive ? '#ffffff' : settings?.menuTextColor || '#ffffff',
                       })}
                     >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.name}</span>
+                      <item.icon 
+                        className="h-4 w-4" 
+                        style={{ 
+                          color: 'inherit'
+                        }}
+                      />
+                      <span style={{ color: 'inherit' }}>{item.name}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
