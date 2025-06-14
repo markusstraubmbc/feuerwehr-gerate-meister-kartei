@@ -26,26 +26,34 @@ export const GlobalSettingsProvider = ({ children }: GlobalSettingsProviderProps
   // Apply global settings to the document
   useEffect(() => {
     if (!isLoading && settings) {
-      // Apply theme colors
+      // Apply theme colors to CSS custom properties
+      const root = document.documentElement;
+      
+      if (settings.menuBackgroundColor) {
+        root.style.setProperty('--sidebar-background', settings.menuBackgroundColor);
+      }
+
+      if (settings.menuTextColor) {
+        root.style.setProperty('--sidebar-foreground', settings.menuTextColor);
+      }
+
+      if (settings.menuSelectedColor) {
+        root.style.setProperty('--sidebar-accent', settings.menuSelectedColor);
+        root.style.setProperty('--sidebar-accent-foreground', '#ffffff');
+      }
+
+      // Apply legacy CSS variables for backward compatibility
       if (settings.primaryColor) {
-        document.documentElement.style.setProperty(
-          "--primary",
-          settings.primaryColor
-        );
+        root.style.setProperty('--primary', settings.primaryColor);
       }
 
       if (settings.secondaryColor) {
-        document.documentElement.style.setProperty(
-          "--secondary",
-          settings.secondaryColor
-        );
+        root.style.setProperty('--secondary', settings.secondaryColor);
       }
 
-      // Apply logo
+      // Apply logo as favicon
       if (settings.companyLogo) {
-        const favicon = document.querySelector(
-          'link[rel="icon"]'
-        ) as HTMLLinkElement;
+        const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
         if (favicon) {
           favicon.href = settings.companyLogo;
         }

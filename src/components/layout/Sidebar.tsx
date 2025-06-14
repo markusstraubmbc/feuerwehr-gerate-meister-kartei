@@ -23,6 +23,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
 } from "@/components/ui/sidebar";
+import { useGlobalSettings } from "./GlobalSettingsProvider";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -37,16 +38,48 @@ const navigation = [
 ];
 
 export function Sidebar() {
+  const { settings, isLoading } = useGlobalSettings();
+  
+  const systemName = settings?.companyName || "Feuerwehr Inventar";
+  const logo = settings?.companyLogo;
+  const logoSize = settings?.logoSize || "48";
+
   return (
-    <SidebarBase>
+    <SidebarBase 
+      style={{
+        backgroundColor: settings?.menuBackgroundColor || undefined,
+        color: settings?.menuTextColor || undefined,
+      }}
+    >
       <SidebarHeader>
-        <div className="px-4 py-2">
-          <h1 className="text-xl font-bold text-sidebar-foreground">Feuerwehr Inventar</h1>
+        <div className="px-4 py-2 flex items-center gap-3">
+          {logo && (
+            <img 
+              src={logo} 
+              alt="Logo" 
+              style={{ 
+                width: `${logoSize}px`, 
+                height: `${logoSize}px`,
+                objectFit: 'contain'
+              }}
+              className="rounded"
+            />
+          )}
+          <h1 
+            className="text-xl font-bold"
+            style={{ color: settings?.menuTextColor || undefined }}
+          >
+            {systemName}
+          </h1>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel 
+            style={{ color: settings?.menuTextColor || undefined }}
+          >
+            Navigation
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navigation.map((item) => (
@@ -56,10 +89,16 @@ export function Sidebar() {
                       to={item.href}
                       className={({ isActive }) =>
                         cn(
-                          "flex items-center gap-2 w-full",
-                          isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
+                          "flex items-center gap-2 w-full px-2 py-2 rounded-md transition-colors",
+                          isActive 
+                            ? "font-medium text-white" 
+                            : "hover:bg-opacity-20 hover:bg-white"
                         )
                       }
+                      style={({ isActive }) => ({
+                        backgroundColor: isActive ? settings?.menuSelectedColor || '#3b82f6' : undefined,
+                        color: isActive ? '#ffffff' : settings?.menuTextColor || undefined,
+                      })}
                     >
                       <item.icon className="h-4 w-4" />
                       <span>{item.name}</span>
