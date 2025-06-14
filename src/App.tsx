@@ -1,55 +1,46 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Layout } from "./components/layout/Layout";
-import Dashboard from "./pages/Dashboard";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Layout } from "@/components/layout/Layout";
+import Index from "./pages/Index";
 import Equipment from "./pages/Equipment";
-import EquipmentManagement from "./pages/EquipmentManagement";
 import Maintenance from "./pages/Maintenance";
 import MaintenanceTime from "./pages/MaintenanceTime";
-import Locations from "./pages/Locations";
 import Settings from "./pages/Settings";
 import PersonManagement from "./pages/PersonManagement";
-import NotFound from "./pages/NotFound";
+import Locations from "./pages/Locations";
 import MaintenanceTemplateSettings from "./pages/MaintenanceTemplateSettings";
 import EmailSettings from "./pages/EmailSettings";
+import SystemSettings from "./pages/SystemSettings";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 Minuten
-    },
-  },
-});
+const queryClient = new QueryClient();
 
-const App = () => (
-  <BrowserRouter>
+function App() {
+  return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/equipment" element={<EquipmentManagement />} />
-            <Route path="/equipment-management" element={<Navigate to="/equipment" replace />} />
-            <Route path="/maintenance" element={<Maintenance />} />
-            <Route path="/maintenance-time" element={<MaintenanceTime />} />
-            <Route path="/locations" element={<Locations />} />
-            <Route path="/person-management" element={<PersonManagement />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/settings/maintenance-templates" element={<MaintenanceTemplateSettings />} />
-            <Route path="/settings/email" element={<EmailSettings />} />
-            <Route path="/inventory" element={<Navigate to="/equipment" replace />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Layout>
         <Toaster />
-        <Sonner />
+        <BrowserRouter>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/equipment" element={<Equipment />} />
+              <Route path="/maintenance" element={<Maintenance />} />
+              <Route path="/maintenance-time" element={<MaintenanceTime />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/person-management" element={<PersonManagement />} />
+              <Route path="/locations" element={<Locations />} />
+              <Route path="/settings/maintenance-templates" element={<MaintenanceTemplateSettings />} />
+              <Route path="/settings/email" element={<EmailSettings />} />
+              <Route path="/settings/system" element={<SystemSettings />} />
+            </Routes>
+          </Layout>
+        </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
-  </BrowserRouter>
-);
+  );
+}
 
 export default App;

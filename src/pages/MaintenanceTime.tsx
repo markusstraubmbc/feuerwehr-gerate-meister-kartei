@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { 
   Card, 
@@ -10,9 +9,9 @@ import {
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { format, subMonths, startOfMonth, endOfMonth, startOfYear, subDays, endOfDay } from "date-fns";
 import { de } from "date-fns/locale";
-import { CalendarIcon, FileDown, Printer } from "lucide-react";
+import { CalendarIcon, FileDown } from "lucide-react";
 import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
 import { useCategories } from "@/hooks/useCategories";
 import { usePersons } from "@/hooks/usePersons";
@@ -40,8 +39,9 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useReactToPrint } from "react-to-print";
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { toast } from "sonner";
 import { SELECT_ALL_VALUE } from "@/lib/constants";
 import {
@@ -76,9 +76,9 @@ const MaintenanceTime = () => {
   
   const printRef = useRef<HTMLDivElement>(null);
   
-  // Default to last month
-  const defaultStartDate = startOfMonth(subMonths(new Date(), 1));
-  const defaultEndDate = endOfMonth(subMonths(new Date(), 1));
+  // Default to current month
+  const defaultStartDate = startOfMonth(new Date());
+  const defaultEndDate = endOfDay(new Date());
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -92,6 +92,35 @@ const MaintenanceTime = () => {
   });
   
   const { categoryId, personId, templateId, startDate, endDate } = form.watch();
+
+  // Quick filter functions
+  const setCurrentYear = () => {
+    const start = startOfYear(new Date());
+    const end = endOfDay(new Date());
+    form.setValue('startDate', start);
+    form.setValue('endDate', end);
+  };
+
+  const setLast90Days = () => {
+    const start = subDays(new Date(), 90);
+    const end = endOfDay(new Date());
+    form.setValue('startDate', start);
+    form.setValue('endDate', end);
+  };
+
+  const setCurrentMonth = () => {
+    const start = startOfMonth(new Date());
+    const end = endOfDay(new Date());
+    form.setValue('startDate', start);
+    form.setValue('endDate', end);
+  };
+
+  const setLastMonth = () => {
+    const start = startOfMonth(subMonths(new Date(), 1));
+    const end = endOfMonth(subMonths(new Date(), 1));
+    form.setValue('startDate', start);
+    form.setValue('endDate', end);
+  };
   
   // Filter maintenance records based on form values
   const filteredRecords = maintenanceRecords.filter(record => {
@@ -200,11 +229,71 @@ const MaintenanceTime = () => {
     "Durchschnitt pro Wartung": t.average,
   }));
   
-  const handlePrint = useReactToPrint({
-    content: () => printRef.current,
-    documentTitle: 'Wartungs-Zeitauswertung',
-    pageStyle: '@page { size: auto; margin: 10mm; } @media print { body { font-size: 12pt; } }',
-  });
+  const handlePdfExport = () => {
+    try {
+      const doc = new jsPDF();
+      
+      // Add title
+      doc.setFontSize(16);
+      doc.text('Wartungs-Zeitauswertung', 14, 22);
+      
+      // Add date range
+      doc.setFontSize(12);
+      doc.text(`Zeitraum: ${format(startDate, "dd.MM.yyyy", { locale: de })} - ${format(endDate, "dd.MM.yyyy", { locale: de })}`, 14, 32);
+      
+      let yPosition = 45;
+      
+      // Summary section
+      doc.setFontSize(14);
+      doc.text('Zusammenfassung', 14, yPosition);
+      yPosition += 10;
+      
+      const summaryData = [
+        ['Anzahl Wartungen', totalCount.toString()],
+        ['Gesamtzeit (Minuten)', totalTime.toString()],
+        ['Durchschnitt pro Wartung (Min.)', averageTime.toString()]
+      ];
+      
+      autoTable(doc, {
+        startY: yPosition,
+        head: [['Kennzahl', 'Wert']],
+        body: summaryData,
+        theme: 'grid',
+      });
+      
+      yPosition = (doc as any).lastAutoTable.finalY + 15;
+      
+      // Template summary
+      if (templateSummary.length > 0) {
+        doc.setFontSize(14);
+        doc.text('Wartungsvorlagen-Zusammenfassung', 14, yPosition);
+        yPosition += 10;
+        
+        const templateData = templateSummary.map(t => [
+          t.name,
+          t.count.toString(),
+          t.time.toString(),
+          t.average.toString()
+        ]);
+        
+        autoTable(doc, {
+          startY: yPosition,
+          head: [['Wartungsvorlage', 'Anzahl', 'Gesamtzeit (Min.)', 'Durchschnitt']],
+          body: templateData,
+          theme: 'grid',
+        });
+      }
+      
+      // Generate filename with date range
+      const fileName = `Wartungs-Zeitauswertung-${format(startDate, "yyyy-MM-dd")}_bis_${format(endDate, "yyyy-MM-dd")}.pdf`;
+      
+      doc.save(fileName);
+      toast.success('PDF Export erfolgreich abgeschlossen');
+    } catch (error) {
+      console.error('PDF Export error:', error);
+      toast.error('Fehler beim Exportieren als PDF');
+    }
+  };
   
   const handleExport = () => {
     try {
@@ -288,11 +377,11 @@ const MaintenanceTime = () => {
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleExport}>
             <FileDown className="h-4 w-4 mr-2" />
-            Exportieren
+            Excel Export
           </Button>
-          <Button variant="outline" size="sm" onClick={handlePrint}>
-            <Printer className="h-4 w-4 mr-2" />
-            Drucken
+          <Button variant="outline" size="sm" onClick={handlePdfExport}>
+            <FileDown className="h-4 w-4 mr-2" />
+            PDF Export
           </Button>
         </div>
       </div>
@@ -304,166 +393,184 @@ const MaintenanceTime = () => {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <FormField
-                control={form.control}
-                name="startDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Von</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
+            <div className="space-y-4">
+              {/* Quick Filter Buttons */}
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={setCurrentMonth}>
+                  Aktueller Monat
+                </Button>
+                <Button variant="outline" size="sm" onClick={setLastMonth}>
+                  Letzter Monat
+                </Button>
+                <Button variant="outline" size="sm" onClick={setCurrentYear}>
+                  Aktuelles Jahr
+                </Button>
+                <Button variant="outline" size="sm" onClick={setLast90Days}>
+                  Letzte 90 Tage
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Von</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={`w-full justify-start text-left font-normal ${
+                                !field.value && "text-muted-foreground"
+                              }`}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {field.value ? (
+                                format(field.value, "P", { locale: de })
+                              ) : (
+                                <span>Datum auswählen</span>
+                              )}
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                            locale={de}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Bis</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={`w-full justify-start text-left font-normal ${
+                                !field.value && "text-muted-foreground"
+                              }`}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {field.value ? (
+                                format(field.value, "P", { locale: de })
+                              ) : (
+                                <span>Datum auswählen</span>
+                              )}
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                            locale={de}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="templateId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Wartungsvorlage</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || ""}
+                      >
                         <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={`w-full justify-start text-left font-normal ${
-                              !field.value && "text-muted-foreground"
-                            }`}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? (
-                              format(field.value, "P", { locale: de })
-                            ) : (
-                              <span>Datum auswählen</span>
-                            )}
-                          </Button>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Alle Vorlagen" />
+                          </SelectTrigger>
                         </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
-                          locale={de}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="endDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Bis</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
+                        <SelectContent>
+                          <SelectItem value={SELECT_ALL_VALUE}>Alle Vorlagen</SelectItem>
+                          {templates.map((template) => (
+                            <SelectItem key={template.id} value={template.id}>
+                              {template.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Kategorie</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || ""}
+                      >
                         <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={`w-full justify-start text-left font-normal ${
-                              !field.value && "text-muted-foreground"
-                            }`}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? (
-                              format(field.value, "P", { locale: de })
-                            ) : (
-                              <span>Datum auswählen</span>
-                            )}
-                          </Button>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Alle Kategorien" />
+                          </SelectTrigger>
                         </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
-                          locale={de}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="templateId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Wartungsvorlage</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value || ""}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Alle Vorlagen" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={SELECT_ALL_VALUE}>Alle Vorlagen</SelectItem>
-                        {templates.map((template) => (
-                          <SelectItem key={template.id} value={template.id}>
-                            {template.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="categoryId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Kategorie</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value || ""}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Alle Kategorien" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={SELECT_ALL_VALUE}>Alle Kategorien</SelectItem>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="personId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Person</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value || ""}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Alle Personen" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={SELECT_ALL_VALUE}>Alle Personen</SelectItem>
-                        {persons.map((person) => (
-                          <SelectItem key={person.id} value={person.id}>
-                            {person.first_name} {person.last_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
+                        <SelectContent>
+                          <SelectItem value={SELECT_ALL_VALUE}>Alle Kategorien</SelectItem>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="personId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Person</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Alle Personen" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={SELECT_ALL_VALUE}>Alle Personen</SelectItem>
+                          {persons.map((person) => (
+                            <SelectItem key={person.id} value={person.id}>
+                              {person.first_name} {person.last_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
           </Form>
         </CardContent>

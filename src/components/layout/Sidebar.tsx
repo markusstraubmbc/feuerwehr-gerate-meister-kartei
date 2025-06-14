@@ -18,6 +18,12 @@ import { cn } from "@/lib/utils";
 export function Sidebar() {
   // On mobile, start with collapsed sidebar
   const [expanded, setExpanded] = useState(window.innerWidth > 768);
+  const [systemName, setSystemName] = useState(
+    localStorage.getItem('systemName') || 'Feuerwehr Inventar'
+  );
+  const [logoUrl, setLogoUrl] = useState(
+    localStorage.getItem('systemLogo') || ''
+  );
   
   // Update expanded state when window resizes
   useEffect(() => {
@@ -29,6 +35,25 @@ export function Sidebar() {
     
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Listen for system settings changes
+  useEffect(() => {
+    const handleSystemNameChange = (event: CustomEvent) => {
+      setSystemName(event.detail);
+    };
+
+    const handleSystemLogoChange = (event: CustomEvent) => {
+      setLogoUrl(event.detail);
+    };
+
+    window.addEventListener('systemNameChanged', handleSystemNameChange as EventListener);
+    window.addEventListener('systemLogoChanged', handleSystemLogoChange as EventListener);
+
+    return () => {
+      window.removeEventListener('systemNameChanged', handleSystemNameChange as EventListener);
+      window.removeEventListener('systemLogoChanged', handleSystemLogoChange as EventListener);
+    };
   }, []);
 
   const toggleSidebar = () => {
@@ -45,11 +70,29 @@ export function Sidebar() {
       <div className="flex items-center p-4 h-16">
         {expanded ? (
           <div className="flex items-center">
-            <CircleAlert className="h-6 w-6 text-fire-red" />
-            <h2 className="ml-2 text-lg font-bold text-white truncate">Feuerwehr Inventar</h2>
+            {logoUrl ? (
+              <img 
+                src={logoUrl} 
+                alt="System Logo" 
+                className="h-8 w-8 object-contain"
+              />
+            ) : (
+              <CircleAlert className="h-6 w-6 text-fire-red" />
+            )}
+            <h2 className="ml-2 text-lg font-bold text-white truncate">{systemName}</h2>
           </div>
         ) : (
-          <CircleAlert className="h-6 w-6 mx-auto text-fire-red" />
+          <>
+            {logoUrl ? (
+              <img 
+                src={logoUrl} 
+                alt="System Logo" 
+                className="h-6 w-6 mx-auto object-contain"
+              />
+            ) : (
+              <CircleAlert className="h-6 w-6 mx-auto text-fire-red" />
+            )}
+          </>
         )}
         <Button 
           variant="ghost" 

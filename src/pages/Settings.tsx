@@ -8,7 +8,8 @@ import {
   Settings2, 
   Mail,
   ThumbsUp,
-  ArrowLeft
+  ArrowLeft,
+  Cog
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -89,6 +90,21 @@ const Settings = () => {
           </CardContent>
         </Card>
         
+        <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate("/settings/system")}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Cog className="h-5 w-5" />
+              System
+            </CardTitle>
+            <CardDescription>Logo und Anwendungsname anpassen</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">
+              Systemlogo hochladen und den Namen der Anwendung anpassen, der im Menü angezeigt wird.
+            </p>
+          </CardContent>
+        </Card>
+        
         <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => {}}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -108,13 +124,13 @@ const Settings = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ThumbsUp className="h-5 w-5" />
-              System
+              Erweitert
             </CardTitle>
-            <CardDescription>Systemeinstellungen</CardDescription>
+            <CardDescription>Erweiterte Systemeinstellungen</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm">
-              Systemspezifische Einstellungen und Anpassungen verwalten.
+              Erweiterte systemspezifische Einstellungen und Anpassungen verwalten.
             </p>
           </CardContent>
         </Card>
