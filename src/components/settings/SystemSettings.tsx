@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,9 @@ const SystemSettings = () => {
   );
   const [menuTextColor, setMenuTextColor] = useState(
     localStorage.getItem('menuTextColor') || '#ffffff'
+  );
+  const [menuSelectedColor, setMenuSelectedColor] = useState(
+    localStorage.getItem('menuSelectedColor') || '#3b82f6'
   );
   const [buttonColor, setButtonColor] = useState(
     localStorage.getItem('buttonColor') || '#3b82f6'
@@ -46,10 +50,16 @@ const SystemSettings = () => {
   const handleColorsSave = () => {
     localStorage.setItem('menuBackgroundColor', menuBackgroundColor);
     localStorage.setItem('menuTextColor', menuTextColor);
+    localStorage.setItem('menuSelectedColor', menuSelectedColor);
     localStorage.setItem('buttonColor', buttonColor);
     toast.success('Farbeinstellungen wurden gespeichert');
     window.dispatchEvent(new CustomEvent('systemColorsChanged', { 
-      detail: { backgroundColor: menuBackgroundColor, textColor: menuTextColor, buttonColor }
+      detail: { 
+        backgroundColor: menuBackgroundColor, 
+        textColor: menuTextColor, 
+        selectedColor: menuSelectedColor,
+        buttonColor 
+      }
     }));
   };
 
@@ -193,7 +203,7 @@ const SystemSettings = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label htmlFor="menuBackgroundColor">Hintergrundfarbe</Label>
               <div className="flex gap-2">
@@ -235,6 +245,26 @@ const SystemSettings = () => {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="menuSelectedColor">Ausgewähltes Menü</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="menuSelectedColor"
+                  type="color"
+                  value={menuSelectedColor}
+                  onChange={(e) => setMenuSelectedColor(e.target.value)}
+                  className="w-16 h-10 p-1 rounded"
+                />
+                <Input
+                  type="text"
+                  value={menuSelectedColor}
+                  onChange={(e) => setMenuSelectedColor(e.target.value)}
+                  placeholder="#3b82f6"
+                  className="flex-1"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="buttonColor">Button-Farbe</Label>
               <div className="flex gap-2">
                 <Input
@@ -260,12 +290,26 @@ const SystemSettings = () => {
             color: menuTextColor 
           }}>
             <p className="text-sm mb-2">Vorschau des Menüs mit den gewählten Farben</p>
-            <button 
-              className="px-4 py-2 rounded text-white text-sm"
-              style={{ backgroundColor: buttonColor }}
-            >
-              Beispiel Button
-            </button>
+            <div className="space-y-2">
+              <div 
+                className="px-4 py-2 rounded text-sm"
+                style={{ color: menuTextColor }}
+              >
+                Normaler Menüeintrag
+              </div>
+              <div 
+                className="px-4 py-2 rounded text-sm font-medium"
+                style={{ backgroundColor: menuSelectedColor, color: '#ffffff' }}
+              >
+                Ausgewählter Menüeintrag
+              </div>
+              <button 
+                className="px-4 py-2 rounded text-white text-sm"
+                style={{ backgroundColor: buttonColor }}
+              >
+                Beispiel Button
+              </button>
+            </div>
           </div>
           
           <Button onClick={handleColorsSave}>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Home, Wrench, CalendarCheck, Clock, Package, Settings } from 'lucide-react';
@@ -7,6 +8,7 @@ const AppSidebar = () => {
   const [logoUrl, setLogoUrl] = useState('');
   const [backgroundColor, setBackgroundColor] = useState('#1e293b');
   const [textColor, setTextColor] = useState('#ffffff');
+  const [selectedColor, setSelectedColor] = useState('#3b82f6');
   const location = useLocation();
 
   useEffect(() => {
@@ -15,6 +17,7 @@ const AppSidebar = () => {
     setLogoUrl(localStorage.getItem('systemLogo') || '');
     setBackgroundColor(localStorage.getItem('menuBackgroundColor') || '#1e293b');
     setTextColor(localStorage.getItem('menuTextColor') || '#ffffff');
+    setSelectedColor(localStorage.getItem('menuSelectedColor') || '#3b82f6');
 
     // Listen for system changes
     const handleSystemNameChange = (event: CustomEvent) => {
@@ -28,6 +31,7 @@ const AppSidebar = () => {
     const handleSystemColorsChange = (event: CustomEvent) => {
       setBackgroundColor(event.detail.backgroundColor);
       setTextColor(event.detail.textColor);
+      setSelectedColor(event.detail.selectedColor);
     };
 
     window.addEventListener('systemNameChanged', handleSystemNameChange as EventListener);
@@ -42,7 +46,14 @@ const AppSidebar = () => {
   }, []);
 
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
-    isActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50";
+    isActive 
+      ? "font-medium" 
+      : "hover:bg-white hover:bg-opacity-10";
+
+  const getNavLinkStyle = (isActive: boolean) => ({
+    color: isActive ? '#ffffff' : textColor,
+    backgroundColor: isActive ? selectedColor : 'transparent'
+  });
 
   return (
     <aside 
@@ -75,7 +86,7 @@ const AppSidebar = () => {
               className={({ isActive }) => 
                 `block px-4 py-2 rounded transition-colors ${getNavLinkClass({ isActive })}`
               }
-              style={{ color: textColor }}
+              style={({ isActive }) => getNavLinkStyle(isActive)}
             >
               <Home className="inline-block w-5 h-5 mr-3" />
               Dashboard
@@ -87,7 +98,7 @@ const AppSidebar = () => {
               className={({ isActive }) => 
                 `block px-4 py-2 rounded transition-colors ${getNavLinkClass({ isActive })}`
               }
-              style={{ color: textColor }}
+              style={({ isActive }) => getNavLinkStyle(isActive)}
             >
               <Wrench className="inline-block w-5 h-5 mr-3" />
               Ausrüstung
@@ -99,7 +110,7 @@ const AppSidebar = () => {
               className={({ isActive }) => 
                 `block px-4 py-2 rounded transition-colors ${getNavLinkClass({ isActive })}`
               }
-              style={{ color: textColor }}
+              style={({ isActive }) => getNavLinkStyle(isActive)}
             >
               <CalendarCheck className="inline-block w-5 h-5 mr-3" />
               Wartung
@@ -111,7 +122,7 @@ const AppSidebar = () => {
               className={({ isActive }) => 
                 `block px-4 py-2 rounded transition-colors ${getNavLinkClass({ isActive })}`
               }
-              style={{ color: textColor }}
+              style={({ isActive }) => getNavLinkStyle(isActive)}
             >
               <Clock className="inline-block w-5 h-5 mr-3" />
               Wartungs-Zeitauswertung
@@ -123,7 +134,7 @@ const AppSidebar = () => {
               className={({ isActive }) => 
                 `block px-4 py-2 rounded transition-colors ${getNavLinkClass({ isActive })}`
               }
-              style={{ color: textColor }}
+              style={({ isActive }) => getNavLinkStyle(isActive)}
             >
               <Package className="inline-block w-5 h-5 mr-3" />
               Inventar
@@ -135,7 +146,7 @@ const AppSidebar = () => {
               className={({ isActive }) => 
                 `block px-4 py-2 rounded transition-colors ${getNavLinkClass({ isActive })}`
               }
-              style={{ color: textColor }}
+              style={({ isActive }) => getNavLinkStyle(isActive)}
             >
               <Settings className="inline-block w-5 h-5 mr-3" />
               Einstellungen
