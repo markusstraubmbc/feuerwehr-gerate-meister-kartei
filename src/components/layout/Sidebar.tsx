@@ -22,6 +22,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { useGlobalSettings } from "./GlobalSettingsProvider";
 
@@ -39,22 +40,33 @@ const navigation = [
 
 export function Sidebar() {
   const { settings, isLoading } = useGlobalSettings();
+  const { isMobile, setOpenMobile } = useSidebar();
   
   const systemName = settings?.companyName || "Feuerwehr Inventar";
   const logo = settings?.companyLogo;
   const logoSize = settings?.logoSize || "48";
 
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
   return (
     <SidebarBase 
-      className="bg-sidebar"
+      className="border-r bg-background"
       style={{
-        '--sidebar-background': settings?.menuBackgroundColor || '#1e293b',
-        '--sidebar-foreground': settings?.menuTextColor || '#ffffff',
         backgroundColor: settings?.menuBackgroundColor || '#1e293b',
-        color: settings?.menuTextColor || '#ffffff',
+        borderColor: settings?.menuBackgroundColor || '#1e293b',
       } as React.CSSProperties}
     >
-      <SidebarHeader className="bg-inherit">
+      <SidebarHeader 
+        className="border-b"
+        style={{ 
+          backgroundColor: settings?.menuBackgroundColor || '#1e293b',
+          borderColor: settings?.menuBackgroundColor || '#1e293b',
+        }}
+      >
         <div className="px-4 py-2 flex items-center gap-3">
           {logo && (
             <img 
@@ -76,7 +88,9 @@ export function Sidebar() {
           </h1>
         </div>
       </SidebarHeader>
-      <SidebarContent className="bg-inherit">
+      <SidebarContent 
+        style={{ backgroundColor: settings?.menuBackgroundColor || '#1e293b' }}
+      >
         <SidebarGroup>
           <SidebarGroupLabel 
             style={{ color: settings?.menuTextColor || '#ffffff' }}
@@ -90,6 +104,7 @@ export function Sidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.href}
+                      onClick={handleNavClick}
                       className={({ isActive }) =>
                         cn(
                           "flex items-center gap-2 w-full px-2 py-2 rounded-md transition-colors",
