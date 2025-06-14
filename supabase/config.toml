@@ -31,7 +31,10 @@ enable_refresh_tokens = true
 
 [functions]
 [functions.maintenance-notifications]
-verify_jwt = true
+verify_jwt = false
 
 [functions.email-scheduler]
-verify_jwt = true
+verify_jwt = false
+
+[functions.email-cron]
+verify_jwt = false

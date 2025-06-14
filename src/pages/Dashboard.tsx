@@ -1,8 +1,8 @@
-
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { 
   Package, 
   AlertTriangle, 
@@ -12,7 +12,8 @@ import {
   ArrowUp,
   Calendar,
   Filter,
-  PenLine
+  PenLine,
+  FileDown
 } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
 import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
@@ -27,11 +28,13 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { CompleteMaintenanceDialog } from "@/components/maintenance/CompleteMaintenanceDialog";
 import { EditMaintenanceDialog } from "@/components/maintenance/EditMaintenanceDialog";
+import { MaintenanceWidgets } from "@/components/dashboard/MaintenanceWidgets";
 import { SELECT_ALL_VALUE } from "@/lib/constants";
 import { useNavigate } from "react-router-dom";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
 const Dashboard = () => {
   const { data: equipment = [] } = useEquipment();
@@ -46,6 +49,7 @@ const Dashboard = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
   const navigate = useNavigate();
+  const dashboardRef = useRef<HTMLDivElement>(null);
   
   const filteredEquipment = equipment.filter(item => {
     if (selectedCategoryId && selectedCategoryId !== SELECT_ALL_VALUE && item.category_id !== selectedCategoryId) {
@@ -107,6 +111,81 @@ const Dashboard = () => {
     return record.status !== "abgeschlossen" && dueDate <= sevenDaysLater;
   }).length;
 
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(20);
+    doc.text('Dashboard Übersicht', 20, 20);
+    
+    // Add timestamp
+    doc.setFontSize(10);
+    doc.text(`Erstellt am: ${format(new Date(), "dd.MM.yyyy HH:mm", { locale: de })}`, 20, 30);
+    
+    // Stats section
+    doc.setFontSize(14);
+    doc.text('Ausrüstungsstatistiken', 20, 45);
+    
+    const statsData = [
+      ['Gesamt Ausrüstung', totalEquipment.toString()],
+      ['Einsatzbereit', readyEquipment.toString()],
+      ['Wartungsbedarf', maintenanceNeeded.toString()],
+      ['In Wartung', inMaintenance.toString()]
+    ];
+    
+    (doc as any).autoTable({
+      startY: 50,
+      head: [['Kategorie', 'Anzahl']],
+      body: statsData,
+      margin: { left: 20 },
+      columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 40 } }
+    });
+    
+    // Category stats
+    let yPosition = (doc as any).lastAutoTable.finalY + 20;
+    doc.setFontSize(14);
+    doc.text('Kategoriestatistiken', 20, yPosition);
+    
+    const categoryData = categoryStats.map(cat => [
+      cat.name,
+      cat.total.toString(),
+      `${Math.round(cat.status)}%`,
+      `${cat.change >= 0 ? '+' : ''}${cat.change}%`
+    ]);
+    
+    (doc as any).autoTable({
+      startY: yPosition + 5,
+      head: [['Kategorie', 'Gesamt', 'Bereit', 'Änderung']],
+      body: categoryData,
+      margin: { left: 20 }
+    });
+    
+    // Pending maintenance
+    yPosition = (doc as any).lastAutoTable.finalY + 20;
+    doc.setFontSize(14);
+    doc.text('Anstehende Wartungen', 20, yPosition);
+    
+    const maintenanceData = pendingMaintenance.map(item => [
+      item.equipment?.name || "Unbekannte Ausrüstung",
+      format(new Date(item.due_date), "dd.MM.yyyy", { locale: de }),
+      getMaintenanceStatusDisplay(item.status)
+    ]);
+    
+    if (maintenanceData.length > 0) {
+      (doc as any).autoTable({
+        startY: yPosition + 5,
+        head: [['Ausrüstung', 'Fällig am', 'Status']],
+        body: maintenanceData,
+        margin: { left: 20 }
+      });
+    } else {
+      doc.setFontSize(10);
+      doc.text('Keine anstehenden Wartungen', 20, yPosition + 10);
+    }
+    
+    doc.save(`Dashboard_${format(new Date(), "yyyy-MM-dd_HH-mm")}.pdf`);
+  };
+
   const handleCompleteMaintenance = (record: any) => {
     setSelectedRecord(record);
     setIsCompleteDialogOpen(true);
@@ -136,10 +215,14 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" ref={dashboardRef}>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={exportToPDF}>
+            <FileDown className="h-4 w-4 mr-2" />
+            PDF Export
+          </Button>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
               <SelectTrigger className="w-full sm:w-40">
@@ -222,6 +305,9 @@ const Dashboard = () => {
           />
         </div>
       </div>
+
+      {/* New Maintenance Widgets */}
+      <MaintenanceWidgets />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>

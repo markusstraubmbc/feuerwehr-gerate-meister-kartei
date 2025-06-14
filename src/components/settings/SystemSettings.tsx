@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Save } from "lucide-react";
+import { Upload, Save, Palette } from "lucide-react";
 import { toast } from "sonner";
 
 const SystemSettings = () => {
@@ -14,12 +13,26 @@ const SystemSettings = () => {
   const [logoUrl, setLogoUrl] = useState(
     localStorage.getItem('systemLogo') || ''
   );
+  const [menuBackgroundColor, setMenuBackgroundColor] = useState(
+    localStorage.getItem('menuBackgroundColor') || '#1e293b'
+  );
+  const [menuTextColor, setMenuTextColor] = useState(
+    localStorage.getItem('menuTextColor') || '#ffffff'
+  );
 
   const handleSystemNameSave = () => {
     localStorage.setItem('systemName', systemName);
     toast.success('Systemname wurde gespeichert');
-    // Trigger a custom event to notify other components
     window.dispatchEvent(new CustomEvent('systemNameChanged', { detail: systemName }));
+  };
+
+  const handleColorsSave = () => {
+    localStorage.setItem('menuBackgroundColor', menuBackgroundColor);
+    localStorage.setItem('menuTextColor', menuTextColor);
+    toast.success('Farbeinstellungen wurden gespeichert');
+    window.dispatchEvent(new CustomEvent('systemColorsChanged', { 
+      detail: { backgroundColor: menuBackgroundColor, textColor: menuTextColor }
+    }));
   };
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,6 +139,73 @@ const SystemSettings = () => {
               </Button>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="h-5 w-5" />
+            Menü-Farbeinstellungen
+          </CardTitle>
+          <CardDescription>
+            Passen Sie die Farben des Menüs an Ihre Corporate Identity an
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="menuBackgroundColor">Hintergrundfarbe</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="menuBackgroundColor"
+                  type="color"
+                  value={menuBackgroundColor}
+                  onChange={(e) => setMenuBackgroundColor(e.target.value)}
+                  className="w-16 h-10 p-1 rounded"
+                />
+                <Input
+                  type="text"
+                  value={menuBackgroundColor}
+                  onChange={(e) => setMenuBackgroundColor(e.target.value)}
+                  placeholder="#1e293b"
+                  className="flex-1"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="menuTextColor">Textfarbe</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="menuTextColor"
+                  type="color"
+                  value={menuTextColor}
+                  onChange={(e) => setMenuTextColor(e.target.value)}
+                  className="w-16 h-10 p-1 rounded"
+                />
+                <Input
+                  type="text"
+                  value={menuTextColor}
+                  onChange={(e) => setMenuTextColor(e.target.value)}
+                  placeholder="#ffffff"
+                  className="flex-1"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-4 rounded border" style={{ 
+            backgroundColor: menuBackgroundColor, 
+            color: menuTextColor 
+          }}>
+            <p className="text-sm">Vorschau des Menüs mit den gewählten Farben</p>
+          </div>
+          
+          <Button onClick={handleColorsSave}>
+            <Save className="h-4 w-4 mr-2" />
+            Farbeinstellungen speichern
+          </Button>
         </CardContent>
       </Card>
     </div>
