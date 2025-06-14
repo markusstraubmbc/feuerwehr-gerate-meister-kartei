@@ -33,26 +33,36 @@ export function PushNotificationSettings() {
   const [isSubscribing, setIsSubscribing] = useState(false);
 
   useEffect(() => {
+    // Prüfe ob Push-Benachrichtigungen unterstützt werden
     if ('serviceWorker' in navigator && 'PushManager' in window) {
       setPushSupported(true);
+      console.log('Push-Benachrichtigungen werden unterstützt');
       
-      // Check if notifications are already granted and service worker is registered
-      if (Notification.permission === 'granted') {
-        navigator.serviceWorker.ready.then(registration => {
-          registration.pushManager.getSubscription().then(subscription => {
-            if (subscription) {
-              setPushEnabled(true);
-              localStorage.setItem('pushSubscription', JSON.stringify(subscription));
-            }
-          }).catch(error => {
-            console.error('Error checking push subscription:', error);
-          });
-        }).catch(error => {
-          console.error('Service worker not ready:', error);
-        });
-      }
+      // Prüfe bestehende Subscription
+      checkExistingSubscription();
+    } else {
+      console.log('Push-Benachrichtigungen werden nicht unterstützt');
+      setPushSupported(false);
     }
   }, []);
+
+  const checkExistingSubscription = async () => {
+    try {
+      if (Notification.permission === 'granted') {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          const subscription = await registration.pushManager.getSubscription();
+          if (subscription) {
+            setPushEnabled(true);
+            localStorage.setItem('pushSubscription', JSON.stringify(subscription));
+            console.log('Bestehende Push-Subscription gefunden:', subscription);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Fehler beim Prüfen der bestehenden Subscription:', error);
+    }
+  };
 
   const requestPushPermission = async () => {
     if (!pushSupported) {
@@ -63,55 +73,55 @@ export function PushNotificationSettings() {
     setIsSubscribing(true);
 
     try {
-      // Register service worker first
-      let registration;
-      try {
-        registration = await navigator.serviceWorker.register('/sw.js');
-        console.log('Service Worker registered:', registration);
-      } catch (swError) {
-        console.error('Service Worker registration failed:', swError);
-        toast.error('Service Worker konnte nicht registriert werden');
-        return;
-      }
+      // Schritt 1: Service Worker registrieren
+      console.log('Registriere Service Worker...');
+      const registration = await navigator.serviceWorker.register('/sw.js', {
+        scope: '/'
+      });
       
+      console.log('Service Worker erfolgreich registriert:', registration);
+      
+      // Warten bis Service Worker aktiv ist
+      await navigator.serviceWorker.ready;
+      console.log('Service Worker ist bereit');
+      
+      // Schritt 2: Notification-Berechtigung anfordern
+      console.log('Fordere Notification-Berechtigung an...');
       const permission = await Notification.requestPermission();
-      console.log('Notification permission:', permission);
+      console.log('Notification-Berechtigung:', permission);
       
       if (permission === 'granted') {
         try {
-          // Wait for service worker to be ready
-          await navigator.serviceWorker.ready;
-          
+          // Schritt 3: Push-Subscription erstellen
+          console.log('Erstelle Push-Subscription...');
           const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(VAPID_CONFIG.publicKey)
           });
 
+          console.log('Push-Subscription erfolgreich erstellt:', subscription);
+          
+          // Subscription speichern
           localStorage.setItem('pushSubscription', JSON.stringify(subscription));
-          console.log('Push subscription created:', subscription);
-          
           setPushEnabled(true);
-          toast.success('Push-Benachrichtigungen wurden aktiviert');
           
-          // Show test notification
-          if ('Notification' in window) {
-            new Notification('Feuerwehr Inventar', {
-              body: 'Push-Benachrichtigungen sind jetzt aktiv!',
-              icon: '/favicon.ico',
-              badge: '/favicon.ico'
-            });
-          }
+          toast.success('Push-Benachrichtigungen wurden erfolgreich aktiviert!');
+          
+          // Test-Benachrichtigung anzeigen
+          showTestNotification();
           
         } catch (subscriptionError) {
-          console.error('Push subscription error:', subscriptionError);
-          toast.error('Fehler beim Erstellen der Push-Subscription: ' + subscriptionError.message);
+          console.error('Fehler beim Erstellen der Push-Subscription:', subscriptionError);
+          toast.error('Fehler beim Aktivieren der Push-Benachrichtigungen: ' + subscriptionError.message);
         }
+      } else if (permission === 'denied') {
+        toast.error('Push-Benachrichtigungen wurden abgelehnt. Bitte aktivieren Sie diese in den Browser-Einstellungen.');
       } else {
-        toast.error('Push-Benachrichtigungen wurden abgelehnt');
+        toast.error('Push-Benachrichtigungen wurden nicht gewährt.');
       }
     } catch (error) {
-      console.error('Push permission error:', error);
-      toast.error('Fehler beim Anfordern der Berechtigung: ' + (error as Error).message);
+      console.error('Allgemeiner Fehler bei Push-Setup:', error);
+      toast.error('Fehler beim Setup der Push-Benachrichtigungen: ' + (error as Error).message);
     } finally {
       setIsSubscribing(false);
     }
@@ -119,39 +129,73 @@ export function PushNotificationSettings() {
 
   const disablePushNotifications = async () => {
     try {
+      console.log('Deaktiviere Push-Benachrichtigungen...');
       const registration = await navigator.serviceWorker.getRegistration();
+      
       if (registration) {
         const subscription = await registration.pushManager.getSubscription();
         if (subscription) {
           await subscription.unsubscribe();
-          localStorage.removeItem('pushSubscription');
-          console.log('Push subscription removed');
+          console.log('Push-Subscription erfolgreich entfernt');
         }
       }
+      
+      localStorage.removeItem('pushSubscription');
       setPushEnabled(false);
       toast.success('Push-Benachrichtigungen wurden deaktiviert');
     } catch (error) {
-      console.error('Error disabling push notifications:', error);
+      console.error('Fehler beim Deaktivieren der Push-Benachrichtigungen:', error);
+      // Trotzdem als deaktiviert markieren
       setPushEnabled(false);
+      localStorage.removeItem('pushSubscription');
       toast.success('Push-Benachrichtigungen wurden deaktiviert');
     }
   };
 
-  const testNotification = () => {
-    if (pushEnabled && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(registration => {
-        registration.showNotification('Test Benachrichtigung', {
-          body: 'Dies ist eine Test-Benachrichtigung für Ihr Feuerwehr Inventar System',
+  const showTestNotification = () => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('Feuerwehr Inventar', {
+        body: 'Push-Benachrichtigungen sind jetzt aktiv! 🚒',
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+        tag: 'activation-notification'
+      });
+    }
+  };
+
+  const testNotification = async () => {
+    if (!pushEnabled) {
+      toast.error('Push-Benachrichtigungen sind nicht aktiviert');
+      return;
+    }
+
+    try {
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        
+        await registration.showNotification('Test Benachrichtigung', {
+          body: 'Dies ist eine Test-Benachrichtigung für Ihr Feuerwehr Inventar System 🔧',
           icon: '/favicon.ico',
           badge: '/favicon.ico',
-          tag: 'test-notification'
+          tag: 'test-notification',
+          actions: [
+            {
+              action: 'view',
+              title: 'Anzeigen'
+            },
+            {
+              action: 'close',
+              title: 'Schließen'
+            }
+          ],
+          requireInteraction: true
         });
-      }).catch(error => {
-        console.error('Error showing test notification:', error);
-        toast.error('Fehler beim Anzeigen der Test-Benachrichtigung');
-      });
-    } else {
-      toast.error('Push-Benachrichtigungen sind nicht aktiviert');
+        
+        toast.success('Test-Benachrichtigung wurde gesendet!');
+      }
+    } catch (error) {
+      console.error('Fehler beim Anzeigen der Test-Benachrichtigung:', error);
+      toast.error('Fehler beim Senden der Test-Benachrichtigung');
     }
   };
 
@@ -163,13 +207,21 @@ export function PushNotificationSettings() {
       </div>
       
       {!pushSupported ? (
-        <p className="text-sm text-muted-foreground">
-          Push-Benachrichtigungen werden von diesem Browser nicht unterstützt
-        </p>
+        <div className="p-4 bg-orange-50 border border-orange-200 rounded-md">
+          <p className="text-sm text-orange-700">
+            Push-Benachrichtigungen werden von diesem Browser nicht unterstützt.
+            Bitte verwenden Sie einen modernen Browser wie Chrome, Firefox oder Safari.
+          </p>
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <Label htmlFor="push-enabled">Push-Benachrichtigungen aktivieren</Label>
+            <div className="space-y-1">
+              <Label htmlFor="push-enabled">Push-Benachrichtigungen aktivieren</Label>
+              <p className="text-xs text-muted-foreground">
+                Erhalten Sie wichtige Wartungserinnerungen direkt auf Ihr Gerät
+              </p>
+            </div>
             <Switch
               id="push-enabled"
               checked={pushEnabled}
@@ -190,27 +242,37 @@ export function PushNotificationSettings() {
               disabled={isSubscribing}
               variant="outline"
               size="sm"
+              className="w-full"
             >
-              {isSubscribing ? 'Aktiviere...' : 'Push-Benachrichtigungen aktivieren'}
+              {isSubscribing ? 'Aktiviere Push-Benachrichtigungen...' : 'Jetzt Push-Benachrichtigungen aktivieren'}
             </Button>
           )}
 
           {pushEnabled && (
-            <Button 
-              onClick={testNotification}
-              variant="outline"
-              size="sm"
-            >
-              Test-Benachrichtigung senden
-            </Button>
+            <div className="space-y-3">
+              <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                <p className="text-sm text-green-700 font-medium">
+                  ✅ Push-Benachrichtigungen sind aktiv
+                </p>
+                <p className="text-xs text-green-600 mt-1">
+                  Sie erhalten automatisch Benachrichtigungen für anstehende Wartungen
+                </p>
+              </div>
+              
+              <Button 
+                onClick={testNotification}
+                variant="outline"
+                size="sm"
+                className="w-full"
+              >
+                Test-Benachrichtigung senden
+              </Button>
+            </div>
           )}
           
-          <p className="text-xs text-muted-foreground">
-            Erhalten Sie Push-Benachrichtigungen für wichtige Wartungstermine und Erinnerungen direkt auf Ihr Gerät.
-          </p>
-          
-          <div className="text-xs text-muted-foreground">
-            <strong>Kontakt:</strong> {VAPID_CONFIG.subject.replace('mailto:', '')}
+          <div className="text-xs text-muted-foreground border-t pt-3">
+            <p><strong>Hinweis:</strong> Für Push-Benachrichtigungen muss die Website in einem Tab geöffnet bleiben oder der Service Worker aktiv sein.</p>
+            <p className="mt-1"><strong>Kontakt:</strong> {VAPID_CONFIG.subject.replace('mailto:', '')}</p>
           </div>
         </div>
       )}
