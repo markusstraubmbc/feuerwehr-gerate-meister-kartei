@@ -61,7 +61,7 @@ const Maintenance = () => {
       </Tabs>
 
       {showNewForm && (
-        <NewMaintenanceForm onClose={() => setShowNewForm(false)} />
+        <NewMaintenanceForm onSuccess={() => setShowNewForm(false)} />
       )}
     </div>
   );
