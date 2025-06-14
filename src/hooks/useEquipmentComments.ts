@@ -24,7 +24,7 @@ export const useEquipmentComments = (equipmentId: string) => {
       });
       
       if (error) throw error;
-      return data as EquipmentComment[];
+      return (data as unknown) as EquipmentComment[];
     },
     enabled: !!equipmentId,
   });
