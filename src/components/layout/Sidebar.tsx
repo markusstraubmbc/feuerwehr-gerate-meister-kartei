@@ -3,7 +3,6 @@ import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   Home,
-  BarChart3,
   Package,
   Settings,
   Wrench,
@@ -30,7 +29,7 @@ import {
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Ausrüstung", href: "/equipment", icon: Package },
-  { name: "Ausrüstung verwalten", href: "/equipment-management", icon: Settings },
+  { name: "Ausrüstung verwalten", href: "/equipment-management", icon: QrCode },
   { name: "Wartung", href: "/maintenance", icon: Wrench },
   { name: "Wartungszeiten", href: "/maintenance-time", icon: Clock },
   { name: "Einsätze & Übungen", href: "/missions", icon: Target },
