@@ -166,14 +166,30 @@ export function PushNotificationSettings() {
     }
   };
 
-  const showTestNotification = () => {
+  const showTestNotification = async () => {
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('Feuerwehr Inventar', {
-        body: 'Push-Benachrichtigungen sind jetzt aktiv! 🚒',
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
-        tag: 'activation-notification'
-      });
+      try {
+        // Verwende Service Worker Registration für Benachrichtigungen
+        if ('serviceWorker' in navigator) {
+          const registration = await navigator.serviceWorker.ready;
+          await registration.showNotification('Feuerwehr Inventar', {
+            body: 'Push-Benachrichtigungen sind jetzt aktiv! 🚒',
+            icon: '/favicon.ico',
+            badge: '/favicon.ico',
+            tag: 'activation-notification'
+          });
+        } else {
+          // Fallback für Browser ohne Service Worker Support
+          new Notification('Feuerwehr Inventar', {
+            body: 'Push-Benachrichtigungen sind jetzt aktiv! 🚒',
+            icon: '/favicon.ico',
+            badge: '/favicon.ico',
+            tag: 'activation-notification'
+          });
+        }
+      } catch (error) {
+        console.error('Fehler beim Anzeigen der Test-Benachrichtigung:', error);
+      }
     }
   };
 
