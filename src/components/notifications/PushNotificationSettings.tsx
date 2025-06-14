@@ -36,18 +36,19 @@ export function PushNotificationSettings() {
     if ('serviceWorker' in navigator && 'PushManager' in window) {
       setPushSupported(true);
       
-      // Check if notifications are already granted
+      // Check if notifications are already granted and service worker is registered
       if (Notification.permission === 'granted') {
-        setPushEnabled(true);
-        
-        // Check if we have an active subscription
         navigator.serviceWorker.ready.then(registration => {
           registration.pushManager.getSubscription().then(subscription => {
             if (subscription) {
               setPushEnabled(true);
               localStorage.setItem('pushSubscription', JSON.stringify(subscription));
             }
+          }).catch(error => {
+            console.error('Error checking push subscription:', error);
           });
+        }).catch(error => {
+          console.error('Service worker not ready:', error);
         });
       }
     }
@@ -63,40 +64,54 @@ export function PushNotificationSettings() {
 
     try {
       // Register service worker first
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('Service Worker registered:', registration);
+      let registration;
+      try {
+        registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('Service Worker registered:', registration);
+      } catch (swError) {
+        console.error('Service Worker registration failed:', swError);
+        toast.error('Service Worker konnte nicht registriert werden');
+        return;
+      }
       
       const permission = await Notification.requestPermission();
       console.log('Notification permission:', permission);
       
       if (permission === 'granted') {
-        // Wait for service worker to be ready
-        await navigator.serviceWorker.ready;
-        
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_CONFIG.publicKey)
-        });
+        try {
+          // Wait for service worker to be ready
+          await navigator.serviceWorker.ready;
+          
+          const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_CONFIG.publicKey)
+          });
 
-        localStorage.setItem('pushSubscription', JSON.stringify(subscription));
-        console.log('Push subscription created:', subscription);
-        
-        setPushEnabled(true);
-        toast.success('Push-Benachrichtigungen wurden aktiviert');
-        
-        // Show test notification
-        new Notification('Feuerwehr Inventar', {
-          body: 'Push-Benachrichtigungen sind jetzt aktiv!',
-          icon: '/favicon.ico',
-          badge: '/favicon.ico'
-        });
-        
+          localStorage.setItem('pushSubscription', JSON.stringify(subscription));
+          console.log('Push subscription created:', subscription);
+          
+          setPushEnabled(true);
+          toast.success('Push-Benachrichtigungen wurden aktiviert');
+          
+          // Show test notification
+          if ('Notification' in window) {
+            new Notification('Feuerwehr Inventar', {
+              body: 'Push-Benachrichtigungen sind jetzt aktiv!',
+              icon: '/favicon.ico',
+              badge: '/favicon.ico'
+            });
+          }
+          
+        } catch (subscriptionError) {
+          console.error('Push subscription error:', subscriptionError);
+          toast.error('Fehler beim Erstellen der Push-Subscription: ' + subscriptionError.message);
+        }
       } else {
         toast.error('Push-Benachrichtigungen wurden abgelehnt');
       }
     } catch (error) {
-      console.error('Push subscription error:', error);
-      toast.error('Fehler beim Aktivieren der Push-Benachrichtigungen: ' + error.message);
+      console.error('Push permission error:', error);
+      toast.error('Fehler beim Anfordern der Berechtigung: ' + (error as Error).message);
     } finally {
       setIsSubscribing(false);
     }
@@ -131,6 +146,9 @@ export function PushNotificationSettings() {
           badge: '/favicon.ico',
           tag: 'test-notification'
         });
+      }).catch(error => {
+        console.error('Error showing test notification:', error);
+        toast.error('Fehler beim Anzeigen der Test-Benachrichtigung');
       });
     } else {
       toast.error('Push-Benachrichtigungen sind nicht aktiviert');

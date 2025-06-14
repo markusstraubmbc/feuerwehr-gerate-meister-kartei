@@ -54,14 +54,14 @@ export function CalendarFilters({ onFiltersChange, currentFilters }: CalendarFil
           <div>
             <Label htmlFor="person-filter">Verantwortliche Person</Label>
             <Select 
-              value={currentFilters.personId || ""} 
-              onValueChange={(value) => updateFilter('personId', value || undefined)}
+              value={currentFilters.personId || "all"} 
+              onValueChange={(value) => updateFilter('personId', value === "all" ? undefined : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Alle Personen" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Alle Personen</SelectItem>
+                <SelectItem value="all">Alle Personen</SelectItem>
                 {persons.map((person) => (
                   <SelectItem key={person.id} value={person.id}>
                     {person.first_name} {person.last_name}
@@ -74,14 +74,14 @@ export function CalendarFilters({ onFiltersChange, currentFilters }: CalendarFil
           <div>
             <Label htmlFor="template-filter">Wartungstyp</Label>
             <Select 
-              value={currentFilters.templateId || ""} 
-              onValueChange={(value) => updateFilter('templateId', value || undefined)}
+              value={currentFilters.templateId || "all"} 
+              onValueChange={(value) => updateFilter('templateId', value === "all" ? undefined : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Alle Wartungstypen" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Alle Wartungstypen</SelectItem>
+                <SelectItem value="all">Alle Wartungstypen</SelectItem>
                 {templates.map((template) => (
                   <SelectItem key={template.id} value={template.id}>
                     {template.name}
