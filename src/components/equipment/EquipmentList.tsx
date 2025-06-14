@@ -38,6 +38,7 @@ import { Input } from "@/components/ui/input";
 import { SELECT_ALL_VALUE, SELECT_NONE_VALUE } from "@/lib/constants";
 import { format } from "date-fns";
 import { CommentsDialog } from "./CommentsDialog";
+import { EquipmentCommentsInfo } from "./EquipmentCommentsInfo";
 
 interface EquipmentListProps {
   equipment: Equipment[];
@@ -263,6 +264,7 @@ export function EquipmentList({
                 <TableHead className="hidden md:table-cell">Standort</TableHead>
                 <TableHead className="hidden md:table-cell">Kategorie</TableHead>
                 <TableHead className="hidden md:table-cell">Status</TableHead>
+                <TableHead className="hidden lg:table-cell">Kommentare</TableHead>
                 <TableHead className="hidden md:table-cell">Ersetzt am</TableHead>
                 <TableHead className="hidden md:table-cell">Letzte Wartung</TableHead>
                 <TableHead className="hidden md:table-cell">Nächste Wartung</TableHead>
@@ -272,7 +274,7 @@ export function EquipmentList({
             <TableBody>
               {filteredEquipment.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-24 text-center">
+                  <TableCell colSpan={10} className="h-24 text-center">
                     Keine Ausrüstung gefunden
                   </TableCell>
                 </TableRow>
@@ -289,6 +291,9 @@ export function EquipmentList({
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <EquipmentStatusBadge status={item.status} />
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      <EquipmentCommentsInfo equipmentId={item.id} />
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {item.replacement_date ? format(new Date(item.replacement_date), "dd.MM.yyyy") : "-"}
