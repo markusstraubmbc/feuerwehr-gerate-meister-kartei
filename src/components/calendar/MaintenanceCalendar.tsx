@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Calendar, Download, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import type { CalendarFilters as CalendarFiltersType } from "./CalendarFilters";
 export function MaintenanceCalendar() {
   const { data: maintenanceRecords = [] } = useMaintenanceRecords();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [filters, setFilters] = useState<CalendarFiltersType>({
+  const [filters, setFilters] = useState<CalendarFilters>({
     includeCompleted: true,
     includeOverdue: true,
     includeUpcoming: true
