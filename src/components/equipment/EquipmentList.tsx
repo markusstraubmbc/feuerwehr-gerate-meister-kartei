@@ -16,8 +16,7 @@ import {
   Copy,
   MessageCircle,
   FileDown,
-  Eye,
-  Printer
+  Eye
 } from "lucide-react";
 import { EquipmentStatusBadge } from "./EquipmentStatusBadge";
 import { Equipment } from "@/hooks/useEquipment";
@@ -30,7 +29,6 @@ import { CommentsDialog } from "./CommentsDialog";
 import { EquipmentCommentsInfo } from "./EquipmentCommentsInfo";
 import { useEquipmentPrintExport } from "./EquipmentPrintExport";
 import { EquipmentOverviewDialog } from "./EquipmentOverviewDialog";
-import { EquipmentDetailedView } from "./EquipmentDetailedView";
 
 interface EquipmentListProps {
   equipment: Equipment[];
@@ -61,7 +59,6 @@ export function EquipmentList({
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const [isCommentsDialogOpen, setIsCommentsDialogOpen] = useState(false);
   const [isOverviewDialogOpen, setIsOverviewDialogOpen] = useState(false);
-  const [isDetailedViewOpen, setIsDetailedViewOpen] = useState(false);
   
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -127,14 +124,9 @@ export function EquipmentList({
     setIsOverviewDialogOpen(true);
   };
 
-  const handleDetailedView = (item: Equipment) => {
-    setSelectedEquipment(item);
-    setIsDetailedViewOpen(true);
-  };
-
   return (
     <>
-      <div className="flex justify-end mb-4 gap-2">
+      <div className="flex justify-end mb-4">
         <Button variant="outline" size="sm" onClick={handlePdfDownload}>
           <FileDown className="h-4 w-4 mr-2" />
           PDF
@@ -207,8 +199,8 @@ export function EquipmentList({
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDetailedView(item)}
-                          title="Detailansicht mit HTML-Export"
+                          onClick={() => handleOverview(item)}
+                          title="Übersicht anzeigen"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -289,11 +281,6 @@ export function EquipmentList({
             equipment={selectedEquipment}
             open={isOverviewDialogOpen}
             onOpenChange={setIsOverviewDialogOpen}
-          />
-          <EquipmentDetailedView
-            equipment={selectedEquipment}
-            open={isDetailedViewOpen}
-            onOpenChange={setIsDetailedViewOpen}
           />
         </>
       )}
