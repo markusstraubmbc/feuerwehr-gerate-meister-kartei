@@ -8,7 +8,6 @@ import { AppWrapper } from "./components/layout/AppWrapper";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Equipment from "./pages/Equipment";
-import EquipmentManagement from "./pages/EquipmentManagement";
 import Maintenance from "./pages/Maintenance";
 import MaintenanceTime from "./pages/MaintenanceTime";
 import Missions from "./pages/Missions";
@@ -36,7 +35,6 @@ function App() {
                 <Route index element={<Index />} />
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="equipment" element={<Equipment />} />
-                <Route path="equipment-management" element={<EquipmentManagement />} />
                 <Route path="maintenance" element={<Maintenance />} />
                 <Route path="maintenance-time" element={<MaintenanceTime />} />
                 <Route path="missions" element={<Missions />} />

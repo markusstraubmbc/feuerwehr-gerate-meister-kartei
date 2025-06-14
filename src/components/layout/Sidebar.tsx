@@ -25,11 +25,11 @@ import {
   SidebarMenuItem,
   SidebarHeader,
 } from "@/components/ui/sidebar";
+import { EquipmentManagementDialog } from "@/components/equipment/EquipmentManagementDialog";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Ausrüstung", href: "/equipment", icon: Package },
-  { name: "Ausrüstung verwalten", href: "/equipment-management", icon: Cog },
   { name: "Wartung", href: "/maintenance", icon: Wrench },
   { name: "Wartungszeiten", href: "/maintenance-time", icon: Clock },
   { name: "Einsätze & Übungen", href: "/missions", icon: Target },
@@ -71,6 +71,15 @@ export function Sidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              
+              {/* Equipment Management Dialog as menu item */}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <div className="flex items-center gap-2 w-full px-2 py-2">
+                    <EquipmentManagementDialog />
+                  </div>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
