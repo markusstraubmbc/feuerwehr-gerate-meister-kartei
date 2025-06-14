@@ -169,7 +169,6 @@ export const QuickCompleteMaintenanceDialog = ({
           record={selectedMaintenanceRecord}
           open={isCompleteDialogOpen}
           onOpenChange={setIsCompleteDialogOpen}
-          onSuccess={handleCompleteDialogClose}
         />
       )}
     </>

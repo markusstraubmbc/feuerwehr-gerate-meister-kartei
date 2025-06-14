@@ -1,4 +1,3 @@
-
 import { useState, useRef, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import {
@@ -81,6 +80,7 @@ export const MaintenanceList = ({
       const tableData = filteredRecords.map(record => [
         record.due_date ? format(new Date(record.due_date), "dd.MM.yyyy", { locale: de }) : '-',
         record.equipment?.name || '',
+        record.equipment?.barcode || '-',
         record.template?.name || 'Keine Vorlage',
         record.status,
         record.performer ? `${record.performer.first_name} ${record.performer.last_name}` : 'Nicht zugewiesen',
@@ -90,7 +90,7 @@ export const MaintenanceList = ({
       
       // Add table
       autoTable(doc, {
-        head: [['Fällig am', 'Ausrüstung', 'Wartungstyp', 'Status', 'Verantwortlich', 'Durchgeführt am', 'Zeit (Min)']],
+        head: [['Fällig am', 'Ausrüstung', 'Barcode', 'Wartungstyp', 'Status', 'Verantwortlich', 'Durchgeführt am', 'Zeit (Min)']],
         body: tableData,
         startY: 35,
         styles: { fontSize: 8 },
@@ -135,10 +135,11 @@ export const MaintenanceList = ({
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
         const equipmentNameMatches = record.equipment?.name?.toLowerCase().includes(searchLower);
+        const equipmentBarcodeMatches = record.equipment?.barcode?.toLowerCase().includes(searchLower);
         const templateNameMatches = record.template?.name?.toLowerCase().includes(searchLower);
         const notesMatch = record.notes?.toLowerCase().includes(searchLower);
         
-        if (!equipmentNameMatches && !templateNameMatches && !notesMatch) {
+        if (!equipmentNameMatches && !equipmentBarcodeMatches && !templateNameMatches && !notesMatch) {
           return false;
         }
       }
@@ -158,6 +159,7 @@ export const MaintenanceList = ({
     try {
       const exportData = filteredRecords.map(record => ({
         'Ausrüstung': record.equipment?.name || '',
+        'Barcode': record.equipment?.barcode || '',
         'Wartungstyp': record.template?.name || 'Keine Vorlage',
         'Status': record.status,
         'Fällig am': record.due_date ? format(new Date(record.due_date), "dd.MM.yyyy", { locale: de }) : '-',
@@ -338,6 +340,7 @@ export const MaintenanceList = ({
             <TableRow>
               <TableHead>Fällig am</TableHead>
               <TableHead>Ausrüstung</TableHead>
+              <TableHead>Barcode</TableHead>
               <TableHead>Wartungstyp</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Verantwortlich</TableHead>
@@ -353,6 +356,7 @@ export const MaintenanceList = ({
                   {format(new Date(record.due_date), "dd.MM.yyyy", { locale: de })}
                 </TableCell>
                 <TableCell>{record.equipment.name}</TableCell>
+                <TableCell>{record.equipment.barcode || "-"}</TableCell>
                 <TableCell>{record.template?.name || "Keine Vorlage"}</TableCell>
                 <TableCell>
                   <MaintenanceStatusBadge status={record.status} />
@@ -440,7 +444,7 @@ export const MaintenanceList = ({
             
             {filteredRecords.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={9} className="h-24 text-center">
                   Keine Wartungsaufzeichnungen gefunden
                 </TableCell>
               </TableRow>

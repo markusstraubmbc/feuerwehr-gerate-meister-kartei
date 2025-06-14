@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -143,16 +144,6 @@ const EmailSettings = () => {
   // Handle test emails
   const sendTestEmail = async (type: string) => {
     try {
-      const { data: authData, error: authError } = await supabase.auth.getSession();
-      
-      if (authError) {
-        throw new Error(`Authentifizierungsfehler: ${authError.message}`);
-      }
-
-      if (!authData.session) {
-        throw new Error("Keine aktive Sitzung gefunden. Bitte melden Sie sich erneut an.");
-      }
-
       console.log('Sending test email for type:', type);
       
       const response = await fetch(
@@ -161,7 +152,7 @@ const EmailSettings = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${authData.session.access_token}`,
+            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify({ type }),
         }

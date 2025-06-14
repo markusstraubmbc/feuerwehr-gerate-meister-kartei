@@ -14,7 +14,6 @@ import {
   FileDown, 
   Filter, 
   Calendar, 
-  Printer, 
   ChevronDown,
   ChevronUp,
   Search,
@@ -295,6 +294,7 @@ const Maintenance = () => {
       
       const tableData = filteredUpcomingMaintenance.map(item => [
         item.equipment.name,
+        item.equipment.barcode || '-',
         item.template.name,
         format(item.lastDate, "dd.MM.yyyy", { locale: de }),
         format(item.nextDueDate, "dd.MM.yyyy", { locale: de }),
@@ -304,7 +304,7 @@ const Maintenance = () => {
       ]);
       
       autoTable(doc, {
-        head: [['Ausrüstung', 'Wartungsvorlage', 'Letzte Wartung', 'Nächste Wartung', 'Verbleibende Tage', 'Status', 'Verantwortlich']],
+        head: [['Ausrüstung', 'Barcode', 'Wartungsvorlage', 'Letzte Wartung', 'Nächste Wartung', 'Verbleibende Tage', 'Status', 'Verantwortlich']],
         body: tableData,
         startY: 35,
         styles: { fontSize: 8 },
@@ -332,6 +332,7 @@ const Maintenance = () => {
       
       const tableData = filteredCompletedRecords.map(record => [
         record.equipment.name,
+        record.equipment.barcode || '-',
         record.template?.name || 'Keine Vorlage',
         format(new Date(record.due_date), "dd.MM.yyyy", { locale: de }),
         record.performed_date ? format(new Date(record.performed_date), "dd.MM.yyyy", { locale: de }) : '-',
@@ -341,7 +342,7 @@ const Maintenance = () => {
       ]);
       
       autoTable(doc, {
-        head: [['Ausrüstung', 'Wartungsvorlage', 'Fällig am', 'Durchgeführt am', 'Verantwortlich', 'Zeit (Min)', 'Notizen']],
+        head: [['Ausrüstung', 'Barcode', 'Wartungsvorlage', 'Fällig am', 'Durchgeführt am', 'Verantwortlich', 'Zeit (Min)', 'Notizen']],
         body: tableData,
         startY: 35,
         styles: { fontSize: 8 },
@@ -553,10 +554,6 @@ const Maintenance = () => {
                     <FileDown className="mr-2 h-4 w-4" />
                     PDF Export
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handlePrintCompleted}>
-                    <Printer className="mr-2 h-4 w-4" />
-                    Drucken
-                  </Button>
                 </div>
               </div>
               
@@ -566,6 +563,7 @@ const Maintenance = () => {
                     <TableRow>
                       <TableHead>Durchgeführt am</TableHead>
                       <TableHead>Ausrüstung</TableHead>
+                      <TableHead>Barcode</TableHead>
                       <TableHead>Wartungstyp</TableHead>
                       <TableHead>Verantwortlich</TableHead>
                       <TableHead>Zeit (Min)</TableHead>
@@ -580,6 +578,7 @@ const Maintenance = () => {
                             {record.performed_date ? format(new Date(record.performed_date), "dd.MM.yyyy", { locale: de }) : "-"}
                           </TableCell>
                           <TableCell>{record.equipment.name}</TableCell>
+                          <TableCell>{record.equipment.barcode || "-"}</TableCell>
                           <TableCell>{record.template?.name || "Keine Vorlage"}</TableCell>
                           <TableCell>
                             {record.performer ? 
@@ -605,7 +604,7 @@ const Maintenance = () => {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center">
+                        <TableCell colSpan={7} className="h-24 text-center">
                           Keine abgeschlossenen Wartungen gefunden
                         </TableCell>
                       </TableRow>
@@ -669,10 +668,6 @@ const Maintenance = () => {
                   <FileDown className="h-4 w-4 mr-2" />
                   PDF Export
                 </Button>
-                <Button variant="outline" size="sm" onClick={handlePrintUpcoming}>
-                  <Printer className="h-4 w-4 mr-2" />
-                  Drucken
-                </Button>
                 <Button size="sm" onClick={createAllPendingMaintenance}>
                   <Plus className="h-4 w-4 mr-2" />
                   Alle planen
@@ -685,6 +680,7 @@ const Maintenance = () => {
                 <thead>
                   <tr className="border-b">
                     <th className="text-left py-2 px-4">Ausrüstung</th>
+                    <th className="text-left py-2 px-4">Barcode</th>
                     <th className="text-left py-2 px-4">Wartungsvorlage</th>
                     <th className="text-left py-2 px-4">Letzte Wartung</th>
                     <th className="text-left py-2 px-4">Nächste Wartung</th>
@@ -697,6 +693,7 @@ const Maintenance = () => {
                   {filteredUpcomingMaintenance.map((item, index) => (
                     <tr key={index} className="border-b hover:bg-gray-50">
                       <td className="py-2 px-4">{item.equipment.name}</td>
+                      <td className="py-2 px-4">{item.equipment.barcode || "-"}</td>
                       <td className="py-2 px-4">{item.template.name}</td>
                       <td className="py-2 px-4">{format(item.lastDate, "dd.MM.yyyy", { locale: de })}</td>
                       <td className="py-2 px-4">{format(item.nextDueDate, "dd.MM.yyyy", { locale: de })}</td>
@@ -733,7 +730,7 @@ const Maintenance = () => {
                   ))}
                   {filteredUpcomingMaintenance.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="py-4 text-center text-muted-foreground">
+                      <td colSpan={8} className="py-4 text-center text-muted-foreground">
                         Keine anstehenden Wartungen basierend auf Intervallen
                       </td>
                     </tr>
