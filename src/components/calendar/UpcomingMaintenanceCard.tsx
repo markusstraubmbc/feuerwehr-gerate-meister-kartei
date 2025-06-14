@@ -31,6 +31,11 @@ export function UpcomingMaintenanceCard({ records, filters }: UpcomingMaintenanc
                   <p className="text-xs text-muted-foreground">
                     Inv.-Nr.: {record.equipment.inventory_number || "Nicht zugewiesen"}
                   </p>
+                  {record.equipment.barcode && (
+                    <p className="text-xs text-muted-foreground">
+                      Barcode: {record.equipment.barcode}
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground">{record.template?.name}</p>
                   {record.performer && (
                     <p className="text-xs text-muted-foreground">
