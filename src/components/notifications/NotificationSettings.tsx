@@ -8,6 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
+// VAPID configuration
+const VAPID_CONFIG = {
+  subject: "mailto:Markus@straub-it.de",
+  publicKey: "BHelbGy6nyzF3RegIl3ETlXIn-iPLf90FNCrDqL58PxnLaiJxqaNkUmvpa6_MiZAdPtJ3UtkSVVpSHvjSnYi3-E",
+  privateKey: "lS1qvgHyJIPc8tH4MCj0xqcqvPmuCjSD_IdzLIlH7Z0"
+};
+
 export function NotificationSettings() {
   const [pushSupported, setPushSupported] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -47,11 +54,12 @@ export function NotificationSettings() {
         
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array('your-vapid-public-key-here')
+          applicationServerKey: urlBase64ToUint8Array(VAPID_CONFIG.publicKey)
         });
 
-        // In a real app, you would send this subscription to your server
-        console.log('Push subscription:', subscription);
+        // Store subscription in localStorage for now (in production, send to server)
+        localStorage.setItem('pushSubscription', JSON.stringify(subscription));
+        console.log('Push subscription created:', subscription);
         
         // Show a test notification
         new Notification('Feuerwehr Inventar', {
@@ -71,13 +79,31 @@ export function NotificationSettings() {
     }
   };
 
-  const disablePushNotifications = () => {
-    setPushEnabled(false);
-    toast.success('Push-Benachrichtigungen wurden deaktiviert');
+  const disablePushNotifications = async () => {
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration) {
+        const subscription = await registration.pushManager.getSubscription();
+        if (subscription) {
+          await subscription.unsubscribe();
+          localStorage.removeItem('pushSubscription');
+        }
+      }
+      setPushEnabled(false);
+      toast.success('Push-Benachrichtigungen wurden deaktiviert');
+    } catch (error) {
+      console.error('Error disabling push notifications:', error);
+      setPushEnabled(false);
+      toast.success('Push-Benachrichtigungen wurden deaktiviert');
+    }
   };
 
   const saveEmailSettings = () => {
     // In a real app, you would save these settings to your backend
+    localStorage.setItem('emailNotifications', JSON.stringify({
+      enabled: emailNotifications,
+      email: notificationEmail
+    }));
     toast.success('E-Mail-Einstellungen wurden gespeichert');
   };
 
@@ -135,6 +161,10 @@ export function NotificationSettings() {
                 <p className="text-xs text-muted-foreground">
                   Erhalten Sie Push-Benachrichtigungen für wichtige Wartungstermine und Erinnerungen direkt auf Ihr Gerät.
                 </p>
+                
+                <div className="text-xs text-muted-foreground">
+                  <strong>Kontakt:</strong> {VAPID_CONFIG.subject.replace('mailto:', '')}
+                </div>
               </div>
             )}
           </div>

@@ -2,8 +2,15 @@
 // Service Worker for Push Notifications
 const CACHE_NAME = 'feuerwehr-inventar-v1';
 
+// VAPID configuration
+const VAPID_CONFIG = {
+  subject: "mailto:Markus@straub-it.de",
+  publicKey: "BHelbGy6nyzF3RegIl3ETlXIn-iPLf90FNCrDqL58PxnLaiJxqaNkUmvpa6_MiZAdPtJ3UtkSVVpSHvjSnYi3-E",
+  privateKey: "lS1qvgHyJIPc8tH4MCj0xqcqvPmuCjSD_IdzLIlH7Z0"
+};
+
 self.addEventListener('install', (event) => {
-  console.log('Service Worker installing');
+  console.log('Service Worker installing with VAPID config');
   self.skipWaiting();
 });
 
@@ -36,7 +43,9 @@ self.addEventListener('push', (event) => {
         action: 'close',
         title: 'Schließen'
       }
-    ]
+    ],
+    tag: data.tag || 'maintenance-notification',
+    requireInteraction: true
   };
 
   event.waitUntil(
@@ -55,3 +64,33 @@ self.addEventListener('notificationclick', (event) => {
     );
   }
 });
+
+self.addEventListener('pushsubscriptionchange', (event) => {
+  console.log('Push subscription changed');
+  
+  event.waitUntil(
+    self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_CONFIG.publicKey)
+    }).then(subscription => {
+      console.log('New subscription:', subscription);
+      // In production, send this to your server
+    })
+  );
+});
+
+// Helper function to convert VAPID key
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = self.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
