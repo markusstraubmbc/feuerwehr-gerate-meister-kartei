@@ -1,49 +1,22 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { 
-  Home, 
-  Package as PackageIcon, 
-  FileSearch, 
-  Settings, 
-  LayoutDashboard, 
-  Menu, 
-  X, 
-  CircleAlert,
-  Clock
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import React, { useState, useEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { Home, Wrench, CalendarCheck, Clock, Package, Settings } from 'lucide-react';
 
-export function Sidebar() {
-  // On mobile, start with collapsed sidebar
-  const [expanded, setExpanded] = useState(window.innerWidth > 768);
-  const [systemName, setSystemName] = useState(
-    localStorage.getItem('systemName') || 'Feuerwehr Inventar'
-  );
-  const [logoUrl, setLogoUrl] = useState(
-    localStorage.getItem('systemLogo') || ''
-  );
-  const [backgroundColor, setBackgroundColor] = useState(
-    localStorage.getItem('menuBackgroundColor') || '#1e293b'
-  );
-  const [textColor, setTextColor] = useState(
-    localStorage.getItem('menuTextColor') || '#ffffff'
-  );
-  
-  // Update expanded state when window resizes
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth <= 768) {
-        setExpanded(false);
-      }
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+const AppSidebar = () => {
+  const [systemName, setSystemName] = useState('Feuerwehr Inventar');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [backgroundColor, setBackgroundColor] = useState('#1e293b');
+  const [textColor, setTextColor] = useState('#ffffff');
+  const location = useLocation();
 
-  // Listen for system settings changes
   useEffect(() => {
+    // Load initial values from localStorage
+    setSystemName(localStorage.getItem('systemName') || 'Feuerwehr Inventar');
+    setLogoUrl(localStorage.getItem('systemLogo') || '');
+    setBackgroundColor(localStorage.getItem('menuBackgroundColor') || '#1e293b');
+    setTextColor(localStorage.getItem('menuTextColor') || '#ffffff');
+
+    // Listen for system changes
     const handleSystemNameChange = (event: CustomEvent) => {
       setSystemName(event.detail);
     };
@@ -52,117 +25,126 @@ export function Sidebar() {
       setLogoUrl(event.detail);
     };
 
-    window.addEventListener('systemNameChanged', handleSystemNameChange as EventListener);
-    window.addEventListener('systemLogoChanged', handleSystemLogoChange as EventListener);
-
-    return () => {
-      window.removeEventListener('systemNameChanged', handleSystemNameChange as EventListener);
-      window.removeEventListener('systemLogoChanged', handleSystemLogoChange as EventListener);
-    };
-  }, []);
-
-  // Listen for color changes
-  useEffect(() => {
     const handleSystemColorsChange = (event: CustomEvent) => {
       setBackgroundColor(event.detail.backgroundColor);
       setTextColor(event.detail.textColor);
     };
 
+    window.addEventListener('systemNameChanged', handleSystemNameChange as EventListener);
+    window.addEventListener('systemLogoChanged', handleSystemLogoChange as EventListener);
     window.addEventListener('systemColorsChanged', handleSystemColorsChange as EventListener);
 
     return () => {
+      window.removeEventListener('systemNameChanged', handleSystemNameChange as EventListener);
+      window.removeEventListener('systemLogoChanged', handleSystemLogoChange as EventListener);
       window.removeEventListener('systemColorsChanged', handleSystemColorsChange as EventListener);
     };
   }, []);
 
-  const toggleSidebar = () => {
-    setExpanded(!expanded);
-  };
+  const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
+    isActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50";
 
   return (
     <aside 
-      className={cn(
-        "flex flex-col border-r transition-all duration-300", 
-        expanded ? "w-64" : "w-16"
-      )}
-      style={{ backgroundColor, color: textColor }}
+      className="w-64 h-screen p-4 text-white flex flex-col"
+      style={{ backgroundColor }}
     >
-      <div className="flex items-center p-4 h-16">
-        {expanded ? (
-          <div className="flex items-center">
-            {logoUrl ? (
-              <img 
-                src={logoUrl} 
-                alt="System Logo" 
-                className="h-8 w-8 object-contain"
-              />
-            ) : (
-              <CircleAlert className="h-6 w-6 text-fire-red" />
-            )}
-            <h2 className="ml-2 text-lg font-bold truncate" style={{ color: textColor }}>
-              {systemName}
-            </h2>
-          </div>
-        ) : (
-          <>
-            {logoUrl ? (
-              <img 
-                src={logoUrl} 
-                alt="System Logo" 
-                className="h-6 w-6 mx-auto object-contain"
-              />
-            ) : (
-              <CircleAlert className="h-6 w-6 mx-auto text-fire-red" />
-            )}
-          </>
+      {/* Logo and System Name Section */}
+      <div className="mb-8 flex flex-col items-center space-y-2">
+        {logoUrl && (
+          <img 
+            src={logoUrl} 
+            alt="System Logo" 
+            className="h-12 w-12 object-contain rounded"
+          />
         )}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={toggleSidebar} 
-          className="ml-auto hover:bg-opacity-20"
+        <h1 
+          className="text-xl font-bold text-center"
           style={{ color: textColor }}
         >
-          {expanded ? <X size={20} /> : <Menu size={20} />}
-        </Button>
+          {systemName}
+        </h1>
       </div>
 
-      <nav className="flex-1 px-2 py-4 space-y-1">
-        <NavItem to="/" icon={<LayoutDashboard size={20} />} label="Dashboard" expanded={expanded} textColor={textColor} />
-        <NavItem to="/equipment" icon={<PackageIcon size={20} />} label="Ausrüstung" expanded={expanded} textColor={textColor} />
-        <NavItem to="/maintenance" icon={<FileSearch size={20} />} label="Wartung" expanded={expanded} textColor={textColor} />
-        <NavItem to="/maintenance-time" icon={<Clock size={20} />} label="Zeitauswertung" expanded={expanded} textColor={textColor} />
-        <NavItem to="/settings" icon={<Settings size={20} />} label="Einstellungen" expanded={expanded} textColor={textColor} />
+      {/* Navigation Menu */}
+      <nav className="flex-1">
+        <ul className="space-y-2">
+          <li>
+            <NavLink
+              to="/"
+              className={({ isActive }) => 
+                `block px-4 py-2 rounded transition-colors ${getNavLinkClass({ isActive })}`
+              }
+              style={{ color: textColor }}
+            >
+              <Home className="inline-block w-5 h-5 mr-3" />
+              Dashboard
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/equipment-management"
+              className={({ isActive }) => 
+                `block px-4 py-2 rounded transition-colors ${getNavLinkClass({ isActive })}`
+              }
+              style={{ color: textColor }}
+            >
+              <Wrench className="inline-block w-5 h-5 mr-3" />
+              Ausrüstung
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/maintenance"
+              className={({ isActive }) => 
+                `block px-4 py-2 rounded transition-colors ${getNavLinkClass({ isActive })}`
+              }
+              style={{ color: textColor }}
+            >
+              <CalendarCheck className="inline-block w-5 h-5 mr-3" />
+              Wartung
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/maintenance-time"
+              className={({ isActive }) => 
+                `block px-4 py-2 rounded transition-colors ${getNavLinkClass({ isActive })}`
+              }
+              style={{ color: textColor }}
+            >
+              <Clock className="inline-block w-5 h-5 mr-3" />
+              Wartungs-Zeitauswertung
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/inventory"
+              className={({ isActive }) => 
+                `block px-4 py-2 rounded transition-colors ${getNavLinkClass({ isActive })}`
+              }
+              style={{ color: textColor }}
+            >
+              <Package className="inline-block w-5 h-5 mr-3" />
+              Inventar
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/settings"
+              className={({ isActive }) => 
+                `block px-4 py-2 rounded transition-colors ${getNavLinkClass({ isActive })}`
+              }
+              style={{ color: textColor }}
+            >
+              <Settings className="inline-block w-5 h-5 mr-3" />
+              Einstellungen
+            </NavLink>
+          </li>
+        </ul>
       </nav>
     </aside>
   );
-}
+};
 
-interface NavItemProps {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-  expanded: boolean;
-  textColor: string;
-}
-
-function NavItem({ to, icon, label, expanded, textColor }: NavItemProps) {
-  return (
-    <Link 
-      to={to} 
-      className={cn(
-        "flex items-center p-2 rounded-md hover:bg-opacity-20 hover:bg-white group transition-colors",
-        !expanded && "justify-center"
-      )}
-      style={{ color: textColor }}
-    >
-      <span className="flex-shrink-0">{icon}</span>
-      {expanded && <span className="ml-3">{label}</span>}
-      {!expanded && (
-        <div className="absolute left-16 rounded-md px-2 py-1 ml-6 bg-gray-800 text-white text-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-          {label}
-        </div>
-      )}
-    </Link>
-  );
-}
+export default AppSidebar;

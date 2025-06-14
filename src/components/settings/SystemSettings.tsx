@@ -1,10 +1,12 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Save, Palette } from "lucide-react";
+import { Upload, Save, Palette, Clock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const SystemSettings = () => {
   const [systemName, setSystemName] = useState(
@@ -19,6 +21,19 @@ const SystemSettings = () => {
   const [menuTextColor, setMenuTextColor] = useState(
     localStorage.getItem('menuTextColor') || '#ffffff'
   );
+  const [cronStatus, setCronStatus] = useState<{
+    lastRun: string | null;
+    isLoading: boolean;
+  }>({
+    lastRun: null,
+    isLoading: false
+  });
+
+  useEffect(() => {
+    // Load cron status on component mount
+    const lastRun = localStorage.getItem('lastCronRun');
+    setCronStatus(prev => ({ ...prev, lastRun }));
+  }, []);
 
   const handleSystemNameSave = () => {
     localStorage.setItem('systemName', systemName);
@@ -68,6 +83,28 @@ const SystemSettings = () => {
     localStorage.removeItem('systemLogo');
     toast.success('Logo wurde entfernt');
     window.dispatchEvent(new CustomEvent('systemLogoChanged', { detail: '' }));
+  };
+
+  const handleTestCronJob = async () => {
+    setCronStatus(prev => ({ ...prev, isLoading: true }));
+    try {
+      const { data, error } = await supabase.functions.invoke('email-cron');
+      
+      if (error) {
+        console.error('Cron job test error:', error);
+        toast.error('Fehler beim Testen des Cron-Jobs');
+      } else {
+        const now = new Date().toISOString();
+        localStorage.setItem('lastCronRun', now);
+        setCronStatus({ lastRun: now, isLoading: false });
+        toast.success('Cron-Job wurde erfolgreich ausgeführt');
+      }
+    } catch (error) {
+      console.error('Cron job test error:', error);
+      toast.error('Fehler beim Testen des Cron-Jobs');
+    } finally {
+      setCronStatus(prev => ({ ...prev, isLoading: false }));
+    }
   };
 
   return (
@@ -205,6 +242,42 @@ const SystemSettings = () => {
           <Button onClick={handleColorsSave}>
             <Save className="h-4 w-4 mr-2" />
             Farbeinstellungen speichern
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Cron-Job Status
+          </CardTitle>
+          <CardDescription>
+            Status und Test des automatischen E-Mail-Benachrichtigungssystems
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Letzte Ausführung</Label>
+            <p className="text-sm text-muted-foreground">
+              {cronStatus.lastRun 
+                ? new Date(cronStatus.lastRun).toLocaleString('de-DE')
+                : 'Noch nicht ausgeführt'
+              }
+            </p>
+          </div>
+          
+          <Button 
+            onClick={handleTestCronJob}
+            disabled={cronStatus.isLoading}
+            variant="outline"
+          >
+            {cronStatus.isLoading ? (
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Clock className="h-4 w-4 mr-2" />
+            )}
+            Cron-Job jetzt ausführen
           </Button>
         </CardContent>
       </Card>
