@@ -16,6 +16,10 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "https://pkhkswzixavvildtoxxt.supabase.co";
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
 
+    // Get email settings from localStorage if available
+    const senderDomain = localStorage.getItem('emailSenderDomain') || 'mailsend.straub-it.de';
+    const fromEmail = localStorage.getItem('emailFromAddress') || 'wartungsmanagement';
+
     // Call the maintenance notifications function
     const response = await fetch(
       `${SUPABASE_URL}/functions/v1/maintenance-notifications`,
@@ -27,7 +31,9 @@ serve(async (req) => {
         },
         body: JSON.stringify({ 
           type,
-          test_email: test_email || undefined
+          testEmail: test_email || undefined,
+          senderDomain,
+          fromEmail
         })
       }
     );

@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -18,9 +19,18 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     const requestBody = await req.json();
-    const { type, testEmail, message, subject } = requestBody;
+    const { type, testEmail, message, subject, senderDomain, fromEmail } = requestBody;
     
     console.log(`Processing ${type} notifications, testEmail: ${testEmail}`);
+
+    // Get default sender domain from settings if not provided
+    let emailSenderDomain = senderDomain || 'mailsend.straub-it.de';
+    let emailFromAddress = fromEmail || 'wartungsmanagement';
+
+    // Create sender email with proper format
+    const senderEmail = `${emailFromAddress.includes('@') ? emailFromAddress.split('@')[0] : emailFromAddress}@${emailSenderDomain}`;
+    const senderName = "Wartungsmanagement";
+    const fromField = `${senderName} <${senderEmail}>`;
 
     if (type === "test") {
       // Handle test email
@@ -48,7 +58,7 @@ serve(async (req) => {
 
       try {
         const emailResult = await resend.emails.send({
-          from: "Wartungsmanagement <onboarding@resend.dev>",
+          from: fromField,
           to: [testEmail],
           subject: subject || "Test-E-Mail - Feuerwehr Inventar",
           html: `
@@ -96,6 +106,19 @@ serve(async (req) => {
         .eq("key", "email_settings")
         .single();
 
+      // Try to get sender domain and from email from settings
+      if (settings?.value?.sender_domain) {
+        emailSenderDomain = settings.value.sender_domain;
+      }
+      
+      if (settings?.value?.from_email) {
+        emailFromAddress = settings.value.from_email;
+      }
+
+      // Re-create sender email with proper format
+      const senderEmail = `${emailFromAddress.includes('@') ? emailFromAddress.split('@')[0] : emailFromAddress}@${emailSenderDomain}`;
+      const updatedFromField = `${senderName} <${senderEmail}>`;
+
       const upcomingDays = settings?.value?.upcoming_days_interval || 7;
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + upcomingDays);
@@ -129,7 +152,7 @@ serve(async (req) => {
         const dueDate = new Date(maintenance.due_date).toLocaleDateString('de-DE');
         
         const emailPromise = resend.emails.send({
-          from: "Wartungsmanagement <onboarding@resend.dev>",
+          from: updatedFromField,
           to: [recipient],
           subject: `Wartung fällig: ${maintenance.equipment.name}`,
           html: `
@@ -179,6 +202,26 @@ serve(async (req) => {
       );
 
     } else if (type === "monthly-report") {
+      // Get settings for sender domain and from email
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "email_settings")
+        .single();
+
+      // Try to get sender domain and from email from settings
+      if (settings?.value?.sender_domain) {
+        emailSenderDomain = settings.value.sender_domain;
+      }
+      
+      if (settings?.value?.from_email) {
+        emailFromAddress = settings.value.from_email;
+      }
+
+      // Re-create sender email with proper format
+      const senderEmail = `${emailFromAddress.includes('@') ? emailFromAddress.split('@')[0] : emailFromAddress}@${emailSenderDomain}`;
+      const updatedFromField = `${senderName} <${senderEmail}>`;
+
       // Get all persons with email addresses for the monthly report
       const { data: persons } = await supabase
         .from("persons")
@@ -220,7 +263,7 @@ serve(async (req) => {
         if (!person.email) continue;
         
         const emailPromise = resend.emails.send({
-          from: "Wartungsmanagement <onboarding@resend.dev>",
+          from: updatedFromField,
           to: [person.email],
           subject: "Monatlicher Wartungsbericht",
           html: `

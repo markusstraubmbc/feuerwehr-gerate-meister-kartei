@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Save, Send, ArrowLeft, Mail, RefreshCw } from "lucide-react";
+import { Save, Send, ArrowLeft, Mail, RefreshCw, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,7 @@ const EmailSettings = () => {
   const [emailConfig, setEmailConfig] = useState({
     enabled: localStorage.getItem('emailNotificationsEnabled') === 'true',
     fromEmail: localStorage.getItem('emailFromAddress') || '',
+    senderDomain: localStorage.getItem('emailSenderDomain') || 'mailsend.straub-it.de',
     recipientEmails: localStorage.getItem('emailRecipients') || '',
     reminderDays: parseInt(localStorage.getItem('reminderDays') || '7'),
     monthlyReport: localStorage.getItem('monthlyReportEnabled') === 'true',
@@ -28,6 +29,7 @@ const EmailSettings = () => {
   const handleSave = () => {
     localStorage.setItem('emailNotificationsEnabled', emailConfig.enabled.toString());
     localStorage.setItem('emailFromAddress', emailConfig.fromEmail);
+    localStorage.setItem('emailSenderDomain', emailConfig.senderDomain);
     localStorage.setItem('emailRecipients', emailConfig.recipientEmails);
     localStorage.setItem('reminderDays', emailConfig.reminderDays.toString());
     localStorage.setItem('monthlyReportEnabled', emailConfig.monthlyReport.toString());
@@ -51,6 +53,8 @@ const EmailSettings = () => {
         body: {
           type: 'test',
           testEmail: emailConfig.testEmail,
+          senderDomain: emailConfig.senderDomain,
+          fromEmail: emailConfig.fromEmail,
           message: 'Dies ist eine Test-E-Mail vom Feuerwehr Inventar System.',
           subject: 'Test-E-Mail - Feuerwehr Inventar'
         }
@@ -128,8 +132,29 @@ const EmailSettings = () => {
                 onChange={(e) => 
                   setEmailConfig(prev => ({ ...prev, fromEmail: e.target.value }))
                 }
-                placeholder="system@feuerwehr.de"
+                placeholder="system@mailsend.straub-it.de"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sender-domain">Absender-Domain</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="sender-domain"
+                  type="text"
+                  value={emailConfig.senderDomain}
+                  onChange={(e) => 
+                    setEmailConfig(prev => ({ ...prev, senderDomain: e.target.value }))
+                  }
+                  placeholder="mailsend.straub-it.de"
+                />
+                <div className="text-muted-foreground flex items-center" title="Diese Domain muss bei Ihrem E-Mail-Provider verifiziert sein">
+                  <Info className="h-4 w-4" />
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Diese Domain muss bei Ihrem E-Mail-Provider verifiziert sein
+              </p>
             </div>
             
             <div className="space-y-2">
