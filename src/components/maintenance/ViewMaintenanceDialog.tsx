@@ -8,9 +8,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MaintenanceRecord, generateCustomChecklist } from "@/hooks/useMaintenanceRecords";
+import { MaintenanceRecord, generateCustomChecklist, downloadTemplateChecklist } from "@/hooks/useMaintenanceRecords";
 import { MaintenanceStatusBadge } from "./MaintenanceStatusBadge";
-import { FileDown } from "lucide-react";
+import { FileDown, FileText } from "lucide-react";
 import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
@@ -27,6 +27,7 @@ export function ViewMaintenanceDialog({
   onOpenChange,
 }: ViewMaintenanceDialogProps) {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
   
   const handleDownloadCustomChecklist = async () => {
     setIsGeneratingPdf(true);
@@ -55,6 +56,29 @@ export function ViewMaintenanceDialog({
       toast.error("Fehler beim Herunterladen der Checkliste");
     } finally {
       setIsGeneratingPdf(false);
+    }
+  };
+
+  const handleDownloadTemplateChecklist = async () => {
+    setIsDownloadingTemplate(true);
+    try {
+      if (!record.template) {
+        toast.error('Keine Wartungsvorlage für diese Wartung gefunden');
+        return;
+      }
+
+      if (!record.template.checklist_url) {
+        toast.error('Keine Checkliste für diese Wartungsvorlage verfügbar');
+        return;
+      }
+
+      await downloadTemplateChecklist(record.template, record.equipment.name);
+      toast.success('Wartungsvorlage Checkliste erfolgreich heruntergeladen');
+    } catch (error) {
+      console.error('Template checklist download error:', error);
+      toast.error('Fehler beim Herunterladen der Wartungsvorlage Checkliste');
+    } finally {
+      setIsDownloadingTemplate(false);
     }
   };
 
@@ -131,9 +155,21 @@ export function ViewMaintenanceDialog({
           <Separator />
           
           <div className="space-y-2">
-            <h4 className="font-medium">Checkliste</h4>
+            <h4 className="font-medium">Checklisten</h4>
             
             <div className="flex flex-col gap-2">
+              {record.template?.checklist_url && (
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={handleDownloadTemplateChecklist}
+                  disabled={isDownloadingTemplate}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  {isDownloadingTemplate ? "Lade..." : "Wartungsvorlage Checkliste herunterladen"}
+                </Button>
+              )}
+              
               <Button 
                 variant="outline" 
                 className="w-full" 
@@ -141,7 +177,7 @@ export function ViewMaintenanceDialog({
                 disabled={isGeneratingPdf}
               >
                 <FileDown className="mr-2 h-4 w-4" />
-                {isGeneratingPdf ? "Generiere..." : "Standard-Checkliste herunterladen"}
+                {isGeneratingPdf ? "Generiere..." : "Angepasste Checkliste herunterladen"}
               </Button>
             </div>
           </div>
