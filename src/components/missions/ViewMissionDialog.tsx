@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Clock, MapPin, User, Plus, Trash2, Package } from "lucide-react";
+import { Clock, MapPin, User, Plus, Trash2, Package, FileDown } from "lucide-react";
 import { Mission } from "@/hooks/useMissions";
 import { useMissionEquipment } from "@/hooks/useMissionEquipment";
+import { useMissionPrintExport } from "@/hooks/useMissionPrintExport";
 import { AddEquipmentToMissionDialog } from "./AddEquipmentToMissionDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -24,6 +25,7 @@ interface ViewMissionDialogProps {
 export const ViewMissionDialog = ({ mission, open, onOpenChange }: ViewMissionDialogProps) => {
   const [showAddEquipment, setShowAddEquipment] = useState(false);
   const { data: missionEquipment, isLoading } = useMissionEquipment(mission.id);
+  const { handlePdfDownload } = useMissionPrintExport();
   const queryClient = useQueryClient();
 
   const handleRemoveEquipment = async (missionEquipmentId: string) => {
@@ -44,19 +46,32 @@ export const ViewMissionDialog = ({ mission, open, onOpenChange }: ViewMissionDi
     }
   };
 
+  const handleExportPdf = () => {
+    handlePdfDownload({
+      mission,
+      missionEquipment: missionEquipment || []
+    });
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex justify-between items-start">
-              <DialogTitle className="text-xl">{mission.title}</DialogTitle>
-              <Badge 
-                variant={mission.mission_type === 'einsatz' ? 'destructive' : 'default'}
-                className="ml-2"
-              >
-                {mission.mission_type === 'einsatz' ? 'Einsatz' : 'Übung'}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <DialogTitle className="text-xl">{mission.title}</DialogTitle>
+                <Badge 
+                  variant={mission.mission_type === 'einsatz' ? 'destructive' : 'default'}
+                  className="ml-2"
+                >
+                  {mission.mission_type === 'einsatz' ? 'Einsatz' : 'Übung'}
+                </Badge>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleExportPdf}>
+                <FileDown className="h-4 w-4 mr-2" />
+                PDF Export
+              </Button>
             </div>
           </DialogHeader>
 
