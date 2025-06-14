@@ -12,7 +12,7 @@ import {
   Target,
   Calendar,
   Bell,
-  QrCode
+  Cog
 } from "lucide-react";
 import {
   Sidebar as SidebarBase,
@@ -29,7 +29,7 @@ import {
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Ausrüstung", href: "/equipment", icon: Package },
-  { name: "Ausrüstung verwalten", href: "/equipment-management", icon: QrCode },
+  { name: "Ausrüstung verwalten", href: "/equipment-management", icon: Cog },
   { name: "Wartung", href: "/maintenance", icon: Wrench },
   { name: "Wartungszeiten", href: "/maintenance-time", icon: Clock },
   { name: "Einsätze & Übungen", href: "/missions", icon: Target },
