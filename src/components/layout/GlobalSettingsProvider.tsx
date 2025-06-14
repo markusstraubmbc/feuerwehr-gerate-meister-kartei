@@ -20,9 +20,7 @@ interface GlobalSettingsProviderProps {
   children: React.ReactNode;
 }
 
-export const GlobalSettingsProvider: React.FC<GlobalSettingsProviderProps> = ({
-  children,
-}) => {
+export const GlobalSettingsProvider = ({ children }: GlobalSettingsProviderProps) => {
   const { data: settings = {}, isLoading } = useSystemSettings();
 
   // Apply global settings to the document
