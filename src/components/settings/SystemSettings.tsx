@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +19,9 @@ const SystemSettings = () => {
   );
   const [menuTextColor, setMenuTextColor] = useState(
     localStorage.getItem('menuTextColor') || '#ffffff'
+  );
+  const [buttonColor, setButtonColor] = useState(
+    localStorage.getItem('buttonColor') || '#3b82f6'
   );
   const [cronStatus, setCronStatus] = useState<{
     lastRun: string | null;
@@ -44,9 +46,10 @@ const SystemSettings = () => {
   const handleColorsSave = () => {
     localStorage.setItem('menuBackgroundColor', menuBackgroundColor);
     localStorage.setItem('menuTextColor', menuTextColor);
+    localStorage.setItem('buttonColor', buttonColor);
     toast.success('Farbeinstellungen wurden gespeichert');
     window.dispatchEvent(new CustomEvent('systemColorsChanged', { 
-      detail: { backgroundColor: menuBackgroundColor, textColor: menuTextColor }
+      detail: { backgroundColor: menuBackgroundColor, textColor: menuTextColor, buttonColor }
     }));
   };
 
@@ -186,11 +189,11 @@ const SystemSettings = () => {
             Menü-Farbeinstellungen
           </CardTitle>
           <CardDescription>
-            Passen Sie die Farben des Menüs an Ihre Corporate Identity an
+            Passen Sie die Farben des Menüs und der Buttons an Ihre Corporate Identity an
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="menuBackgroundColor">Hintergrundfarbe</Label>
               <div className="flex gap-2">
@@ -230,13 +233,39 @@ const SystemSettings = () => {
                 />
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="buttonColor">Button-Farbe</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="buttonColor"
+                  type="color"
+                  value={buttonColor}
+                  onChange={(e) => setButtonColor(e.target.value)}
+                  className="w-16 h-10 p-1 rounded"
+                />
+                <Input
+                  type="text"
+                  value={buttonColor}
+                  onChange={(e) => setButtonColor(e.target.value)}
+                  placeholder="#3b82f6"
+                  className="flex-1"
+                />
+              </div>
+            </div>
           </div>
           
           <div className="p-4 rounded border" style={{ 
             backgroundColor: menuBackgroundColor, 
             color: menuTextColor 
           }}>
-            <p className="text-sm">Vorschau des Menüs mit den gewählten Farben</p>
+            <p className="text-sm mb-2">Vorschau des Menüs mit den gewählten Farben</p>
+            <button 
+              className="px-4 py-2 rounded text-white text-sm"
+              style={{ backgroundColor: buttonColor }}
+            >
+              Beispiel Button
+            </button>
           </div>
           
           <Button onClick={handleColorsSave}>

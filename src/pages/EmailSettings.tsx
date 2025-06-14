@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,6 +27,8 @@ const EmailSettings = () => {
   const queryClient = useQueryClient();
   const [settings, setSettings] = useState<EmailSettings>(DEFAULT_SETTINGS);
   const [testEmailAddress, setTestEmailAddress] = useState("");
+  const [isSendingUpcoming, setIsSendingUpcoming] = useState(false);
+  const [isSendingMonthly, setIsSendingMonthly] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["email-settings"],
@@ -142,7 +143,7 @@ const EmailSettings = () => {
     mutation.mutate(settings);
   };
 
-  // Handle test emails
+  // Handle test emails with feedback
   const sendTestEmail = async (type: string) => {
     if (!testEmailAddress) {
       toast({
@@ -152,6 +153,11 @@ const EmailSettings = () => {
       });
       return;
     }
+
+    const isUpcoming = type === "upcoming";
+    const setLoading = isUpcoming ? setIsSendingUpcoming : setIsSendingMonthly;
+    
+    setLoading(true);
 
     try {
       console.log('Sending test email for type:', type, 'to:', testEmailAddress);
@@ -181,8 +187,8 @@ const EmailSettings = () => {
       console.log('Email function result:', result);
 
       toast({
-        title: "Test-E-Mail gesendet",
-        description: `${type === "upcoming" ? "Wartungsbenachrichtigung" : "Monatlicher Bericht"} wurde an ${testEmailAddress} gesendet.`,
+        title: "Test-E-Mail erfolgreich gesendet",
+        description: `${type === "upcoming" ? "Wartungsbenachrichtigung" : "Monatlicher Bericht"} wurde erfolgreich an ${testEmailAddress} gesendet.`,
       });
     } catch (error: any) {
       console.error("Error sending test email:", error);
@@ -191,6 +197,8 @@ const EmailSettings = () => {
         title: "Fehler beim Senden der Test-E-Mail",
         description: error.message || "Unbekannter Fehler beim Senden der E-Mail.",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -305,18 +313,18 @@ const EmailSettings = () => {
               <Button
                 onClick={() => sendTestEmail("upcoming")}
                 variant="outline"
-                disabled={!testEmailAddress}
+                disabled={!testEmailAddress || isSendingUpcoming}
               >
                 <Send className="mr-2 h-4 w-4" />
-                Wartungsbenachrichtigung testen
+                {isSendingUpcoming ? "Sende..." : "Wartungsbenachrichtigung testen"}
               </Button>
               <Button
                 onClick={() => sendTestEmail("monthly-report")}
                 variant="outline"
-                disabled={!testEmailAddress}
+                disabled={!testEmailAddress || isSendingMonthly}
               >
                 <Send className="mr-2 h-4 w-4" />
-                Monatlichen Bericht testen
+                {isSendingMonthly ? "Sende..." : "Monatlichen Bericht testen"}
               </Button>
             </div>
           </div>

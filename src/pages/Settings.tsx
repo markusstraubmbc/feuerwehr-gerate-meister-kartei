@@ -5,9 +5,7 @@ import {
   UsersRound, 
   FolderOpenDot, 
   FileCheck, 
-  Settings2, 
   Mail,
-  ThumbsUp,
   ArrowLeft,
   Cog
 } from "lucide-react";
@@ -96,41 +94,11 @@ const Settings = () => {
               <Cog className="h-5 w-5" />
               System
             </CardTitle>
-            <CardDescription>Logo und Anwendungsname anpassen</CardDescription>
+            <CardDescription>Logo, Anwendungsname und alle Systemeinstellungen</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm">
-              Systemlogo hochladen und den Namen der Anwendung anpassen, der im Menü angezeigt wird.
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => {}}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings2 className="h-5 w-5" />
-              Allgemeine Einstellungen
-            </CardTitle>
-            <CardDescription>Allgemeine Systemeinstellungen</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm">
-              Allgemeine Systemeinstellungen wie Farbschema und Browsereinstellungen verwalten.
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => {}}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ThumbsUp className="h-5 w-5" />
-              Erweitert
-            </CardTitle>
-            <CardDescription>Erweiterte Systemeinstellungen</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm">
-              Erweiterte systemspezifische Einstellungen und Anpassungen verwalten.
+              Systemlogo hochladen, Namen der Anwendung anpassen, Farbeinstellungen und Cron-Job Status verwalten.
             </p>
           </CardContent>
         </Card>
