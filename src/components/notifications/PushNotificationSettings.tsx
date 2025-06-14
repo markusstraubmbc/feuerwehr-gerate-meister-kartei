@@ -36,8 +36,19 @@ export function PushNotificationSettings() {
     if ('serviceWorker' in navigator && 'PushManager' in window) {
       setPushSupported(true);
       
+      // Check if notifications are already granted
       if (Notification.permission === 'granted') {
         setPushEnabled(true);
+        
+        // Check if we have an active subscription
+        navigator.serviceWorker.ready.then(registration => {
+          registration.pushManager.getSubscription().then(subscription => {
+            if (subscription) {
+              setPushEnabled(true);
+              localStorage.setItem('pushSubscription', JSON.stringify(subscription));
+            }
+          });
+        });
       }
     }
   }, []);
@@ -51,13 +62,16 @@ export function PushNotificationSettings() {
     setIsSubscribing(true);
 
     try {
+      // Register service worker first
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      console.log('Service Worker registered:', registration);
+      
       const permission = await Notification.requestPermission();
+      console.log('Notification permission:', permission);
       
       if (permission === 'granted') {
-        setPushEnabled(true);
-        toast.success('Push-Benachrichtigungen wurden aktiviert');
-        
-        const registration = await navigator.serviceWorker.register('/sw.js');
+        // Wait for service worker to be ready
+        await navigator.serviceWorker.ready;
         
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
@@ -67,6 +81,10 @@ export function PushNotificationSettings() {
         localStorage.setItem('pushSubscription', JSON.stringify(subscription));
         console.log('Push subscription created:', subscription);
         
+        setPushEnabled(true);
+        toast.success('Push-Benachrichtigungen wurden aktiviert');
+        
+        // Show test notification
         new Notification('Feuerwehr Inventar', {
           body: 'Push-Benachrichtigungen sind jetzt aktiv!',
           icon: '/favicon.ico',
@@ -78,7 +96,7 @@ export function PushNotificationSettings() {
       }
     } catch (error) {
       console.error('Push subscription error:', error);
-      toast.error('Fehler beim Aktivieren der Push-Benachrichtigungen');
+      toast.error('Fehler beim Aktivieren der Push-Benachrichtigungen: ' + error.message);
     } finally {
       setIsSubscribing(false);
     }
@@ -92,6 +110,7 @@ export function PushNotificationSettings() {
         if (subscription) {
           await subscription.unsubscribe();
           localStorage.removeItem('pushSubscription');
+          console.log('Push subscription removed');
         }
       }
       setPushEnabled(false);
@@ -100,6 +119,21 @@ export function PushNotificationSettings() {
       console.error('Error disabling push notifications:', error);
       setPushEnabled(false);
       toast.success('Push-Benachrichtigungen wurden deaktiviert');
+    }
+  };
+
+  const testNotification = () => {
+    if (pushEnabled && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(registration => {
+        registration.showNotification('Test Benachrichtigung', {
+          body: 'Dies ist eine Test-Benachrichtigung für Ihr Feuerwehr Inventar System',
+          icon: '/favicon.ico',
+          badge: '/favicon.ico',
+          tag: 'test-notification'
+        });
+      });
+    } else {
+      toast.error('Push-Benachrichtigungen sind nicht aktiviert');
     }
   };
 
@@ -140,6 +174,16 @@ export function PushNotificationSettings() {
               size="sm"
             >
               {isSubscribing ? 'Aktiviere...' : 'Push-Benachrichtigungen aktivieren'}
+            </Button>
+          )}
+
+          {pushEnabled && (
+            <Button 
+              onClick={testNotification}
+              variant="outline"
+              size="sm"
+            >
+              Test-Benachrichtigung senden
             </Button>
           )}
           

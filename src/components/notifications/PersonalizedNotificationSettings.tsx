@@ -29,7 +29,11 @@ export function PersonalizedNotificationSettings() {
     // Load saved rules from localStorage
     const savedRules = localStorage.getItem('notificationRules');
     if (savedRules) {
-      setRules(JSON.parse(savedRules));
+      try {
+        setRules(JSON.parse(savedRules));
+      } catch (error) {
+        console.error('Error loading notification rules:', error);
+      }
     }
   }, []);
 
@@ -77,6 +81,13 @@ export function PersonalizedNotificationSettings() {
   const deleteRule = (ruleId: string) => {
     const newRules = rules.filter(rule => rule.id !== ruleId);
     saveRules(newRules);
+    toast.success('Regel wurde gelöscht');
+  };
+
+  const clearAllRules = () => {
+    setRules([]);
+    localStorage.removeItem('notificationRules');
+    toast.success('Alle Regeln wurden gelöscht');
   };
 
   const getPersonName = (personId?: string) => {
@@ -143,7 +154,14 @@ export function PersonalizedNotificationSettings() {
         </div>
 
         <div className="space-y-3">
-          <h3 className="font-medium">Aktive Benachrichtigungsregeln</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-medium">Aktive Benachrichtigungsregeln</h3>
+            {rules.length > 0 && (
+              <Button onClick={clearAllRules} variant="outline" size="sm">
+                Alle löschen
+              </Button>
+            )}
+          </div>
           
           {rules.length === 0 ? (
             <p className="text-sm text-muted-foreground">
