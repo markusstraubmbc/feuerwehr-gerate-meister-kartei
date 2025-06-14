@@ -12,7 +12,7 @@ import { MaintenanceStatusBadge } from "./MaintenanceStatusBadge";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
-import { FileCheck, Eye, FileDown, Trash2, PenLine, Filter } from "lucide-react";
+import { FileCheck, Eye, FileDown, Trash2, PenLine, Filter, RotateCcw } from "lucide-react";
 import type { MaintenanceRecord } from "@/hooks/useMaintenanceRecords";
 import { generateCustomChecklist } from "@/hooks/useMaintenanceRecords";
 import { CompleteMaintenanceDialog } from "./CompleteMaintenanceDialog";
@@ -57,8 +57,10 @@ export const MaintenanceList = ({
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(filterTerm);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string>(SELECT_ALL_VALUE);
   
   const queryClient = useQueryClient();
@@ -127,6 +129,11 @@ export const MaintenanceList = ({
   const handleDelete = (record: MaintenanceRecord) => {
     setSelectedRecord(record);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleReset = (record: MaintenanceRecord) => {
+    setSelectedRecord(record);
+    setIsResetDialogOpen(true);
   };
   
   const filteredRecords = useMemo(() => {
@@ -240,9 +247,46 @@ export const MaintenanceList = ({
     }
   });
 
+  const resetMutation = useMutation({
+    mutationFn: async (recordId: string) => {
+      setIsResetting(true);
+      const { error } = await supabase
+        .from("maintenance_records")
+        .update({
+          status: "geplant",
+          performed_date: null,
+          performed_by: null,
+          minutes_spent: null,
+          documentation_image_url: null,
+          notes: null
+        })
+        .eq("id", recordId);
+        
+      if (error) throw error;
+      return recordId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["maintenance-records"] });
+      toast.success("Wartung erfolgreich auf 'geplant' zurückgesetzt");
+      setIsResetDialogOpen(false);
+      setIsResetting(false);
+    },
+    onError: (error) => {
+      console.error("Reset error:", error);
+      toast.error("Fehler beim Zurücksetzen der Wartung");
+      setIsResetting(false);
+    }
+  });
+
   const handleConfirmDelete = () => {
     if (selectedRecord) {
       deleteMutation.mutate(selectedRecord.id);
+    }
+  };
+
+  const handleConfirmReset = () => {
+    if (selectedRecord) {
+      resetMutation.mutate(selectedRecord.id);
     }
   };
   
@@ -374,17 +418,29 @@ export const MaintenanceList = ({
                         >
                           <PenLine className="h-4 w-4" />
                         </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 text-red-500 hover:bg-red-50" 
-                          onClick={() => handleDelete(record)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
                       </>
                     )}
+                    
+                    {record.status === "abgeschlossen" && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 text-blue-500 hover:bg-blue-50" 
+                        onClick={() => handleReset(record)}
+                        title="Wartung auf 'geplant' zurücksetzen"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    )}
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 text-red-500 hover:bg-red-50" 
+                      onClick={() => handleDelete(record)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                     
                     <Button 
                       variant="outline" 
@@ -457,6 +513,37 @@ export const MaintenanceList = ({
                   className="bg-red-600 hover:bg-red-700"
                 >
                   {isDeleting ? "Löschen..." : "Löschen"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Wartung zurücksetzen</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Möchten Sie diese abgeschlossene Wartung auf "geplant" zurücksetzen?
+                  <div className="mt-2 font-semibold">{selectedRecord.equipment.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    Wartungstyp: {selectedRecord.template?.name || "Keine Vorlage"}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Durchgeführt am: {selectedRecord.performed_date ? format(new Date(selectedRecord.performed_date), "dd.MM.yyyy", { locale: de }) : "-"}
+                  </div>
+                  <div className="mt-4 text-sm">
+                    Alle Durchführungsdaten (Datum, Person, Notizen, etc.) werden entfernt.
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={isResetting}>Abbrechen</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleConfirmReset}
+                  disabled={isResetting}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isResetting ? "Zurücksetzen..." : "Zurücksetzen"}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

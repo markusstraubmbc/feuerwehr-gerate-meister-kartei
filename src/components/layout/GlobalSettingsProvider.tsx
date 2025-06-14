@@ -57,41 +57,6 @@ export const GlobalSettingsProvider: React.FC<GlobalSettingsProviderProps> = ({
       if (settings.companyName) {
         document.title = `${settings.companyName} - Inventar System`;
       }
-
-      // Apply email settings to localStorage for compatibility
-      if (settings.emailNotificationsEnabled !== undefined) {
-        localStorage.setItem(
-          "emailNotificationsEnabled",
-          settings.emailNotificationsEnabled.toString()
-        );
-      }
-
-      if (settings.emailFromAddress) {
-        localStorage.setItem("emailFromAddress", settings.emailFromAddress);
-      }
-
-      if (settings.emailSenderDomain) {
-        localStorage.setItem("emailSenderDomain", settings.emailSenderDomain);
-      }
-
-      if (settings.emailRecipients) {
-        localStorage.setItem("emailRecipients", settings.emailRecipients);
-      }
-
-      if (settings.reminderDays) {
-        localStorage.setItem("reminderDays", settings.reminderDays.toString());
-      }
-
-      if (settings.monthlyReportEnabled !== undefined) {
-        localStorage.setItem(
-          "monthlyReportEnabled",
-          settings.monthlyReportEnabled.toString()
-        );
-      }
-
-      if (settings.testEmailAddress) {
-        localStorage.setItem("testEmailAddress", settings.testEmailAddress);
-      }
     }
   }, [settings, isLoading]);
 
