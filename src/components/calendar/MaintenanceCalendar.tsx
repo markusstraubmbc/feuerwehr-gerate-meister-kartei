@@ -6,9 +6,9 @@ import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
 import { format, addDays, isAfter, isBefore } from "date-fns";
 import { de } from "date-fns/locale";
 import { toast } from "sonner";
-import { CalendarFilters, CalendarFilterProps } from "./CalendarFilters";
+import { CalendarFilters } from "./CalendarFilters";
 
-interface CalendarFilters {
+interface CalendarFiltersState {
   personId?: string;
   templateId?: string;
   includeCompleted: boolean;
@@ -19,7 +19,7 @@ interface CalendarFilters {
 export function MaintenanceCalendar() {
   const { data: maintenanceRecords = [] } = useMaintenanceRecords();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [filters, setFilters] = useState<CalendarFilters>({
+  const [filters, setFilters] = useState<CalendarFiltersState>({
     includeCompleted: true,
     includeOverdue: true,
     includeUpcoming: true

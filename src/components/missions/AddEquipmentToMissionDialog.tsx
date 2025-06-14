@@ -11,9 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { QrCode, Search, Package } from "lucide-react";
+import { QrCode, Search, Package, Filter } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
 import { usePersons } from "@/hooks/usePersons";
+import { useCategories } from "@/hooks/useCategories";
+import { useLocations } from "@/hooks/useLocations";
 import { useMissionEquipment } from "@/hooks/useMissionEquipment";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -46,10 +48,16 @@ export function AddEquipmentToMissionDialog({
   const [notes, setNotes] = useState("");
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Quick filters
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
 
   const queryClient = useQueryClient();
   const { data: equipment = [] } = useEquipment();
   const { data: persons = [] } = usePersons();
+  const { data: categories = [] } = useCategories();
+  const { data: locations = [] } = useLocations();
   const { data: existingEquipment = [] } = useMissionEquipment(missionId);
 
   // Filter equipment based on search term and exclude already added equipment
@@ -57,13 +65,28 @@ export function AddEquipmentToMissionDialog({
   const filteredEquipment = equipment
     .filter(item => !existingEquipmentIds.includes(item.id))
     .filter(item => {
-      if (!searchTerm) return true;
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        item.name.toLowerCase().includes(searchLower) ||
-        item.barcode?.toLowerCase().includes(searchLower) ||
-        item.inventory_number?.toLowerCase().includes(searchLower)
-      );
+      // Search filter
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        const matchesSearch = (
+          item.name.toLowerCase().includes(searchLower) ||
+          item.barcode?.toLowerCase().includes(searchLower) ||
+          item.inventory_number?.toLowerCase().includes(searchLower)
+        );
+        if (!matchesSearch) return false;
+      }
+
+      // Category filter
+      if (categoryFilter && item.category?.id !== categoryFilter) {
+        return false;
+      }
+
+      // Location filter
+      if (locationFilter && item.location?.id !== locationFilter) {
+        return false;
+      }
+
+      return true;
     });
 
   const handleQRScan = (barcode: string) => {
@@ -115,6 +138,8 @@ export function AddEquipmentToMissionDialog({
       setAddedBy("");
       setNotes("");
       setSearchTerm("");
+      setCategoryFilter("");
+      setLocationFilter("");
       onOpenChange(false);
     } catch (error) {
       console.error("Error adding equipment:", error);
@@ -140,6 +165,12 @@ export function AddEquipmentToMissionDialog({
 
   const clearSelection = () => {
     setSelectedEquipment([]);
+  };
+
+  const clearFilters = () => {
+    setCategoryFilter("");
+    setLocationFilter("");
+    setSearchTerm("");
   };
 
   return (
@@ -172,6 +203,50 @@ export function AddEquipmentToMissionDialog({
               </Button>
             </div>
 
+            {/* Quick filters */}
+            <div className="grid gap-2 md:grid-cols-3">
+              <div>
+                <Label htmlFor="category-filter">Kategorie</Label>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Alle Kategorien" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Alle Kategorien</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="location-filter">Standort</Label>
+                <Select value={locationFilter} onValueChange={setLocationFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Alle Standorte" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Alle Standorte</SelectItem>
+                    {locations.map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-end">
+                <Button variant="outline" onClick={clearFilters} className="w-full">
+                  <Filter className="mr-2 h-4 w-4" />
+                  Filter zurücksetzen
+                </Button>
+              </div>
+            </div>
+
             {/* Mass selection buttons */}
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={selectAllVisible}>
@@ -200,12 +275,17 @@ export function AddEquipmentToMissionDialog({
                           {item.barcode && item.inventory_number ? ' • ' : ''}
                           {item.inventory_number ? `Inv-Nr: ${item.inventory_number}` : ''}
                         </p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.category?.name ? `Kategorie: ${item.category.name}` : ''}
+                          {item.category?.name && item.location?.name ? ' • ' : ''}
+                          {item.location?.name ? `Standort: ${item.location.name}` : ''}
+                        </p>
                       </div>
                     </div>
                   ))
                 ) : (
                   <p className="text-center text-muted-foreground py-8">
-                    {searchTerm ? 'Keine passende Ausrüstung gefunden' : 'Alle verfügbare Ausrüstung ist bereits hinzugefügt'}
+                    {searchTerm || categoryFilter || locationFilter ? 'Keine passende Ausrüstung gefunden' : 'Alle verfügbare Ausrüstung ist bereits hinzugefügt'}
                   </p>
                 )}
               </div>
