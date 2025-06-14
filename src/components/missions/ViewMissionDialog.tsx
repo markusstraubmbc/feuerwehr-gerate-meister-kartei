@@ -162,7 +162,7 @@ export const ViewMissionDialog = ({ mission, open, onOpenChange }: ViewMissionDi
       </Dialog>
 
       <AddEquipmentToMissionDialog
-        mission={mission}
+        missionId={mission.id}
         open={showAddEquipment}
         onOpenChange={setShowAddEquipment}
       />
