@@ -78,12 +78,43 @@ export function EquipmentList({
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
-    documentTitle: 'Ausrüstungsliste',
+    documentTitle: 'Ausrüstungsliste-Gefiltert',
+    pageStyle: `
+      @page { 
+        size: A4 landscape; 
+        margin: 10mm; 
+      } 
+      @media print { 
+        body { 
+          font-size: 10pt; 
+        }
+        .no-print, .print\\:hidden { 
+          display: none !important; 
+        }
+        table {
+          width: 100% !important;
+          font-size: 10pt !important;
+        }
+        th, td {
+          padding: 4px !important;
+          border: 1px solid #ccc !important;
+        }
+        .print-title {
+          display: block !important;
+          text-align: center;
+          font-size: 16pt;
+          font-weight: bold;
+          margin-bottom: 10px;
+        }
+      }
+    `,
     onBeforePrint: () => {
       if (!printRef.current) {
         toast("Drucken konnte nicht gestartet werden", {
           description: "Es gab ein Problem beim Vorbereiten der Druckansicht."
         });
+      } else {
+        console.log('Printing filtered equipment list...');
       }
     }
   });
@@ -256,6 +287,14 @@ export function EquipmentList({
       
       <div className="rounded-md border">
         <div ref={printRef}>
+          <div className="print-title" style={{ display: 'none' }}>
+            Ausrüstungsliste - {new Date().toLocaleDateString('de-DE')}
+            {filteredEquipment.length !== equipment.length && (
+              <div style={{ fontSize: '12pt', fontWeight: 'normal', marginTop: '5px' }}>
+                Gefilterte Ansicht: {filteredEquipment.length} von {equipment.length} Einträgen
+              </div>
+            )}
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
