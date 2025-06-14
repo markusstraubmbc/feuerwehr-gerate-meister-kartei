@@ -52,19 +52,23 @@ export function Sidebar() {
     }
   };
 
+  const menuBackgroundColor = settings?.menuBackgroundColor || '#1e293b';
+  const menuTextColor = settings?.menuTextColor || '#ffffff';
+  const menuSelectedColor = settings?.menuSelectedColor || '#3b82f6';
+
   return (
     <SidebarBase 
-      className="border-r bg-background"
+      className="border-r"
       style={{
-        backgroundColor: settings?.menuBackgroundColor || '#1e293b',
-        borderColor: settings?.menuBackgroundColor || '#1e293b',
+        backgroundColor: menuBackgroundColor,
+        borderColor: menuBackgroundColor,
       } as React.CSSProperties}
     >
       <SidebarHeader 
         className="border-b"
         style={{ 
-          backgroundColor: settings?.menuBackgroundColor || '#1e293b',
-          borderColor: settings?.menuBackgroundColor || '#1e293b',
+          backgroundColor: menuBackgroundColor,
+          borderColor: menuBackgroundColor,
         }}
       >
         <div className="px-4 py-2 flex items-center gap-3">
@@ -82,18 +86,18 @@ export function Sidebar() {
           )}
           <h1 
             className="text-xl font-bold"
-            style={{ color: settings?.menuTextColor || '#ffffff' }}
+            style={{ color: menuTextColor }}
           >
             {systemName}
           </h1>
         </div>
       </SidebarHeader>
       <SidebarContent 
-        style={{ backgroundColor: settings?.menuBackgroundColor || '#1e293b' }}
+        style={{ backgroundColor: menuBackgroundColor }}
       >
         <SidebarGroup>
           <SidebarGroupLabel 
-            style={{ color: settings?.menuTextColor || '#ffffff' }}
+            style={{ color: menuTextColor }}
           >
             Navigation
           </SidebarGroupLabel>
@@ -108,23 +112,27 @@ export function Sidebar() {
                       className={({ isActive }) =>
                         cn(
                           "flex items-center gap-2 w-full px-2 py-2 rounded-md transition-colors",
-                          isActive 
-                            ? "font-medium" 
-                            : "hover:bg-opacity-20 hover:bg-white"
+                          "hover:bg-opacity-20 hover:bg-white"
                         )
                       }
                       style={({ isActive }) => ({
-                        backgroundColor: isActive ? settings?.menuSelectedColor || '#3b82f6' : 'transparent',
-                        color: isActive ? '#ffffff' : settings?.menuTextColor || '#ffffff',
+                        backgroundColor: isActive ? menuSelectedColor : 'transparent',
+                        color: isActive ? '#ffffff' : menuTextColor,
                       })}
                     >
-                      <item.icon 
-                        className="h-4 w-4" 
-                        style={{ 
-                          color: 'inherit'
-                        }}
-                      />
-                      <span style={{ color: 'inherit' }}>{item.name}</span>
+                      {({ isActive }) => (
+                        <>
+                          <item.icon 
+                            className="h-4 w-4" 
+                            style={{ 
+                              color: isActive ? '#ffffff' : menuTextColor
+                            }}
+                          />
+                          <span style={{ color: isActive ? '#ffffff' : menuTextColor }}>
+                            {item.name}
+                          </span>
+                        </>
+                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
