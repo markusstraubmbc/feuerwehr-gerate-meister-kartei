@@ -65,9 +65,9 @@ export function CommentsDialog({ equipment, open, onOpenChange }: CommentsDialog
         return;
       }
 
-      // Fix type conversion - cast the JSON data to the Comment type
+      // Properly handle the type conversion for the data returned from Supabase RPC
       if (data && Array.isArray(data)) {
-        setComments(data as Comment[]);
+        setComments(data as unknown as Comment[]);
       } else {
         setComments([]);
       }

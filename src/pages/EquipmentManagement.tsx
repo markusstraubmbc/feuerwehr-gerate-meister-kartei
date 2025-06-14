@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -204,8 +203,8 @@ const EquipmentManagement = () => {
         onOpenChange={setIsImportDialogOpen} 
       />
       
-      <style>
-        {`
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @media print {
           body * {
             visibility: hidden;
@@ -229,8 +228,7 @@ const EquipmentManagement = () => {
             display: none !important;
           }
         }
-      `}
-      </style>
+      `}} />
     </div>
   );
 };
