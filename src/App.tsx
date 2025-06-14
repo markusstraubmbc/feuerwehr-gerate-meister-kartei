@@ -12,6 +12,8 @@ import EquipmentManagement from "./pages/EquipmentManagement";
 import Maintenance from "./pages/Maintenance";
 import MaintenanceTime from "./pages/MaintenanceTime";
 import Missions from "./pages/Missions";
+import CalendarPage from "./pages/CalendarPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import Locations from "./pages/Locations";
 import PersonManagement from "./pages/PersonManagement";
 import Settings from "./pages/Settings";
@@ -38,6 +40,8 @@ function App() {
                 <Route path="maintenance" element={<Maintenance />} />
                 <Route path="maintenance-time" element={<MaintenanceTime />} />
                 <Route path="missions" element={<Missions />} />
+                <Route path="calendar" element={<CalendarPage />} />
+                <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="locations" element={<Locations />} />
                 <Route path="person-management" element={<PersonManagement />} />
                 <Route path="settings" element={<Settings />} />

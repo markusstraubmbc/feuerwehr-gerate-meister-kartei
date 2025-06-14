@@ -1,131 +1,60 @@
 
-import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Wrench, CalendarCheck, Clock, Settings, Target } from 'lucide-react';
-import { useGlobalSettings } from './GlobalSettingsProvider';
+import { NavLink } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar";
+  Home,
+  BarChart3,
+  Package,
+  Settings,
+  Wrench,
+  Clock,
+  MapPin,
+  Users,
+  Target,
+  Calendar,
+  Bell,
+  QrCode
+} from "lucide-react";
 
-const AppSidebar = () => {
-  const { settings } = useGlobalSettings();
-  const location = useLocation();
-  const { state } = useSidebar();
+const navigation = [
+  { name: "Dashboard", href: "/dashboard", icon: Home },
+  { name: "Ausrüstung", href: "/equipment", icon: Package },
+  { name: "Ausrüstung verwalten", href: "/equipment-management", icon: Settings },
+  { name: "Wartung", href: "/maintenance", icon: Wrench },
+  { name: "Wartungszeiten", href: "/maintenance-time", icon: Clock },
+  { name: "Einsätze & Übungen", href: "/missions", icon: Target },
+  { name: "Kalender", href: "/calendar", icon: Calendar },
+  { name: "Benachrichtigungen", href: "/notifications", icon: Bell },
+  { name: "Standorte", href: "/locations", icon: MapPin },
+  { name: "Personen", href: "/person-management", icon: Users },
+  { name: "Einstellungen", href: "/settings", icon: Settings },
+];
 
-  const systemName = settings.companyName || 'Feuerwehr Inventar';
-  const logoUrl = settings.companyLogo || '';
-  const logoSize = settings.logoSize || '48';
-  const backgroundColor = settings.menuBackgroundColor || '#1e293b';
-  const textColor = settings.menuTextColor || '#ffffff';
-  const selectedColor = settings.menuSelectedColor || '#3b82f6';
-
-  const isCollapsed = state === 'collapsed';
-
-  const menuItems = [
-    { to: "/", icon: Home, label: "Dashboard" },
-    { to: "/equipment-management", icon: Wrench, label: "Ausrüstung" },
-    { to: "/maintenance", icon: CalendarCheck, label: "Wartung" },
-    { to: "/maintenance-time", icon: Clock, label: "Wartungs-Zeitauswertung" },
-    { to: "/missions", icon: Target, label: "Einsätze & Übungen" },
-    { to: "/settings", icon: Settings, label: "Einstellungen" },
-  ];
-
-  const isActive = (path: string) => {
-    if (path === "/") {
-      return location.pathname === "/";
-    }
-    return location.pathname.startsWith(path);
-  };
-
-  const getNavLinkStyle = (active: boolean) => ({
-    color: active ? '#ffffff' : textColor,
-    backgroundColor: active ? selectedColor : 'transparent'
-  });
-
+export const Sidebar = () => {
   return (
-    <Sidebar 
-      style={{ backgroundColor }}
-      className="border-r"
-    >
-      <SidebarHeader className="p-4">
-        <div className="flex flex-col items-center space-y-2">
-          {logoUrl && !isCollapsed && (
-            <img 
-              src={logoUrl} 
-              alt="System Logo" 
-              style={{
-                width: `${logoSize}px`,
-                height: `${logoSize}px`,
-                objectFit: 'contain'
-              }}
-              className="rounded"
-            />
-          )}
-          {logoUrl && isCollapsed && (
-            <img 
-              src={logoUrl} 
-              alt="System Logo" 
-              style={{
-                width: '32px',
-                height: '32px',
-                objectFit: 'contain'
-              }}
-              className="rounded"
-            />
-          )}
-          {!isCollapsed && (
-            <h1 
-              className="text-xl font-bold text-center"
-              style={{ color: textColor }}
-            >
-              {systemName}
-            </h1>
-          )}
-        </div>
-      </SidebarHeader>
-
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel style={{ color: textColor }}>
-            Navigation
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => {
-                const active = isActive(item.to);
-                return (
-                  <SidebarMenuItem key={item.to}>
-                    <SidebarMenuButton 
-                      asChild
-                      tooltip={isCollapsed ? item.label : undefined}
-                    >
-                      <NavLink
-                        to={item.to}
-                        className="flex items-center gap-3 rounded-md px-3 py-2 transition-colors"
-                        style={getNavLinkStyle(active)}
-                      >
-                        <item.icon className="h-5 w-5" />
-                        {!isCollapsed && <span>{item.label}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
+    <div className="flex h-full w-64 flex-col bg-white border-r border-gray-200">
+      <div className="flex h-16 items-center px-6 border-b border-gray-200">
+        <h1 className="text-xl font-bold text-gray-900">Feuerwehr Inventar</h1>
+      </div>
+      <nav className="flex-1 space-y-1 px-3 py-4">
+        {navigation.map((item) => (
+          <NavLink
+            key={item.name}
+            to={item.href}
+            className={({ isActive }) =>
+              cn(
+                "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                isActive
+                  ? "bg-red-100 text-red-900"
+                  : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+              )
+            }
+          >
+            <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
+            {item.name}
+          </NavLink>
+        ))}
+      </nav>
+    </div>
   );
 };
-
-export default AppSidebar;

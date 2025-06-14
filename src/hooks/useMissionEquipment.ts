@@ -3,11 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { Equipment } from "./useEquipment";
-import { Person } from "./usePersons";
 
 export type MissionEquipment = Database["public"]["Tables"]["mission_equipment"]["Row"] & {
   equipment?: Equipment;
-  added_by_person?: Person;
+  added_by_person?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  };
 };
 
 export const useMissionEquipment = (missionId: string) => {

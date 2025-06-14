@@ -2,10 +2,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { Person } from "./usePersons";
 
 export type Mission = Database["public"]["Tables"]["missions"]["Row"] & {
-  responsible_person?: Person;
+  responsible_person?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  };
   equipment_count?: number;
 };
 
