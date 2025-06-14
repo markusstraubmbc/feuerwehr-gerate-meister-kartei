@@ -1,11 +1,25 @@
 
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { Home, Wrench, CalendarCheck, Clock, Settings } from 'lucide-react';
 import { useGlobalSettings } from './GlobalSettingsProvider';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from "@/components/ui/sidebar";
 
 const AppSidebar = () => {
   const { settings } = useGlobalSettings();
+  const location = useLocation();
+  const { state } = useSidebar();
 
   const systemName = settings.companyName || 'Feuerwehr Inventar';
   const logoUrl = settings.companyLogo || '';
@@ -14,109 +28,102 @@ const AppSidebar = () => {
   const textColor = settings.menuTextColor || '#ffffff';
   const selectedColor = settings.menuSelectedColor || '#3b82f6';
 
-  const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
-    isActive 
-      ? "font-medium" 
-      : "hover:bg-white hover:bg-opacity-10";
+  const isCollapsed = state === 'collapsed';
 
-  const getNavLinkStyle = (isActive: boolean) => ({
-    color: isActive ? '#ffffff' : textColor,
-    backgroundColor: isActive ? selectedColor : 'transparent'
+  const menuItems = [
+    { to: "/", icon: Home, label: "Dashboard" },
+    { to: "/equipment-management", icon: Wrench, label: "Ausrüstung" },
+    { to: "/maintenance", icon: CalendarCheck, label: "Wartung" },
+    { to: "/maintenance-time", icon: Clock, label: "Wartungs-Zeitauswertung" },
+    { to: "/settings", icon: Settings, label: "Einstellungen" },
+  ];
+
+  const isActive = (path: string) => {
+    if (path === "/") {
+      return location.pathname === "/";
+    }
+    return location.pathname.startsWith(path);
+  };
+
+  const getNavLinkStyle = (active: boolean) => ({
+    color: active ? '#ffffff' : textColor,
+    backgroundColor: active ? selectedColor : 'transparent'
   });
 
   return (
-    <aside 
-      className="w-64 h-screen p-4 text-white flex flex-col"
+    <Sidebar 
       style={{ backgroundColor }}
+      className="border-r"
     >
-      {/* Logo and System Name Section */}
-      <div className="mb-8 flex flex-col items-center space-y-2">
-        {logoUrl && (
-          <img 
-            src={logoUrl} 
-            alt="System Logo" 
-            style={{
-              width: `${logoSize}px`,
-              height: `${logoSize}px`,
-              objectFit: 'contain'
-            }}
-            className="rounded"
-          />
-        )}
-        <h1 
-          className="text-xl font-bold text-center"
-          style={{ color: textColor }}
-        >
-          {systemName}
-        </h1>
-      </div>
+      <SidebarHeader className="p-4">
+        <div className="flex flex-col items-center space-y-2">
+          {logoUrl && !isCollapsed && (
+            <img 
+              src={logoUrl} 
+              alt="System Logo" 
+              style={{
+                width: `${logoSize}px`,
+                height: `${logoSize}px`,
+                objectFit: 'contain'
+              }}
+              className="rounded"
+            />
+          )}
+          {logoUrl && isCollapsed && (
+            <img 
+              src={logoUrl} 
+              alt="System Logo" 
+              style={{
+                width: '32px',
+                height: '32px',
+                objectFit: 'contain'
+              }}
+              className="rounded"
+            />
+          )}
+          {!isCollapsed && (
+            <h1 
+              className="text-xl font-bold text-center"
+              style={{ color: textColor }}
+            >
+              {systemName}
+            </h1>
+          )}
+        </div>
+      </SidebarHeader>
 
-      {/* Navigation Menu */}
-      <nav className="flex-1">
-        <ul className="space-y-2">
-          <li>
-            <NavLink
-              to="/"
-              className={({ isActive }) => 
-                `block px-4 py-2 rounded transition-colors ${getNavLinkClass({ isActive })}`
-              }
-              style={({ isActive }) => getNavLinkStyle(isActive)}
-            >
-              <Home className="inline-block w-5 h-5 mr-3" />
-              Dashboard
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/equipment-management"
-              className={({ isActive }) => 
-                `block px-4 py-2 rounded transition-colors ${getNavLinkClass({ isActive })}`
-              }
-              style={({ isActive }) => getNavLinkStyle(isActive)}
-            >
-              <Wrench className="inline-block w-5 h-5 mr-3" />
-              Ausrüstung
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/maintenance"
-              className={({ isActive }) => 
-                `block px-4 py-2 rounded transition-colors ${getNavLinkClass({ isActive })}`
-              }
-              style={({ isActive }) => getNavLinkStyle(isActive)}
-            >
-              <CalendarCheck className="inline-block w-5 h-5 mr-3" />
-              Wartung
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/maintenance-time"
-              className={({ isActive }) => 
-                `block px-4 py-2 rounded transition-colors ${getNavLinkClass({ isActive })}`
-              }
-              style={({ isActive }) => getNavLinkStyle(isActive)}
-            >
-              <Clock className="inline-block w-5 h-5 mr-3" />
-              Wartungs-Zeitauswertung
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/settings"
-              className={({ isActive }) => 
-                `block px-4 py-2 rounded transition-colors ${getNavLinkClass({ isActive })}`
-              }
-              style={({ isActive }) => getNavLinkStyle(isActive)}
-            >
-              <Settings className="inline-block w-5 h-5 mr-3" />
-              Einstellungen
-            </NavLink>
-          </li>
-        </ul>
-      </nav>
-    </aside>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel style={{ color: textColor }}>
+            Navigation
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {menuItems.map((item) => {
+                const active = isActive(item.to);
+                return (
+                  <SidebarMenuItem key={item.to}>
+                    <SidebarMenuButton 
+                      asChild
+                      tooltip={isCollapsed ? item.label : undefined}
+                    >
+                      <NavLink
+                        to={item.to}
+                        className="flex items-center gap-3 rounded-md px-3 py-2 transition-colors"
+                        style={getNavLinkStyle(active)}
+                      >
+                        <item.icon className="h-5 w-5" />
+                        {!isCollapsed && <span>{item.label}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+    </Sidebar>
   );
 };
 
