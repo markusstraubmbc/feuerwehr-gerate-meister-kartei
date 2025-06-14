@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Dialog, 
@@ -20,6 +19,9 @@ import { Equipment } from "@/hooks/useEquipment";
 import { useCategories } from "@/hooks/useCategories";
 import { useLocations } from "@/hooks/useLocations";
 import { usePersons } from "@/hooks/usePersons";
+import { Database } from "@/integrations/supabase/types";
+
+type EquipmentStatus = Database["public"]["Enums"]["equipment_status"];
 
 interface EditEquipmentFormProps {
   equipment: Equipment;
@@ -44,7 +46,7 @@ export function EditEquipmentForm({ equipment, onSuccess }: EditEquipmentFormPro
     category_id: equipment.category_id || "",
     location_id: equipment.location_id || "",
     responsible_person_id: equipment.responsible_person_id || "",
-    status: equipment.status || "einsatzbereit",
+    status: equipment.status || "einsatzbereit" as EquipmentStatus,
     purchase_date: equipment.purchase_date || "",
     replacement_date: equipment.replacement_date || "",
     notes: equipment.notes || "",
@@ -66,7 +68,7 @@ export function EditEquipmentForm({ equipment, onSuccess }: EditEquipmentFormPro
           category_id: formData.category_id || null,
           location_id: formData.location_id || null,
           responsible_person_id: formData.responsible_person_id || null,
-          status: formData.status as any,
+          status: formData.status,
           purchase_date: formData.purchase_date || null,
           replacement_date: formData.replacement_date || null,
           notes: formData.notes || null,
@@ -210,7 +212,7 @@ export function EditEquipmentForm({ equipment, onSuccess }: EditEquipmentFormPro
 
             <div>
               <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value as EquipmentStatus })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
