@@ -222,6 +222,16 @@ export function EquipmentDetailedView({ equipment, open, onOpenChange }: Equipme
     }
   };
 
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'active': return 'Aktiv';
+      case 'maintenance': return 'Wartung';
+      case 'defective': return 'Defekt';
+      case 'retired': return 'Ausgemustert';
+      default: return status;
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -291,10 +301,7 @@ export function EquipmentDetailedView({ equipment, open, onOpenChange }: Equipme
               <div className="info-item">
                 <span className="label">Status:</span>
                 <span className={`status-badge ${getStatusClass(equipment.status)}`}>
-                  {equipment.status === 'active' ? 'Aktiv' :
-                   equipment.status === 'maintenance' ? 'Wartung' :
-                   equipment.status === 'defective' ? 'Defekt' :
-                   equipment.status === 'retired' ? 'Ausgemustert' : equipment.status}
+                  {getStatusText(equipment.status)}
                 </span>
               </div>
               <div className="info-item">
