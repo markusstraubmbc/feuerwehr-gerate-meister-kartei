@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Filter, Calendar, User, Wrench } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -128,5 +129,3 @@ export function CalendarFilters({ onFiltersChange, currentFilters }: CalendarFil
     </Card>
   );
 }
-
-export type { CalendarFilters };
