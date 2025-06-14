@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
-import { AppWrapper } from "./components/layout/AppWrapper";
+import { GlobalSettingsProvider } from "./components/layout/GlobalSettingsProvider";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Equipment from "./pages/Equipment";
@@ -27,7 +27,7 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppWrapper>
+      <GlobalSettingsProvider>
         <TooltipProvider>
           <Toaster />
           <BrowserRouter>
@@ -53,7 +53,7 @@ function App() {
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
-      </AppWrapper>
+      </GlobalSettingsProvider>
     </QueryClientProvider>
   );
 }
