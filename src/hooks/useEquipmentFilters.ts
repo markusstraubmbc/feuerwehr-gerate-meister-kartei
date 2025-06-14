@@ -29,7 +29,7 @@ export const useEquipmentFilters = () => {
   }) => {
     const newSearchParams = new URLSearchParams();
     
-    if (filters.status) {
+    if (filters.status && filters.status !== "status_all") {
       newSearchParams.set('status', filters.status);
       setSelectedStatus(filters.status);
     } else {

@@ -75,12 +75,12 @@ export function AddEquipmentToMissionDialog({
       }
 
       // Category filter
-      if (categoryFilter && item.category?.id !== categoryFilter) {
+      if (categoryFilter && categoryFilter !== "all_categories" && item.category?.id !== categoryFilter) {
         return false;
       }
 
       // Location filter
-      if (locationFilter && item.location?.id !== locationFilter) {
+      if (locationFilter && locationFilter !== "all_locations" && item.location?.id !== locationFilter) {
         return false;
       }
 
@@ -180,12 +180,12 @@ export function AddEquipmentToMissionDialog({
           <div className="grid gap-2 md:grid-cols-3">
             <div>
               <Label htmlFor="category-filter">Kategorie</Label>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <Select value={categoryFilter || "all_categories"} onValueChange={setCategoryFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Alle Kategorien" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Alle Kategorien</SelectItem>
+                  <SelectItem value="all_categories">Alle Kategorien</SelectItem>
                   {categories.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
@@ -197,12 +197,12 @@ export function AddEquipmentToMissionDialog({
 
             <div>
               <Label htmlFor="location-filter">Standort</Label>
-              <Select value={locationFilter} onValueChange={setLocationFilter}>
+              <Select value={locationFilter || "all_locations"} onValueChange={setLocationFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Alle Standorte" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Alle Standorte</SelectItem>
+                  <SelectItem value="all_locations">Alle Standorte</SelectItem>
                   {locations.map((location) => (
                     <SelectItem key={location.id} value={location.id}>
                       {location.name}
@@ -268,11 +268,12 @@ export function AddEquipmentToMissionDialog({
           <div className="space-y-4">
             <div>
               <Label htmlFor="added-by">Hinzugefügt von (optional)</Label>
-              <Select value={addedBy} onValueChange={setAddedBy}>
+              <Select value={addedBy || "no_person"} onValueChange={(value) => setAddedBy(value === "no_person" ? "" : value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Person auswählen..." />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="no_person">Keine Person</SelectItem>
                   {persons.map((person) => (
                     <SelectItem key={person.id} value={person.id}>
                       {person.first_name} {person.last_name}
