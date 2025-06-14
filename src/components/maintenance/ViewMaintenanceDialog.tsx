@@ -42,13 +42,36 @@ export function ViewMaintenanceDialog({
             .eq('id', record.template.id)
             .single();
             
-          if (error) throw error;
+          if (error) {
+            console.error("Error fetching template:", error);
+            setChecklistUrl(null);
+            return;
+          }
           
           if (data?.checklist_url) {
-            setChecklistUrl(data.checklist_url);
+            // Verify that the file exists in storage before setting the URL
+            try {
+              const { data: signedUrlData, error: signedUrlError } = await supabase
+                .storage
+                .from('checklists')
+                .createSignedUrl(data.checklist_url, 60 * 60); // 1 hour expiry
+              
+              if (signedUrlError) {
+                console.error("Error creating signed URL:", signedUrlError);
+                setChecklistUrl(null);
+              } else {
+                setChecklistUrl(signedUrlData?.signedUrl || null);
+              }
+            } catch (storageError) {
+              console.error("Storage error:", storageError);
+              setChecklistUrl(null);
+            }
+          } else {
+            setChecklistUrl(null);
           }
         } catch (error) {
           console.error("Error fetching template checklist:", error);
+          setChecklistUrl(null);
         } finally {
           setIsLoadingChecklist(false);
         }
@@ -90,6 +113,40 @@ export function ViewMaintenanceDialog({
       toast.error("Fehler beim Herunterladen der Checkliste");
     } finally {
       setIsGeneratingPdf(false);
+    }
+  };
+
+  const handleDownloadOriginalChecklist = async () => {
+    if (!checklistUrl) {
+      toast.error("Keine Original-Checkliste verfügbar");
+      return;
+    }
+    
+    try {
+      // Try to download the original checklist
+      const response = await fetch(checklistUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `original-checkliste-${record.template?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'template'}.pdf`;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+      }, 100);
+      
+      toast.success("Original-Checkliste wurde heruntergeladen");
+    } catch (error) {
+      console.error("Error downloading original checklist:", error);
+      toast.error("Fehler beim Herunterladen der Original-Checkliste");
     }
   };
 
@@ -171,11 +228,13 @@ export function ViewMaintenanceDialog({
             <div className="flex flex-col gap-2">
               {checklistUrl ? (
                 <>
-                  <Button asChild variant="outline" className="w-full">
-                    <a href={checklistUrl} target="_blank" rel="noreferrer">
-                      <FileText className="mr-2 h-4 w-4" />
-                      Original Checkliste öffnen
-                    </a>
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleDownloadOriginalChecklist}
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    Original Checkliste herunterladen
                   </Button>
                   
                   <Button 
