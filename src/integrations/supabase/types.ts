@@ -308,6 +308,105 @@ export type Database = {
           },
         ]
       }
+      mission_equipment: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          equipment_id: string
+          id: string
+          mission_id: string
+          notes: string | null
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          equipment_id: string
+          id?: string
+          mission_id: string
+          notes?: string | null
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          equipment_id?: string
+          id?: string
+          mission_id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_equipment_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_equipment_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_equipment_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      missions: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_time: string | null
+          id: string
+          location: string | null
+          mission_date: string
+          mission_type: string
+          responsible_person_id: string | null
+          start_time: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_time?: string | null
+          id?: string
+          location?: string | null
+          mission_date: string
+          mission_type: string
+          responsible_person_id?: string | null
+          start_time?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_time?: string | null
+          id?: string
+          location?: string | null
+          mission_date?: string
+          mission_type?: string
+          responsible_person_id?: string | null
+          start_time?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "missions_responsible_person_id_fkey"
+            columns: ["responsible_person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       persons: {
         Row: {
           created_at: string

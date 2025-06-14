@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Wrench, CalendarCheck, Clock, Settings } from 'lucide-react';
+import { Home, Wrench, CalendarCheck, Clock, Settings, Target } from 'lucide-react';
 import { useGlobalSettings } from './GlobalSettingsProvider';
 import {
   Sidebar,
@@ -35,6 +35,7 @@ const AppSidebar = () => {
     { to: "/equipment-management", icon: Wrench, label: "Ausrüstung" },
     { to: "/maintenance", icon: CalendarCheck, label: "Wartung" },
     { to: "/maintenance-time", icon: Clock, label: "Wartungs-Zeitauswertung" },
+    { to: "/missions", icon: Target, label: "Einsätze & Übungen" },
     { to: "/settings", icon: Settings, label: "Einstellungen" },
   ];
 
