@@ -12,9 +12,9 @@ import { MaintenanceStatusBadge } from "./MaintenanceStatusBadge";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
-import { FileCheck, Eye, FileDown, Trash2, PenLine, Filter, FileText } from "lucide-react";
+import { FileCheck, Eye, FileDown, Trash2, PenLine, Filter } from "lucide-react";
 import type { MaintenanceRecord } from "@/hooks/useMaintenanceRecords";
-import { generateCustomChecklist, downloadTemplateChecklist } from "@/hooks/useMaintenanceRecords";
+import { generateCustomChecklist } from "@/hooks/useMaintenanceRecords";
 import { CompleteMaintenanceDialog } from "./CompleteMaintenanceDialog";
 import { ViewMaintenanceDialog } from "./ViewMaintenanceDialog";
 import * as XLSX from 'xlsx';
@@ -215,27 +215,7 @@ export const MaintenanceList = ({
       toast.error('Fehler beim Herunterladen der angepassten Checkliste');
     }
   };
-
-  const handleDownloadTemplateChecklist = async (record: MaintenanceRecord) => {
-    try {
-      if (!record.template) {
-        toast.error('Keine Wartungsvorlage für diese Wartung gefunden');
-        return;
-      }
-
-      if (!record.template.checklist_url) {
-        toast.error('Keine Checkliste für diese Wartungsvorlage verfügbar');
-        return;
-      }
-
-      await downloadTemplateChecklist(record.template, record.equipment.name);
-      toast.success('Checkliste erfolgreich heruntergeladen');
-    } catch (error) {
-      console.error('Template checklist download error:', error);
-      toast.error('Fehler beim Herunterladen der Checkliste');
-    }
-  };
-
+  
   const deleteMutation = useMutation({
     mutationFn: async (recordId: string) => {
       setIsDeleting(true);
@@ -404,18 +384,6 @@ export const MaintenanceList = ({
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </>
-                    )}
-                    
-                    {record.template?.checklist_url && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="h-8 w-8 p-0" 
-                        onClick={() => handleDownloadTemplateChecklist(record)}
-                        title="Wartungsvorlage Checkliste herunterladen"
-                      >
-                        <FileText className="h-4 w-4 text-green-600" />
-                      </Button>
                     )}
                     
                     <Button 

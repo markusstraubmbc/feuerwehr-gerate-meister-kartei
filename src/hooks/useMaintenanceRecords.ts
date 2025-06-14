@@ -91,36 +91,6 @@ export const getTemplateChecklistUrl = async (templateId: string): Promise<strin
   }
 };
 
-// Function to download template checklist PDF
-export const downloadTemplateChecklist = async (template: MaintenanceTemplate, equipmentName: string): Promise<void> => {
-  try {
-    if (!template.checklist_url) {
-      throw new Error("Keine Checkliste für diese Wartungsvorlage verfügbar");
-    }
-
-    // Try to get the signed URL for the checklist
-    const signedUrl = await getTemplateChecklistUrl(template.id);
-    
-    if (!signedUrl) {
-      throw new Error("Checkliste konnte nicht gefunden werden");
-    }
-
-    // Create a temporary link and trigger download
-    const link = document.createElement('a');
-    link.href = signedUrl;
-    link.download = `Checkliste-${template.name}-${equipmentName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-    link.target = '_blank';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-  } catch (error) {
-    console.error("Error downloading template checklist:", error);
-    throw error;
-  }
-};
-
 // Function to get latest comments for an equipment
 export const getLatestEquipmentComments = async (equipmentId: string, limit: number = 5): Promise<any[]> => {
   try {

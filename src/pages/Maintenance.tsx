@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useMaintenanceRecords, MaintenanceRecord, downloadTemplateChecklist } from "@/hooks/useMaintenanceRecords";
+import { useMaintenanceRecords, MaintenanceRecord } from "@/hooks/useMaintenanceRecords";
 import { useMaintenanceTemplates } from "@/hooks/useMaintenanceTemplates";
 import { useEquipment } from "@/hooks/useEquipment";
 import { usePersons } from "@/hooks/usePersons";
@@ -19,8 +19,7 @@ import {
   Search,
   ArrowLeft,
   Eye,
-  FileCheck,
-  FileText
+  FileCheck
 } from "lucide-react";
 import {
   Drawer,
@@ -425,21 +424,6 @@ const Maintenance = () => {
     toast.success(`${created} Wartungen wurden erfolgreich geplant`);
   };
 
-  const handleDownloadTemplateChecklistFromInterval = async (equipmentName: string, template: any) => {
-    try {
-      if (!template.checklist_url) {
-        toast.error('Keine Checkliste für diese Wartungsvorlage verfügbar');
-        return;
-      }
-
-      await downloadTemplateChecklist(template, equipmentName);
-      toast.success('Wartungsvorlage Checkliste erfolgreich heruntergeladen');
-    } catch (error) {
-      console.error('Template checklist download error:', error);
-      toast.error('Fehler beim Herunterladen der Wartungsvorlage Checkliste');
-    }
-  };
-
   if (recordsLoading || templatesLoading || equipmentLoading || personsLoading || categoriesLoading) {
     return <div>Lädt...</div>;
   }
@@ -724,37 +708,23 @@ const Maintenance = () => {
                           : "Nicht zugewiesen"}
                       </td>
                       <td className="py-2 px-4">
-                        <div className="flex gap-2">
-                          {item.template.checklist_url && (
-                            <Button 
-                              variant="outline"
-                              size="sm" 
-                              onClick={() => handleDownloadTemplateChecklistFromInterval(item.equipment.name, item.template)}
-                              title="Wartungsvorlage Checkliste herunterladen"
-                            >
-                              <FileText className="h-4 w-4 mr-2" />
-                              Checkliste
-                            </Button>
-                          )}
-                          
-                          {item.existingRecord ? (
-                            <span className="text-green-500">Geplant</span>
-                          ) : (
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleCreateMaintenance(
-                                item.equipment.id, 
-                                item.template.id, 
-                                item.nextDueDate,
-                                item.template.responsible_person_id
-                              )}
-                              disabled={createMaintenanceMutation.isPending}
-                            >
-                              <Calendar className="h-4 w-4 mr-2" />
-                              Planen
-                            </Button>
-                          )}
-                        </div>
+                        {item.existingRecord ? (
+                          <span className="text-green-500">Geplant</span>
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleCreateMaintenance(
+                              item.equipment.id, 
+                              item.template.id, 
+                              item.nextDueDate,
+                              item.template.responsible_person_id
+                            )}
+                            disabled={createMaintenanceMutation.isPending}
+                          >
+                            <Calendar className="h-4 w-4 mr-2" />
+                            Planen
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -802,7 +772,6 @@ const Maintenance = () => {
                   <th className="text-left py-2 px-4">Kategorie</th>
                   <th className="text-left py-2 px-4">Verantwortlich</th>
                   <th className="text-left py-2 px-4">Beschreibung</th>
-                  <th className="text-left py-2 px-4">Aktionen</th>
                 </tr>
               </thead>
               <tbody>
@@ -817,24 +786,11 @@ const Maintenance = () => {
                         : "-"}
                     </td>
                     <td className="py-2 px-4">{template.description || "-"}</td>
-                    <td className="py-2 px-4">
-                      {template.checklist_url && (
-                        <Button 
-                          variant="outline"
-                          size="sm" 
-                          onClick={() => handleDownloadTemplateChecklistFromInterval("Vorlage", template)}
-                          title="Wartungsvorlage Checkliste herunterladen"
-                        >
-                          <FileText className="h-4 w-4 mr-2" />
-                          Checkliste
-                        </Button>
-                      )}
-                    </td>
                   </tr>
                 ))}
                 {templates.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-4 text-center text-muted-foreground">
+                    <td colSpan={5} className="py-4 text-center text-muted-foreground">
                       Keine Wartungsvorlagen verfügbar
                     </td>
                   </tr>
