@@ -200,7 +200,7 @@ export function EquipmentList({
                           variant="ghost"
                           size="icon"
                           onClick={() => handleOverview(item)}
-                          title="Übersicht anzeigen"
+                          title="Detailübersicht anzeigen"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
