@@ -37,9 +37,9 @@ function App() {
               <Route path="maintenance-time" element={<MaintenanceTime />} />
               <Route path="person-management" element={<PersonManagement />} />
               <Route path="settings" element={<Settings />} />
-              <Route path="system-settings" element={<SystemSettings />} />
-              <Route path="email-settings" element={<EmailSettings />} />
-              <Route path="maintenance-template-settings" element={<MaintenanceTemplateSettings />} />
+              <Route path="settings/system" element={<SystemSettings />} />
+              <Route path="settings/email" element={<EmailSettings />} />
+              <Route path="settings/maintenance-templates" element={<MaintenanceTemplateSettings />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
