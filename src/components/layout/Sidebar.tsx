@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Wrench, CalendarCheck, Clock, Package, Settings } from 'lucide-react';
+import { Home, Wrench, CalendarCheck, Clock, Settings } from 'lucide-react';
 
 const AppSidebar = () => {
   const [systemName, setSystemName] = useState('Feuerwehr Inventar');
@@ -139,18 +138,6 @@ const AppSidebar = () => {
             >
               <Clock className="inline-block w-5 h-5 mr-3" />
               Wartungs-Zeitauswertung
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/inventory"
-              className={({ isActive }) => 
-                `block px-4 py-2 rounded transition-colors ${getNavLinkClass({ isActive })}`
-              }
-              style={({ isActive }) => getNavLinkStyle(isActive)}
-            >
-              <Package className="inline-block w-5 h-5 mr-3" />
-              Inventar
             </NavLink>
           </li>
           <li>

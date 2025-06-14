@@ -115,6 +115,7 @@ const EquipmentManagement = () => {
             statusFilter={selectedStatus || undefined}
             categoryFilter={selectedCategory || undefined}
             personFilter={selectedPerson || undefined}
+            searchTerm={searchTerm}
             onFilterChange={handleFilterChange}
           />
         </CardContent>

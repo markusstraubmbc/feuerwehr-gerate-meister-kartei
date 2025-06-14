@@ -14,7 +14,6 @@ import {
   Trash2,
   Barcode,
   Copy,
-  Filter,
   MessageCircle,
   FileDown
 } from "lucide-react";
@@ -24,18 +23,6 @@ import { EditEquipmentForm } from "./EditEquipmentForm";
 import { DeleteEquipmentDialog } from "./DeleteEquipmentDialog";
 import { BarcodeDialog } from "./BarcodeDialog";
 import { DuplicateEquipmentDialog } from "./DuplicateEquipmentDialog";
-import { toast } from "@/components/ui/sonner";
-import { useCategories } from "@/hooks/useCategories";
-import { usePersons } from "@/hooks/usePersons";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { SELECT_ALL_VALUE, SELECT_NONE_VALUE } from "@/lib/constants";
 import { format } from "date-fns";
 import { CommentsDialog } from "./CommentsDialog";
 import { EquipmentCommentsInfo } from "./EquipmentCommentsInfo";
@@ -46,6 +33,7 @@ interface EquipmentListProps {
   statusFilter?: string;
   categoryFilter?: string;
   personFilter?: string;
+  searchTerm?: string;
   onFilterChange?: (filters: {
     status?: string;
     category?: string;
@@ -59,6 +47,7 @@ export function EquipmentList({
   statusFilter,
   categoryFilter,
   personFilter,
+  searchTerm = "",
   onFilterChange
 }: EquipmentListProps) {
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
@@ -67,27 +56,20 @@ export function EquipmentList({
   const [isBarcodeDialogOpen, setIsBarcodeDialogOpen] = useState(false);
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const [isCommentsDialogOpen, setIsCommentsDialogOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState(statusFilter || "");
-  const [selectedCategory, setSelectedCategory] = useState(categoryFilter || "");
-  const [selectedPerson, setSelectedPerson] = useState(personFilter || "");
-  
-  const { data: categories = [] } = useCategories();
-  const { data: persons = [] } = usePersons();
   
   const printRef = useRef<HTMLDivElement>(null);
 
   // Apply filters to get filtered equipment
   const filteredEquipment = equipment.filter(item => {
-    if (selectedStatus && selectedStatus !== "status_all" && item.status !== selectedStatus) {
+    if (statusFilter && statusFilter !== "status_all" && item.status !== statusFilter) {
       return false;
     }
     
-    if (selectedCategory && selectedCategory !== SELECT_ALL_VALUE && item.category_id !== selectedCategory) {
+    if (categoryFilter && item.category_id !== categoryFilter) {
       return false;
     }
     
-    if (selectedPerson && selectedPerson !== SELECT_ALL_VALUE && item.responsible_person_id !== selectedPerson) {
+    if (personFilter && item.responsible_person_id !== personFilter) {
       return false;
     }
     
@@ -134,119 +116,13 @@ export function EquipmentList({
     setIsCommentsDialogOpen(true);
   };
 
-  const handleFilterChange = (type: string, value: string) => {
-    switch (type) {
-      case 'status':
-        setSelectedStatus(value);
-        break;
-      case 'category':
-        setSelectedCategory(value);
-        break;
-      case 'person':
-        setSelectedPerson(value);
-        break;
-      case 'search':
-        setSearchTerm(value);
-        break;
-    }
-
-    if (onFilterChange) {
-      onFilterChange({
-        status: type === 'status' ? value : selectedStatus,
-        category: type === 'category' ? value : selectedCategory,
-        person: type === 'person' ? value : selectedPerson,
-        search: type === 'search' ? value : searchTerm
-      });
-    }
-  };
-
   return (
     <>
-      <div className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
-        <div className="flex flex-1 flex-col sm:flex-row gap-2 w-full">
-          <Input
-            placeholder="Suchen..."
-            value={searchTerm}
-            onChange={(e) => handleFilterChange('search', e.target.value)}
-            className="w-full sm:w-60"
-          />
-          
-          <Select 
-            value={selectedCategory || SELECT_ALL_VALUE} 
-            onValueChange={(value) => handleFilterChange('category', value)}
-          >
-            <SelectTrigger className="w-full sm:w-40">
-              <SelectValue placeholder="Kategorie" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={SELECT_ALL_VALUE}>Alle Kategorien</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Select 
-            value={selectedPerson || SELECT_ALL_VALUE} 
-            onValueChange={(value) => handleFilterChange('person', value)}
-          >
-            <SelectTrigger className="w-full sm:w-40">
-              <SelectValue placeholder="Person" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={SELECT_ALL_VALUE}>Alle Personen</SelectItem>
-              {persons.map((person) => (
-                <SelectItem key={person.id} value={person.id}>
-                  {person.first_name} {person.last_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Select 
-            value={selectedStatus} 
-            onValueChange={(value) => handleFilterChange('status', value)}
-          >
-            <SelectTrigger className="w-full sm:w-40">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="status_all">Alle Status</SelectItem>
-              <SelectItem value="einsatzbereit">Einsatzbereit</SelectItem>
-              <SelectItem value="prüfung fällig">Prüfung fällig</SelectItem>
-              <SelectItem value="wartung">Wartung</SelectItem>
-              <SelectItem value="defekt">Defekt</SelectItem>
-              <SelectItem value="aussortiert">Aussortiert</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => {
-              setSearchTerm("");
-              setSelectedStatus("");
-              setSelectedCategory("");
-              setSelectedPerson("");
-              if (onFilterChange) {
-                onFilterChange({ status: "", category: "", person: "", search: "" });
-              }
-            }}
-            className="min-w-[100px]"
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            Zurücksetzen
-          </Button>
-          
-          <Button variant="outline" size="sm" onClick={handlePdfDownload}>
-            <FileDown className="h-4 w-4 mr-2" />
-            PDF
-          </Button>
-        </div>
+      <div className="flex justify-end mb-4">
+        <Button variant="outline" size="sm" onClick={handlePdfDownload}>
+          <FileDown className="h-4 w-4 mr-2" />
+          PDF
+        </Button>
       </div>
       
       <div className="rounded-md border">
