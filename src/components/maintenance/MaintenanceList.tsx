@@ -14,7 +14,7 @@ import { de } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { FileCheck, Eye, FileDown, Trash2, PenLine, Filter } from "lucide-react";
 import type { MaintenanceRecord } from "@/hooks/useMaintenanceRecords";
-import { getTemplateChecklistUrl, generateCustomChecklist } from "@/hooks/useMaintenanceRecords";
+import { generateCustomChecklist } from "@/hooks/useMaintenanceRecords";
 import { CompleteMaintenanceDialog } from "./CompleteMaintenanceDialog";
 import { ViewMaintenanceDialog } from "./ViewMaintenanceDialog";
 import * as XLSX from 'xlsx';
@@ -181,38 +181,6 @@ export const MaintenanceList = ({
     } catch (error) {
       console.error('Export error:', error);
       toast.error('Fehler beim Exportieren der Daten');
-    }
-  };
-
-  const downloadChecklist = async (record: MaintenanceRecord) => {
-    try {
-      if (record.template?.checklist_url) {
-        const { data, error } = await supabase
-          .storage
-          .from('checklists')
-          .download(record.template.checklist_url);
-
-        if (error) {
-          throw error;
-        }
-
-        // Create a download link and trigger download
-        const url = URL.createObjectURL(data);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `Checkliste-${record.template.name}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        URL.revokeObjectURL(url);
-        link.remove();
-        
-        toast.success('Checkliste wurde heruntergeladen');
-      } else {
-        toast.error('Keine Checkliste für diese Wartungsvorlage verfügbar');
-      }
-    } catch (error) {
-      console.error('Download error:', error);
-      toast.error('Fehler beim Herunterladen der Checkliste');
     }
   };
 
@@ -416,18 +384,6 @@ export const MaintenanceList = ({
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </>
-                    )}
-                    
-                    {record.template?.checklist_url && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="h-8 w-8 p-0" 
-                        onClick={() => downloadChecklist(record)}
-                        title="Checkliste herunterladen"
-                      >
-                        <FileDown className="h-4 w-4" />
-                      </Button>
                     )}
                     
                     <Button 
