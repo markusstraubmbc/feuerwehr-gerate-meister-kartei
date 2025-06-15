@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { 
   Dialog, 
@@ -65,9 +66,9 @@ export function EditEquipmentForm({ equipment, onSuccess }: EditEquipmentFormPro
           serial_number: formData.serial_number || null,
           manufacturer: formData.manufacturer || null,
           model: formData.model || null,
-          category_id: formData.category_id || null,
-          location_id: formData.location_id || null,
-          responsible_person_id: formData.responsible_person_id || null,
+          category_id: formData.category_id === "no_category" ? null : formData.category_id || null,
+          location_id: formData.location_id === "no_location" ? null : formData.location_id || null,
+          responsible_person_id: formData.responsible_person_id === "no_person" ? null : formData.responsible_person_id || null,
           status: formData.status,
           purchase_date: formData.purchase_date || null,
           replacement_date: formData.replacement_date || null,
@@ -161,12 +162,12 @@ export function EditEquipmentForm({ equipment, onSuccess }: EditEquipmentFormPro
 
             <div>
               <Label htmlFor="category">Kategorie</Label>
-              <Select value={formData.category_id} onValueChange={(value) => setFormData({ ...formData, category_id: value })}>
+              <Select value={formData.category_id || "no_category"} onValueChange={(value) => setFormData({ ...formData, category_id: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Kategorie auswählen" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Keine Kategorie</SelectItem>
+                  <SelectItem value="no_category">Keine Kategorie</SelectItem>
                   {categories.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
@@ -178,12 +179,12 @@ export function EditEquipmentForm({ equipment, onSuccess }: EditEquipmentFormPro
 
             <div>
               <Label htmlFor="location">Standort</Label>
-              <Select value={formData.location_id} onValueChange={(value) => setFormData({ ...formData, location_id: value })}>
+              <Select value={formData.location_id || "no_location"} onValueChange={(value) => setFormData({ ...formData, location_id: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Standort auswählen" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Kein Standort</SelectItem>
+                  <SelectItem value="no_location">Kein Standort</SelectItem>
                   {locations.map((location) => (
                     <SelectItem key={location.id} value={location.id}>
                       {location.name}
@@ -195,12 +196,12 @@ export function EditEquipmentForm({ equipment, onSuccess }: EditEquipmentFormPro
 
             <div>
               <Label htmlFor="responsible_person">Verantwortliche Person</Label>
-              <Select value={formData.responsible_person_id} onValueChange={(value) => setFormData({ ...formData, responsible_person_id: value })}>
+              <Select value={formData.responsible_person_id || "no_person"} onValueChange={(value) => setFormData({ ...formData, responsible_person_id: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Person auswählen" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Keine Person</SelectItem>
+                  <SelectItem value="no_person">Keine Person</SelectItem>
                   {persons.map((person) => (
                     <SelectItem key={person.id} value={person.id}>
                       {person.first_name} {person.last_name}

@@ -16,11 +16,12 @@ export function AddCommentForm({ onSubmit, isSubmitting }: AddCommentFormProps) 
   const { data: persons = [] } = usePersons();
 
   const handleSubmit = async () => {
-    if (!newComment.trim() || !selectedPersonId) return;
+    if (!newComment.trim() || !selectedPersonId || selectedPersonId === "no_person") return;
     
     const success = await onSubmit(newComment, selectedPersonId);
     if (success) {
       setNewComment("");
+      setSelectedPersonId(null);
     }
   };
 
@@ -29,13 +30,14 @@ export function AddCommentForm({ onSubmit, isSubmitting }: AddCommentFormProps) 
       <h3 className="font-medium">Neuen Kommentar hinzufügen</h3>
       
       <Select 
-        value={selectedPersonId || ""} 
-        onValueChange={(value) => setSelectedPersonId(value || null)}
+        value={selectedPersonId || "no_person"} 
+        onValueChange={(value) => setSelectedPersonId(value === "no_person" ? null : value)}
       >
         <SelectTrigger>
           <SelectValue placeholder="Person auswählen" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="no_person">Person auswählen</SelectItem>
           {persons.map((person) => (
             <SelectItem key={person.id} value={person.id}>
               {person.first_name} {person.last_name}
@@ -54,7 +56,7 @@ export function AddCommentForm({ onSubmit, isSubmitting }: AddCommentFormProps) 
       <div className="flex justify-end">
         <Button 
           onClick={handleSubmit} 
-          disabled={isSubmitting || !newComment.trim() || !selectedPersonId}
+          disabled={isSubmitting || !newComment.trim() || !selectedPersonId || selectedPersonId === "no_person"}
         >
           {isSubmitting ? "Speichert..." : "Kommentar hinzufügen"}
         </Button>
