@@ -60,72 +60,75 @@ serve(async (req) => {
 
     for (const item of equipment || []) {
       try {
-        // Find matching template based on category
-        const template = templates?.find(t => t.category_id === item.category_id)
-        
-        if (!template) {
+        // Finde ALLE passenden Templates pro Kategorie!
+        const matchingTemplates = templates?.filter(t => t.category_id === item.category_id) || [];
+
+        if (!matchingTemplates.length) {
           console.log(`No template found for equipment ${item.name}`)
           skipped++
           continue
         }
 
-        // Calculate maintenance dates
-        const baseDate = item.last_check_date 
-          ? new Date(item.last_check_date)
-          : item.purchase_date 
-          ? new Date(item.purchase_date)
-          : new Date()
+        // Für JEDES passende Template
+        for (const template of matchingTemplates) {
+          // Calculate maintenance dates
+          const baseDate = item.last_check_date 
+            ? new Date(item.last_check_date)
+            : item.purchase_date 
+            ? new Date(item.purchase_date)
+            : new Date()
 
-        const maintenanceDates = []
-        let currentDate = new Date(baseDate)
+          const maintenanceDates = []
+          let currentDate = new Date(baseDate)
 
-        // Generate all needed dates within the next 180 days
-        while (currentDate <= endDate) {
-          currentDate = new Date(currentDate)
-          currentDate.setMonth(currentDate.getMonth() + template.interval_months)
-          
-          if (currentDate <= endDate) {
-            maintenanceDates.push(new Date(currentDate))
-          }
-        }
-
-        // Check existing records for each date and create missing ones
-        for (const dueDate of maintenanceDates) {
-          const startOfDay = new Date(dueDate)
-          startOfDay.setHours(0, 0, 0, 0)
-          const endOfDay = new Date(dueDate)
-          endOfDay.setHours(23, 59, 59, 999)
-
-          const { data: existingRecords } = await supabase
-            .from('maintenance_records')
-            .select('id')
-            .eq('equipment_id', item.id)
-            .eq('template_id', template.id)
-            .gte('due_date', startOfDay.toISOString())
-            .lte('due_date', endOfDay.toISOString())
-
-          if (existingRecords && existingRecords.length > 0) {
-            console.log(`Maintenance already exists for ${item.name} on ${dueDate.toDateString()}`)
-            skipped++
-            continue
+          // Generate all needed dates within the next 180 days
+          while (currentDate <= endDate) {
+            currentDate = new Date(currentDate)
+            currentDate.setMonth(currentDate.getMonth() + template.interval_months)
+            
+            if (currentDate <= endDate) {
+              maintenanceDates.push(new Date(currentDate))
+            }
           }
 
-          // Create new maintenance record
-          const { error } = await supabase
-            .from('maintenance_records')
-            .insert({
-              equipment_id: item.id,
-              template_id: template.id,
-              due_date: dueDate.toISOString(),
-              status: 'ausstehend',
-              performed_by: template.responsible_person_id
-            })
+          // Check existing records for each date and create missing ones
+          for (const dueDate of maintenanceDates) {
+            const startOfDay = new Date(dueDate)
+            startOfDay.setHours(0, 0, 0, 0)
+            const endOfDay = new Date(dueDate)
+            endOfDay.setHours(23, 59, 59, 999)
 
-          if (error) {
-            console.error(`Error creating maintenance for ${item.name} on ${dueDate.toDateString()}:`, error)
-            errors++
-          } else {
-            created++
+            const { data: existingRecords } = await supabase
+              .from('maintenance_records')
+              .select('id')
+              .eq('equipment_id', item.id)
+              .eq('template_id', template.id)
+              .gte('due_date', startOfDay.toISOString())
+              .lte('due_date', endOfDay.toISOString())
+
+            if (existingRecords && existingRecords.length > 0) {
+              console.log(`Maintenance already exists for ${item.name} / ${template.name} on ${dueDate.toDateString()}`)
+              skipped++
+              continue
+            }
+
+            // Create new maintenance record
+            const { error } = await supabase
+              .from('maintenance_records')
+              .insert({
+                equipment_id: item.id,
+                template_id: template.id,
+                due_date: dueDate.toISOString(),
+                status: 'ausstehend',
+                performed_by: template.responsible_person_id
+              })
+
+            if (error) {
+              console.error(`Error creating maintenance for ${item.name} / ${template.name} on ${dueDate.toDateString()}:`, error)
+              errors++
+            } else {
+              created++
+            }
           }
         }
       } catch (error) {
