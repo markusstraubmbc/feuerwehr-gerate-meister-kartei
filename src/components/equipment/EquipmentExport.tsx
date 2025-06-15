@@ -4,6 +4,13 @@ import { Location } from "@/hooks/useLocations";
 import * as XLSX from 'xlsx';
 import { toast } from "sonner";
 
+// Hilfsfunktion, um die Barcode-Bild-URL zu erstellen
+function getBarcodeUrl(barcode: string) {
+  return `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(
+    barcode
+  )}&scale=2&height=12&includetext=true&textxalign=center&backgroundcolor=FFFFFF`;
+}
+
 interface ExportEquipmentProps {
   equipment: Equipment[];
   locations?: Location[];
@@ -42,6 +49,7 @@ export const exportEquipmentToExcel = ({
     'Inventarnummer': item.inventory_number || '',
     'Name': item.name,
     'Barcode': item.barcode || '',
+    'Strichcode-URL': item.barcode ? getBarcodeUrl(item.barcode) : '',
     'Seriennummer': item.serial_number || '',
     'Hersteller': item.manufacturer || '',
     'Modell': item.model || '',
