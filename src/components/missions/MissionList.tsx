@@ -77,11 +77,12 @@ export const MissionList = ({ missions, isLoading }: MissionListProps) => {
                 <TableRow>
                   <TableHead>Titel</TableHead>
                   <TableHead>Typ</TableHead>
-                  <TableHead className="hidden md:table-cell">Datum</TableHead>
+                  <TableHead>Datum</TableHead>
                   <TableHead className="hidden md:table-cell">Zeit</TableHead>
                   <TableHead className="hidden lg:table-cell">Ort</TableHead>
-                  <TableHead className="hidden lg:table-cell">Verantwortlich</TableHead>
-                  <TableHead className="hidden md:table-cell">Ausrüstung</TableHead>
+                  <TableHead>Verantwortlich</TableHead>
+                  <TableHead>Fahrzeuge</TableHead>
+                  <TableHead>Ausrüstung</TableHead>
                   <TableHead className="text-right">Aktionen</TableHead>
                 </TableRow>
               </TableHeader>

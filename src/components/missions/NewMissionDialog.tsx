@@ -17,7 +17,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { usePersons } from "@/hooks/usePersons";
 
 const missionSchema = z.object({
   title: z.string().min(1, "Titel ist erforderlich"),
@@ -27,7 +26,8 @@ const missionSchema = z.object({
   start_time: z.string().optional(),
   end_time: z.string().optional(),
   location: z.string().optional(),
-  responsible_person_id: z.string().optional(),
+  responsible_persons: z.string().optional(),
+  vehicles: z.string().optional(),
 });
 
 type MissionFormData = z.infer<typeof missionSchema>;
@@ -40,7 +40,6 @@ interface NewMissionDialogProps {
 export const NewMissionDialog = ({ open, onOpenChange }: NewMissionDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
-  const { data: persons } = usePersons();
 
   const form = useForm<MissionFormData>({
     resolver: zodResolver(missionSchema),
@@ -51,6 +50,8 @@ export const NewMissionDialog = ({ open, onOpenChange }: NewMissionDialogProps) 
       location: "",
       start_time: "",
       end_time: "",
+      responsible_persons: "",
+      vehicles: "",
     },
   });
 
@@ -67,7 +68,8 @@ export const NewMissionDialog = ({ open, onOpenChange }: NewMissionDialogProps) 
           start_time: data.start_time || null,
           end_time: data.end_time || null,
           location: data.location || null,
-          responsible_person_id: data.responsible_person_id || null,
+          responsible_persons: data.responsible_persons || null,
+          vehicles: data.vehicles || null,
         });
 
       if (error) throw error;
@@ -218,47 +220,48 @@ export const NewMissionDialog = ({ open, onOpenChange }: NewMissionDialogProps) 
                 )}
               />
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
+            
+            <FormField
+              control={form.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Ort</FormLabel>
+                  <FormControl>
+                    <Input placeholder="z.B. Hauptstraße 123" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
                 control={form.control}
-                name="location"
+                name="responsible_persons"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Ort</FormLabel>
+                    <FormLabel>Verantwortliche Person(en)</FormLabel>
                     <FormControl>
-                      <Input placeholder="z.B. Hauptstraße 123" {...field} />
+                      <Textarea placeholder="Max Mustermann, Jane Doe..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-              <FormField
+              
+            <FormField
                 control={form.control}
-                name="responsible_person_id"
+                name="vehicles"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Verantwortliche Person</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Person auswählen" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {persons?.map((person) => (
-                          <SelectItem key={person.id} value={person.id}>
-                            {person.first_name} {person.last_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Fahrzeuge</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="HLF 20, ELW 1..." {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
 
             <div className="flex justify-end space-x-2 pt-4">
               <Button

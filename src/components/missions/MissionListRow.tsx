@@ -3,7 +3,7 @@ import { useMissionEquipment } from "@/hooks/useMissionEquipment";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableRow, TableCell } from "@/components/ui/table";
-import { FileDown, Eye, Users, Calendar } from "lucide-react";
+import { FileDown, Eye, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { Mission } from "@/hooks/useMissions";
@@ -47,7 +47,7 @@ export const MissionListRow = ({
           {mission.mission_type === 'einsatz' ? 'Einsatz' : 'Übung'}
         </Badge>
       </TableCell>
-      <TableCell className="hidden md:table-cell">
+      <TableCell>
         <div className="flex items-center gap-1">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           {format(new Date(mission.mission_date), 'dd.MM.yyyy', { locale: de })}
@@ -56,21 +56,18 @@ export const MissionListRow = ({
       <TableCell className="hidden md:table-cell">
         {mission.start_time && mission.end_time 
           ? `${mission.start_time} - ${mission.end_time}`
-          : mission.start_time || "-"
-        }
+          : mission.start_time || "-"}
       </TableCell>
       <TableCell className="hidden lg:table-cell">
         {mission.location || "-"}
       </TableCell>
-      <TableCell className="hidden lg:table-cell">
-        {mission.responsible_person ? (
-          <div className="flex items-center gap-1">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            {mission.responsible_person.first_name} {mission.responsible_person.last_name}
-          </div>
-        ) : "-"}
+      <TableCell>
+        {mission.responsible_persons || "-"}
       </TableCell>
-      <TableCell className="hidden md:table-cell">
+      <TableCell>
+        {mission.vehicles || "-"}
+      </TableCell>
+      <TableCell>
         {isLoading
           ? <span className="text-xs text-muted-foreground">...</span>
           : equipmentCount || 0}

@@ -59,9 +59,15 @@ export const useMissionPrintExport = () => {
         doc.text(`Ort: ${mission.location}`, 20, yPos);
         yPos += 6;
       }
-      if (mission.responsible_person) {
-        doc.text(`Verantwortlich: ${mission.responsible_person.first_name} ${mission.responsible_person.last_name}`, 20, yPos);
-        yPos += 6;
+      if (mission.responsible_persons) {
+        const responsibleLines = doc.splitTextToSize(`Verantwortlich: ${mission.responsible_persons}`, 170);
+        doc.text(responsibleLines, 20, yPos);
+        yPos += (responsibleLines.length * 4) + 2;
+      }
+       if (mission.vehicles) {
+        const vehicleLines = doc.splitTextToSize(`Fahrzeuge: ${mission.vehicles}`, 170);
+        doc.text(vehicleLines, 20, yPos);
+        yPos += (vehicleLines.length * 4) + 2;
       }
       
       // Description if available

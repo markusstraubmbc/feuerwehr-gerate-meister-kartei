@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Clock, MapPin, User, Plus, Trash2, Package, FileDown } from "lucide-react";
+import { Clock, MapPin, Users, Plus, Trash2, Package, FileDown } from "lucide-react";
 import { Mission } from "@/hooks/useMissions";
 import { useMissionEquipment } from "@/hooks/useMissionEquipment";
 import { useMissionPrintExport } from "@/hooks/useMissionPrintExport";
@@ -98,18 +98,30 @@ export const ViewMissionDialog = ({ mission, open, onOpenChange }: ViewMissionDi
                   </div>
                 )}
                 
-                {mission.responsible_person && (
-                  <div className="flex items-center text-sm">
-                    <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <strong className="mr-2">Verantwortlich:</strong>
-                    {mission.responsible_person.first_name} {mission.responsible_person.last_name}
+                {mission.responsible_persons && (
+                  <div className="flex items-start text-sm">
+                    <Users className="h-4 w-4 mr-2 mt-1 shrink-0 text-muted-foreground" />
+                    <div>
+                      <strong className="mr-2">Verantwortlich:</strong>
+                      <span className="whitespace-pre-wrap">{mission.responsible_persons}</span>
+                    </div>
+                  </div>
+                )}
+
+                {mission.vehicles && (
+                  <div className="flex items-start text-sm">
+                    <Package className="h-4 w-4 mr-2 mt-1 shrink-0 text-muted-foreground" />
+                    <div>
+                      <strong className="mr-2">Fahrzeuge:</strong>
+                       <span className="whitespace-pre-wrap">{mission.vehicles}</span>
+                    </div>
                   </div>
                 )}
 
                 {mission.description && (
                   <div className="pt-2">
                     <strong className="text-sm">Beschreibung:</strong>
-                    <p className="text-sm text-muted-foreground mt-1">{mission.description}</p>
+                    <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{mission.description}</p>
                   </div>
                 )}
               </CardContent>
