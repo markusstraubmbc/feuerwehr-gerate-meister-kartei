@@ -19,6 +19,7 @@ export function AutoMaintenanceGenerator() {
     errors: number;
     type: 'manual' | 'yearly';
   } | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
 
   const { data: equipment = [] } = useEquipment();
   const { data: templates = [] } = useMaintenanceTemplates();
@@ -189,6 +190,55 @@ export function AutoMaintenanceGenerator() {
 
   const equipmentWithoutTemplates = getEquipmentWithoutTemplates();
 
+  // --- NEU: Reset-Funktion für alle offenen Wartungen ---
+  const resetAndRegenerateMaintenance = async () => {
+    setIsResetting(true);
+    try {
+      // 1. Lösche alle ausstehenden & geplanten Wartungen
+      const { error: deleteError } = await supabase
+        .from("maintenance_records")
+        .delete()
+        .in("status", ["ausstehend", "geplant"]);
+
+      if (deleteError) {
+        toast.error("Fehler beim Löschen der offenen Wartungen");
+        setIsResetting(false);
+        return;
+      }
+
+      toast.info("Alle offenen Wartungen wurden gelöscht. Neue Wartungen werden generiert...");
+
+      // 2. Edge Function aufrufen zur automatischen Generierung
+      const { data, error } = await supabase.functions.invoke('maintenance-auto-generator');
+
+      if (error) {
+        toast.error("Fehler beim Generieren der neuen Wartungen");
+        setIsResetting(false);
+        return;
+      }
+
+      if (data) {
+        setGenerationReport({
+          created: data.created || 0,
+          skipped: data.skipped || 0,
+          errors: data.errors || 0,
+          type: "yearly",
+        });
+
+        if (data.created > 0) {
+          queryClient.invalidateQueries({ queryKey: ["maintenance-records"] });
+          toast.success(`${data.created} neue Wartungstermine wurden erstellt`);
+        } else {
+          toast.info("Keine neuen Wartungstermine erforderlich");
+        }
+      }
+    } catch (error) {
+      toast.error("Fehler beim Reset/Neuerzeugen.");
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -280,7 +330,7 @@ export function AutoMaintenanceGenerator() {
           </Button>
         </div>
 
-        <div className="border-t pt-4">
+        <div className="border-t pt-4 space-y-2">
           <h4 className="font-medium mb-2">Automatisierung via Cron-Job</h4>
           <p className="text-sm text-muted-foreground mb-3">
             Verwende die Edge Function für automatische tägliche Generierung via Cron-Job.
@@ -293,6 +343,15 @@ export function AutoMaintenanceGenerator() {
           >
             <Calendar className="mr-2 h-4 w-4" />
             {isGeneratingYear ? 'Edge Function läuft...' : 'Edge Function für 180 Tage ausführen'}
+          </Button>
+          {/* --- NEUER BUTTON --- */}
+          <Button
+            onClick={resetAndRegenerateMaintenance}
+            disabled={isGenerating || isGeneratingYear || isResetting}
+            variant="destructive"
+            className="w-full mt-2"
+          >
+            {isResetting ? "Setze und generiere neu..." : "Alle offenen Wartungen löschen & neu generieren"}
           </Button>
         </div>
 
