@@ -24,6 +24,12 @@ interface DuplicateEquipmentDialogProps {
 
 export function DuplicateEquipmentDialog({ equipment, open, onOpenChange }: DuplicateEquipmentDialogProps) {
   const [duplicateName, setDuplicateName] = useState(`${equipment?.name || ''} (Kopie)`);
+  const [duplicateInventoryNumber, setDuplicateInventoryNumber] = useState(
+    equipment?.inventory_number ? `${equipment.inventory_number}-KOPIE` : ''
+  );
+  const [duplicateBarcode, setDuplicateBarcode] = useState(
+    equipment?.barcode ? `${equipment.barcode}-KOPIE` : ''
+  );
   const [isProcessing, setIsProcessing] = useState(false);
   const queryClient = useQueryClient();
 
@@ -96,15 +102,53 @@ export function DuplicateEquipmentDialog({ equipment, open, onOpenChange }: Dupl
 
     setIsProcessing(true);
     try {
-      // Generate unique inventory number and barcode
-      const uniqueInventoryNumber = await generateUniqueInventoryNumber(equipment.inventory_number);
-      const uniqueBarcode = await generateUniqueBarcode(equipment.barcode);
+      // Use user-provided values or generate unique ones if empty
+      let finalInventoryNumber = duplicateInventoryNumber.trim() || null;
+      let finalBarcode = duplicateBarcode.trim() || null;
+      
+      // If user provided values, check if they already exist
+      if (finalInventoryNumber) {
+        const { data: existingByInventory } = await supabase
+          .from("equipment")
+          .select("id")
+          .eq("inventory_number", finalInventoryNumber)
+          .single();
+        
+        if (existingByInventory) {
+          toast.error("Diese Inventarnummer existiert bereits. Bitte wählen Sie eine andere.");
+          setIsProcessing(false);
+          return;
+        }
+      }
+      
+      if (finalBarcode) {
+        const { data: existingByBarcode } = await supabase
+          .from("equipment")
+          .select("id")
+          .eq("barcode", finalBarcode)
+          .single();
+        
+        if (existingByBarcode) {
+          toast.error("Dieser Barcode existiert bereits. Bitte wählen Sie einen anderen.");
+          setIsProcessing(false);
+          return;
+        }
+      }
+      
+      // If no user input, generate unique values
+      if (!finalInventoryNumber && equipment.inventory_number) {
+        finalInventoryNumber = await generateUniqueInventoryNumber(equipment.inventory_number);
+      }
+      
+      if (!finalBarcode && equipment.barcode) {
+        finalBarcode = await generateUniqueBarcode(equipment.barcode);
+      }
       
       // Create a clean object for the duplication
       const equipmentToDuplicate = {
         name: duplicateName.trim(),
-        inventory_number: uniqueInventoryNumber,
-        barcode: uniqueBarcode,
+        inventory_number: finalInventoryNumber,
+        barcode: finalBarcode,
         serial_number: equipment.serial_number,
         manufacturer: equipment.manufacturer,
         model: equipment.model,
@@ -144,16 +188,16 @@ export function DuplicateEquipmentDialog({ equipment, open, onOpenChange }: Dupl
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Ausrüstung duplizieren</DialogTitle>
           <DialogDescription>
-            Erstellen Sie eine Kopie dieser Ausrüstung mit einem neuen Namen.
+            Erstellen Sie eine Kopie dieser Ausrüstung. Sie können Name, Inventarnummer und Barcode anpassen.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="duplicate-name">Neuer Name</Label>
+            <Label htmlFor="duplicate-name">Name *</Label>
             <Input
               id="duplicate-name"
               value={duplicateName}
@@ -161,10 +205,37 @@ export function DuplicateEquipmentDialog({ equipment, open, onOpenChange }: Dupl
               placeholder="Name für die duplizierte Ausrüstung"
             />
           </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="duplicate-inventory">Inventarnummer</Label>
+            <Input
+              id="duplicate-inventory"
+              value={duplicateInventoryNumber}
+              onChange={(e) => setDuplicateInventoryNumber(e.target.value)}
+              placeholder="Neue Inventarnummer (optional)"
+            />
+            <p className="text-xs text-muted-foreground">
+              Original: {equipment?.inventory_number || "Keine"}
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="duplicate-barcode">Barcode</Label>
+            <Input
+              id="duplicate-barcode"
+              value={duplicateBarcode}
+              onChange={(e) => setDuplicateBarcode(e.target.value)}
+              placeholder="Neuer Barcode (optional)"
+            />
+            <p className="text-xs text-muted-foreground">
+              Original: {equipment?.barcode || "Kein"}
+            </p>
+          </div>
+          
           <div>
             <p className="text-sm text-muted-foreground">
-              Alle Eigenschaften des Originals werden in die neue Ausrüstung übernommen. 
-              Inventarnummer und Barcode werden automatisch angepasst, um Duplikate zu vermeiden.
+              Alle anderen Eigenschaften des Originals werden übernommen. 
+              Wenn Inventarnummer oder Barcode leer gelassen werden, wird automatisch eine eindeutige Nummer generiert.
             </p>
           </div>
         </div>
