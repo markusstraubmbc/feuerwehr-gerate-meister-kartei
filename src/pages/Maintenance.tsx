@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MaintenanceList } from "@/components/maintenance/MaintenanceList";
 import { NewMaintenanceForm } from "@/components/maintenance/NewMaintenanceForm";
-import { AutoMaintenanceGenerator } from "@/components/maintenance/AutoMaintenanceGenerator";
 import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
 
 const Maintenance = () => {
@@ -32,8 +31,6 @@ const Maintenance = () => {
           Neue Wartung
         </Button>
       </div>
-
-      <AutoMaintenanceGenerator />
 
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList>

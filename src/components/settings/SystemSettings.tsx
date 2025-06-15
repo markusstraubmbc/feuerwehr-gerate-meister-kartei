@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useSystemSettings, useUpdateSystemSetting } from "@/hooks/useSystemSettings";
+import { AutoMaintenanceGenerator } from "@/components/maintenance/AutoMaintenanceGenerator";
 
 const SystemSettings = () => {
   const { data: settings = {}, isLoading } = useSystemSettings();
@@ -247,6 +247,8 @@ const SystemSettings = () => {
           </div>
         </CardContent>
       </Card>
+
+      <AutoMaintenanceGenerator />
 
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={updateSetting.isPending}>
