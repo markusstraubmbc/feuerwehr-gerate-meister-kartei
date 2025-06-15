@@ -43,6 +43,9 @@ function getBarcodeUrl(barcode: string) {
   )}&scale=2&height=12&includetext=true&textxalign=center&backgroundcolor=FFFFFF`;
 }
 
+// Importiere neue Util-Funktion
+import { getEquipmentAutoTableData } from "./equipmentPdfTableUtil";
+
 interface EquipmentPrintExportProps {
   equipment: Equipment[];
   printRef?: RefObject<HTMLDivElement>;
@@ -149,37 +152,9 @@ export const useEquipmentPrintExport = ({ equipment, printRef }: EquipmentPrintE
             "Hersteller",
           ];
 
-          // Tabelle mit Barcode, Barcode-Bild, Name, Inventarnummer, Hersteller
-          const bodyData = await Promise.all(
-            grouped[category][location].map(async item => {
-              const barcodeText = item.barcode || "-";
-              let barcodeImgBase64 = "";
-              if (item.barcode) {
-                try {
-                  // Lade Barcode-Bild als DataURL
-                  const response = await fetch(getBarcodeUrl(item.barcode));
-                  const blob = await response.blob();
-                  barcodeImgBase64 = await new Promise<string>((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result as string);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(blob);
-                  });
-                } catch {
-                  barcodeImgBase64 = "";
-                }
-              }
-              return [
-                barcodeText,
-                barcodeImgBase64 ? { image: barcodeImgBase64, width: 70, height: 18 } : "-", // Image in Zelle
-                item.name || "-",
-                item.inventory_number || "-",
-                item.manufacturer || "-"
-              ];
-            })
-          );
+          // Nutze die neue Hilfsfunktion für die korrekten Tabellen-Daten
+          const bodyData = await getEquipmentAutoTableData(grouped[category][location]);
 
-          // Tabelle mit Bildern (jsPDF-AutoTable erlaubt image-Objekte in Zellen)
           autoTable(doc, {
             head: [headers],
             body: bodyData,
