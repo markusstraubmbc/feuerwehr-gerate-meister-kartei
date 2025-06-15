@@ -1,38 +1,38 @@
 
 import { Equipment } from "@/hooks/useEquipment";
 
-// Barcode-URL wie gehabt
-function getBarcodeUrl(barcode: string) {
-  return `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(
-    barcode
-  )}&scale=2&height=12&includetext=true&textxalign=center&backgroundcolor=FFFFFF`;
+// QR-Code-URL generieren für PDF-Export (PNG)
+function getQrCodeUrl(data: string) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=120x120&format=png&data=${encodeURIComponent(data)}`;
 }
 
-// Konvertiere einzelne Einträge für AutoTable
+// Konvertiere Einträge für AutoTable (QR statt Barcode-Bild)
 export async function getEquipmentAutoTableData(
   equipments: Equipment[]
 ): Promise<(string | { image: string; width: number; height: number } | "-")[][]> {
   return await Promise.all(
     equipments.map(async item => {
       const barcodeText = item.barcode || "-";
-      let barcodeImgBase64 = "";
-      if (item.barcode) {
+      // Wir nehmen barcode; falls nicht vorhanden, Inventarnummer oder ID
+      const qrValue = item.barcode || item.inventory_number || item.id;
+      let qrImgBase64 = "";
+      if (qrValue) {
         try {
-          const response = await fetch(getBarcodeUrl(item.barcode));
+          const response = await fetch(getQrCodeUrl(qrValue));
           const blob = await response.blob();
-          barcodeImgBase64 = await new Promise<string>((resolve, reject) => {
+          qrImgBase64 = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
             reader.onloadend = () => resolve(reader.result as string);
             reader.onerror = reject;
             reader.readAsDataURL(blob);
           });
         } catch {
-          barcodeImgBase64 = "";
+          qrImgBase64 = "";
         }
       }
       return [
         barcodeText,
-        barcodeImgBase64 ? { image: barcodeImgBase64, width: 70, height: 18 } : "-",
+        qrImgBase64 ? { image: qrImgBase64, width: 18, height: 18 } : "-",
         item.name || "-",
         item.inventory_number || "-",
         item.manufacturer || "-"
