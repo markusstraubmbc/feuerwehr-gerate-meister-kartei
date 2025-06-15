@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
@@ -42,27 +41,24 @@ export const useMissionPrintExport = () => {
       let yPos = 60;
       
       // Mission details
-      doc.text(`Typ: ${mission.mission_type === 'einsatz' ? 'Einsatz' : 'Übung'}`, 20, yPos);
-      yPos += 6;
-      
+      if (mission.mission_type) {
+        doc.text(`Typ: ${mission.mission_type === 'einsatz' ? 'Einsatz' : 'Übung'}`, 20, yPos);
+        yPos += 6;
+      }
       doc.text(`Datum: ${format(new Date(mission.mission_date), 'dd.MM.yyyy (EEEE)', { locale: de })}`, 20, yPos);
       yPos += 6;
-      
       if (mission.start_time) {
         doc.text(`Startzeit: ${mission.start_time}`, 20, yPos);
         yPos += 6;
       }
-      
       if (mission.end_time) {
         doc.text(`Endzeit: ${mission.end_time}`, 20, yPos);
         yPos += 6;
       }
-      
       if (mission.location) {
         doc.text(`Ort: ${mission.location}`, 20, yPos);
         yPos += 6;
       }
-      
       if (mission.responsible_person) {
         doc.text(`Verantwortlich: ${mission.responsible_person.first_name} ${mission.responsible_person.last_name}`, 20, yPos);
         yPos += 6;
@@ -89,9 +85,17 @@ export const useMissionPrintExport = () => {
       doc.text('Verwendete Einsatzmittel:', 20, yPos);
       yPos += 10;
 
-      if (missionEquipment && missionEquipment.length > 0) {
+      // Debug-Log für Einsatzmittel (wichtig für Fehleranalyse)
+      console.log("MissionEquipment for PDF export:", missionEquipment);
+
+      // Prüfen auf valide Einsatzmittel (nur solche, die ein equipment-Objekt haben)
+      const filteredEquipment = Array.isArray(missionEquipment)
+        ? missionEquipment.filter(e => !!e.equipment)
+        : [];
+
+      if (filteredEquipment.length > 0) {
         // Prepare equipment table data
-        const equipmentTableData = missionEquipment.map(item => [
+        const equipmentTableData = filteredEquipment.map(item => [
           item.equipment?.inventory_number || '-',
           item.equipment?.name || '-',
           item.equipment?.category?.name || '-',
@@ -140,7 +144,11 @@ export const useMissionPrintExport = () => {
       } else {
         doc.setFont(undefined, 'normal');
         doc.setFontSize(10);
-        doc.text('Keine Einsatzmittel dokumentiert', 20, yPos);
+        doc.text(
+          'Keine Einsatzmittel dokumentiert oder nicht geladen.',
+          20,
+          yPos
+        );
       }
 
       // Footer with generation timestamp
