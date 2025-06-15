@@ -7,14 +7,18 @@ import { Label } from "@/components/ui/label";
 interface SystemNameSettingsProps {
   systemName: string;
   onSystemNameChange: (value: string) => void;
+  domainName: string;
+  onDomainNameChange: (value: string) => void;
 }
 
-export const SystemNameSettings = ({ systemName, onSystemNameChange }: SystemNameSettingsProps) => {
+export const SystemNameSettings = ({ systemName, onSystemNameChange, domainName, onDomainNameChange }: SystemNameSettingsProps) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Systemname</CardTitle>
-        <CardDescription>Anpassen des Systemnamens, der in der Seitenleiste angezeigt wird</CardDescription>
+        <CardTitle>Systemname &amp; Domain</CardTitle>
+        <CardDescription>
+          Anpassen des Systemnamens (Seitenleiste) und Domain, die für Exporte (z.B. WebCal, Links) genutzt wird
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
@@ -25,6 +29,18 @@ export const SystemNameSettings = ({ systemName, onSystemNameChange }: SystemNam
             onChange={(e) => onSystemNameChange(e.target.value)}
             placeholder="Feuerwehr Inventar"
           />
+        </div>
+        <div className="space-y-2 mt-4">
+          <Label htmlFor="system-domain">System-Domain</Label>
+          <Input
+            id="system-domain"
+            value={domainName}
+            onChange={(e) => onDomainNameChange(e.target.value)}
+            placeholder="meine-feuerwehr.de"
+          />
+          <p className="text-sm text-muted-foreground">
+            Diese Domain wird für Webcal-Links &amp; weitere Exporte verwendet.
+          </p>
         </div>
       </CardContent>
     </Card>

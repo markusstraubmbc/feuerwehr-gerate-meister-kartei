@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -14,6 +15,7 @@ const SystemSettings = () => {
   const updateSetting = useUpdateSystemSetting();
   
   const [systemName, setSystemName] = useState('');
+  const [domainName, setDomainName] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState('');
   const [logoSize, setLogoSize] = useState('48');
@@ -24,6 +26,7 @@ const SystemSettings = () => {
   useEffect(() => {
     if (!isLoading && settings) {
       setSystemName(settings.companyName || 'Feuerwehr Inventar');
+      setDomainName(settings.domainName || '');
       setLogoPreview(settings.companyLogo || '');
       setLogoSize(settings.logoSize || '48');
       setBackgroundColor(settings.menuBackgroundColor || '#1e293b');
@@ -53,6 +56,12 @@ const SystemSettings = () => {
       await updateSetting.mutateAsync({
         key: 'companyName',
         value: systemName
+      });
+
+      // Save domain name
+      await updateSetting.mutateAsync({
+        key: 'domainName',
+        value: domainName
       });
       
       // Save logo if one was selected
@@ -101,6 +110,8 @@ const SystemSettings = () => {
       <SystemNameSettings 
         systemName={systemName}
         onSystemNameChange={setSystemName}
+        domainName={domainName}
+        onDomainNameChange={setDomainName}
       />
 
       <LogoSettings

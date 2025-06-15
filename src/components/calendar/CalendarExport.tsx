@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Download, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { format, addDays } from "date-fns";
 import { toast } from "sonner";
 import type { MaintenanceRecord } from "@/hooks/useMaintenanceRecords";
 import type { CalendarFilters } from "./CalendarFilters";
+import { useGlobalSettings } from "@/components/layout/GlobalSettingsProvider";
 
 interface CalendarExportProps {
   filteredRecords: MaintenanceRecord[];
@@ -16,6 +16,7 @@ interface CalendarExportProps {
 
 export function CalendarExport({ filteredRecords, filters, totalRecords }: CalendarExportProps) {
   const [isGenerating, setIsGenerating] = useState(false);
+  const { settings } = useGlobalSettings();
 
   const generateICalendar = () => {
     setIsGenerating(true);
@@ -92,7 +93,9 @@ export function CalendarExport({ filteredRecords, filters, totalRecords }: Calen
   };
 
   const generateWebcalUrl = () => {
-    const webcalUrl = `webcal://your-domain.com/api/maintenance-calendar.ics`;
+    // Use domain from settings if set, otherwise fallback
+    const domain = settings.domainName?.trim()?.replace(/^https?:\/\//, "") || "your-domain.com";
+    const webcalUrl = `webcal://${domain}/api/maintenance-calendar.ics`;
     
     navigator.clipboard.writeText(webcalUrl).then(() => {
       toast.success('Webcal-URL wurde in die Zwischenablage kopiert');
