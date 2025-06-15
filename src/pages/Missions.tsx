@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,16 +8,50 @@ import { NewMissionDialog } from "@/components/missions/NewMissionDialog";
 
 const Missions = () => {
   const [showNewMissionDialog, setShowNewMissionDialog] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<string>("all");
   const { data: missions, isLoading } = useMissions();
+
+  // Alle Jahre aus den Missionen berechnen
+  const years = useMemo(() => {
+    if (!missions) return [];
+    const uniqueYears = Array.from(
+      new Set(missions.map((m) => new Date(m.mission_date).getFullYear()))
+    ).sort((a, b) => b - a);
+    return uniqueYears;
+  }, [missions]);
+
+  // Missions nach ausgewähltem Jahr filtern
+  const filteredMissions = useMemo(() => {
+    if (!missions) return [];
+    if (selectedYear === "all") return missions;
+    return missions.filter(
+      (m) => new Date(m.mission_date).getFullYear().toString() === selectedYear
+    );
+  }, [missions, selectedYear]);
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
         <h1 className="text-3xl font-bold">Einsätze & Übungen</h1>
-        <Button onClick={() => setShowNewMissionDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Neuer Einsatz/Übung
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* Jahresfilter */}
+          {years.length > 0 && (
+            <select
+              className="border px-2 py-1 rounded bg-background text-base"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+            >
+              <option value="all">Alle Jahre</option>
+              {years.map((year) => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          )}
+          <Button onClick={() => setShowNewMissionDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Neuer Einsatz/Übung
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-4">
@@ -72,7 +105,8 @@ const Missions = () => {
         </Card>
       </div>
 
-      <MissionList missions={missions || []} isLoading={isLoading} />
+      {/* MissionList mit Missions gefiltert nach Jahr */}
+      <MissionList missions={filteredMissions || []} isLoading={isLoading} />
 
       <NewMissionDialog 
         open={showNewMissionDialog}
