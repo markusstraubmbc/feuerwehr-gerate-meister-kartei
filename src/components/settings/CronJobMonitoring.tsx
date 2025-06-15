@@ -6,14 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, Activity, AlertCircle, CheckCircle, RefreshCw } from "lucide-react";
+import { Clock, Activity, AlertCircle, CheckCircle, RefreshCw, Send, Play } from "lucide-react";
 import { useCronJobLogs, useCronJobStats } from "@/hooks/useCronJobLogs";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const CronJobMonitoring = () => {
   const [selectedJobName, setSelectedJobName] = useState<string>("all");
   const [logLimit, setLogLimit] = useState(50);
+  const [isRunningJob, setIsRunningJob] = useState<string | null>(null);
   
   const { data: logs = [], isLoading: logsLoading, refetch: refetchLogs } = useCronJobLogs(
     selectedJobName === "all" ? undefined : selectedJobName, 
@@ -44,6 +47,60 @@ export const CronJobMonitoring = () => {
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), 'dd.MM.yyyy HH:mm:ss', { locale: de });
+  };
+
+  const runCronJob = async (jobType: string) => {
+    setIsRunningJob(jobType);
+    
+    try {
+      let functionName = '';
+      let body = {};
+      
+      switch (jobType) {
+        case 'maintenance-auto-generator':
+          functionName = 'maintenance-auto-generator';
+          break;
+        case 'email-cron':
+          functionName = 'email-cron';
+          break;
+        case 'email-upcoming':
+          functionName = 'email-scheduler';
+          body = { type: 'upcoming' };
+          break;
+        case 'email-monthly':
+          functionName = 'email-scheduler';
+          body = { type: 'monthly-report' };
+          break;
+        default:
+          throw new Error('Unbekannter Job-Typ');
+      }
+
+      console.log(`Running ${jobType} job...`);
+      
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: Object.keys(body).length > 0 ? body : undefined
+      });
+
+      if (error) {
+        console.error(`Error running ${jobType}:`, error);
+        throw error;
+      }
+
+      console.log(`${jobType} result:`, data);
+      toast.success(`${jobType} wurde erfolgreich ausgeführt`);
+      
+      // Refresh logs after a short delay
+      setTimeout(() => {
+        refetchLogs();
+        refetchStats();
+      }, 1000);
+      
+    } catch (error) {
+      console.error(`Error running ${jobType}:`, error);
+      toast.error(`Fehler beim Ausführen von ${jobType}: ${error.message}`);
+    } finally {
+      setIsRunningJob(null);
+    }
   };
 
   const jobNames = Object.keys(stats);
@@ -83,6 +140,7 @@ export const CronJobMonitoring = () => {
         <Tabs defaultValue="overview" className="space-y-4">
           <TabsList>
             <TabsTrigger value="overview">Übersicht</TabsTrigger>
+            <TabsTrigger value="controls">Manuelle Ausführung</TabsTrigger>
             <TabsTrigger value="logs">Detaillierte Logs</TabsTrigger>
           </TabsList>
 
@@ -146,6 +204,101 @@ export const CronJobMonitoring = () => {
                   </div>
                 );
               })}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="controls" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Wartungs-Jobs</CardTitle>
+                  <CardDescription>Automatische Wartungsgenerierung</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    onClick={() => runCronJob('maintenance-auto-generator')}
+                    disabled={isRunningJob === 'maintenance-auto-generator'}
+                    className="w-full"
+                  >
+                    {isRunningJob === 'maintenance-auto-generator' ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Läuft...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="mr-2 h-4 w-4" />
+                        Wartungen generieren
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">E-Mail Jobs</CardTitle>
+                  <CardDescription>E-Mail-Benachrichtigungen versenden</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Button 
+                    onClick={() => runCronJob('email-upcoming')}
+                    disabled={isRunningJob === 'email-upcoming'}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {isRunningJob === 'email-upcoming' ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Läuft...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="mr-2 h-4 w-4" />
+                        Anstehende Wartungen
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => runCronJob('email-monthly')}
+                    disabled={isRunningJob === 'email-monthly'}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {isRunningJob === 'email-monthly' ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Läuft...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="mr-2 h-4 w-4" />
+                        Monatsbericht
+                      </>
+                    )}
+                  </Button>
+
+                  <Button 
+                    onClick={() => runCronJob('email-cron')}
+                    disabled={isRunningJob === 'email-cron'}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {isRunningJob === 'email-cron' ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Läuft...
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="mr-2 h-4 w-4" />
+                        E-Mail Cron Job
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 

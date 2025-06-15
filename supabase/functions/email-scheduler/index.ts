@@ -1,6 +1,10 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -8,32 +12,39 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
   try {
     const { type, test_email } = await req.json();
     
-    console.log(`Email scheduler called with type: ${type}, test_email: ${test_email}`);
+    const jobName = `email-scheduler-${type}`
+    const startTime = new Date()
     
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "https://pkhkswzixavvildtoxxt.supabase.co";
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
-
-    // Get email settings from localStorage if available
-    const senderDomain = localStorage.getItem('emailSenderDomain') || 'mailsend.straub-it.de';
-    const fromEmail = localStorage.getItem('emailFromAddress') || 'wartungsmanagement';
+    // Log job start
+    const { data: logEntry } = await supabase
+      .from('cron_job_logs')
+      .insert({
+        job_name: jobName,
+        status: 'running',
+        started_at: startTime.toISOString()
+      })
+      .select()
+      .single()
+    
+    console.log(`Email scheduler called with type: ${type}, test_email: ${test_email}`);
 
     // Call the maintenance notifications function
     const response = await fetch(
-      `${SUPABASE_URL}/functions/v1/maintenance-notifications`,
+      `${supabaseUrl}/functions/v1/maintenance-notifications`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+          "Authorization": `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
         },
         body: JSON.stringify({ 
           type,
-          testEmail: test_email || undefined,
-          senderDomain,
-          fromEmail
+          testEmail: test_email || undefined
         })
       }
     );
@@ -41,12 +52,31 @@ serve(async (req) => {
     const result = await response.json();
     console.log("Maintenance notifications result:", result);
 
+    const endTime = new Date()
+    const duration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000)
+    
+    const finalResult = {
+      success: true,
+      message: `Triggered ${type} notifications`,
+      result: result
+    }
+
+    // Update log entry with completion info
+    if (logEntry) {
+      await supabase
+        .from('cron_job_logs')
+        .update({
+          status: response.ok ? 'success' : 'error',
+          completed_at: endTime.toISOString(),
+          duration_seconds: duration,
+          details: finalResult,
+          error_message: !response.ok ? `HTTP ${response.status}: ${response.statusText}` : null
+        })
+        .eq('id', logEntry.id)
+    }
+
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: `Triggered ${type} notifications`,
-        result: result
-      }),
+      JSON.stringify(finalResult),
       {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -54,6 +84,23 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error in email-scheduler function:", error);
+    
+    const endTime = new Date()
+    const duration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000)
+    
+    // Log error
+    await supabase
+      .from('cron_job_logs')
+      .insert({
+        job_name: 'email-scheduler-error',
+        status: 'error',
+        started_at: new Date().toISOString(),
+        completed_at: endTime.toISOString(),
+        duration_seconds: duration,
+        error_message: error.message,
+        details: { error: error.message }
+      })
+
     return new Response(
       JSON.stringify({ 
         error: error.message,
