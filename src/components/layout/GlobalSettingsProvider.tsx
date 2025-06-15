@@ -1,6 +1,6 @@
-
 import React, { createContext, useContext, useEffect } from "react";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface GlobalSettingsContextType {
   settings: { [key: string]: any };
@@ -21,6 +21,26 @@ interface GlobalSettingsProviderProps {
 }
 
 export const GlobalSettingsProvider = ({ children }: GlobalSettingsProviderProps) => {
+  // Check that we are inside a QueryClientProvider (react-query context)
+  let queryClient = null;
+  try {
+    queryClient = useQueryClient();
+  } catch (e) {
+    if (typeof window !== "undefined") {
+      // Clear error overlay, then log a helpful error
+      // @ts-ignore
+      if (window?.$RefreshReg$) window.$RefreshReg$ = () => {};
+      // eslint-disable-next-line
+      console.error(
+        "GlobalSettingsProvider must be used inside a <QueryClientProvider>. " +
+        "Please ensure that your component tree wraps everything in QueryClientProvider at the top level. " +
+        "React Query hooks will not work properly outside its context. Error:", e
+      );
+    }
+    // Optionally throw, or fallback to a default context state
+    return <>{children}</>;
+  }
+
   const { data: settings = {}, isLoading } = useSystemSettings();
 
   // Apply global settings to the document
