@@ -12,7 +12,6 @@ function getBarcodeSvgUrl(data: string) {
 async function svgUrlToBase64(url: string): Promise<string> {
   const response = await fetch(url);
   const svgText = await response.text();
-  // Wir entfernen ggf. Header
   const base64 = btoa(unescape(encodeURIComponent(svgText)));
   return `data:image/svg+xml;base64,${base64}`;
 }
@@ -24,15 +23,17 @@ export async function getEquipmentAutoTableData(
   return await Promise.all(
     equipments.map(async item => {
       const barcodeText = item.barcode || "-";
-      let barcodeImgBase64 = "";
-      if (item.barcode) {
+      let barcodeImgBase64: string | undefined = undefined;
+      if (item.barcode?.trim()) {
         try {
           const svgUrl = getBarcodeSvgUrl(item.barcode);
           barcodeImgBase64 = await svgUrlToBase64(svgUrl);
-        } catch {
-          barcodeImgBase64 = "";
+        } catch (err) {
+          console.error("Fehler beim Generieren des Barcodes für PDF:", item.barcode, err);
+          barcodeImgBase64 = undefined;
         }
       }
+      // Autotable erwartet hier wirklich NUR string oder image-object, darum hier gezielt prüfen:
       return [
         barcodeText,
         barcodeImgBase64
