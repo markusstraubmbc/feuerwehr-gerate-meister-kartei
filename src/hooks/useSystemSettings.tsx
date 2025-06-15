@@ -8,22 +8,11 @@ export interface SystemSetting {
 }
 
 export const useSystemSettings = () => {
-  // Instrument for debugging
-  try {
-    // intentionally try to get QueryClient instance to see if it errors here
-    const queryClient = useQueryClient();
-    console.log("[useSystemSettings] QueryClient: OK", queryClient);
-  } catch (err) {
-    console.error("[useSystemSettings] QueryClient MISSING!!!", err);
-    throw err; // surface the error!
-  }
-
+  // Remove up-front context test! Only use React Query hooks as needed in components.
   return useQuery({
     queryKey: ["system-settings"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("settings")
-        .select("*");
+      const { data, error } = await supabase.from("settings").select("*");
 
       if (error) throw error;
 
