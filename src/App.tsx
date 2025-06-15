@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,7 +17,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import Locations from "./pages/Locations";
 import PersonManagement from "./pages/PersonManagement";
 import Settings from "./pages/Settings";
-import SystemSettings from "./pages/SystemSettings";
+import SystemSettingsPage from "./pages/SystemSettings";
 import MaintenanceTemplateSettings from "./pages/MaintenanceTemplateSettings";
 import EmailSettings from "./pages/EmailSettings";
 import NotFound from "./pages/NotFound";
@@ -52,7 +51,7 @@ function AppContent() {
               <Route path="locations" element={<Locations />} />
               <Route path="person-management" element={<PersonManagement />} />
               <Route path="settings" element={<Settings />} />
-              <Route path="settings/system" element={<SystemSettings />} />
+              <Route path="settings/system" element={<SystemSettingsPage />} />
               <Route path="settings/maintenance-templates" element={<MaintenanceTemplateSettings />} />
               <Route path="settings/email" element={<EmailSettings />} />
               <Route path="*" element={<NotFound />} />
