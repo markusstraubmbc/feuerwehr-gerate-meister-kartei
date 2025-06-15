@@ -1,38 +1,43 @@
 
 import { Equipment } from "@/hooks/useEquipment";
 
-// QR-Code-URL generieren für PDF-Export (PNG)
-function getQrCodeUrl(data: string) {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=120x120&format=png&data=${encodeURIComponent(data)}`;
+// Barcode-URL (SVG-Format) für PDF-Export
+function getBarcodeSvgUrl(data: string) {
+  return `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(
+    data
+  )}&scale=2&height=16&includetext=true&textxalign=center&backgroundcolor=FFFFFF&format=svg`;
 }
 
-// Konvertiere Einträge für AutoTable (QR statt Barcode-Bild)
+// Hilfsfunktion SVG in Base64-Daten-URL wandeln
+async function svgUrlToBase64(url: string): Promise<string> {
+  const response = await fetch(url);
+  const svgText = await response.text();
+  // Wir entfernen ggf. Header
+  const base64 = btoa(unescape(encodeURIComponent(svgText)));
+  return `data:image/svg+xml;base64,${base64}`;
+}
+
+// Konvertiere Einträge für AutoTable (Strichcode als SVG-Bild)
 export async function getEquipmentAutoTableData(
   equipments: Equipment[]
 ): Promise<(string | { image: string; width: number; height: number } | "-")[][]> {
   return await Promise.all(
     equipments.map(async item => {
       const barcodeText = item.barcode || "-";
-      // Wir nehmen barcode; falls nicht vorhanden, Inventarnummer oder ID
-      const qrValue = item.barcode || item.inventory_number || item.id;
-      let qrImgBase64 = "";
-      if (qrValue) {
+      let barcodeImgBase64 = "";
+      if (item.barcode) {
         try {
-          const response = await fetch(getQrCodeUrl(qrValue));
-          const blob = await response.blob();
-          qrImgBase64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
+          const svgUrl = getBarcodeSvgUrl(item.barcode);
+          barcodeImgBase64 = await svgUrlToBase64(svgUrl);
         } catch {
-          qrImgBase64 = "";
+          barcodeImgBase64 = "";
         }
       }
       return [
         barcodeText,
-        qrImgBase64 ? { image: qrImgBase64, width: 18, height: 18 } : "-",
+        barcodeImgBase64
+          ? { image: barcodeImgBase64, width: 70, height: 18 }
+          : "-",
         item.name || "-",
         item.inventory_number || "-",
         item.manufacturer || "-"
