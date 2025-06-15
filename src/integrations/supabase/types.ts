@@ -402,10 +402,11 @@ export type Database = {
           location: string | null
           mission_date: string
           mission_type: string
-          responsible_person_id: string | null
+          responsible_persons: string | null
           start_time: string | null
           title: string
           updated_at: string
+          vehicles: string | null
         }
         Insert: {
           created_at?: string
@@ -415,10 +416,11 @@ export type Database = {
           location?: string | null
           mission_date: string
           mission_type: string
-          responsible_person_id?: string | null
+          responsible_persons?: string | null
           start_time?: string | null
           title: string
           updated_at?: string
+          vehicles?: string | null
         }
         Update: {
           created_at?: string
@@ -428,20 +430,13 @@ export type Database = {
           location?: string | null
           mission_date?: string
           mission_type?: string
-          responsible_person_id?: string | null
+          responsible_persons?: string | null
           start_time?: string | null
           title?: string
           updated_at?: string
+          vehicles?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "missions_responsible_person_id_fkey"
-            columns: ["responsible_person_id"]
-            isOneToOne: false
-            referencedRelation: "persons"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       persons: {
         Row: {
