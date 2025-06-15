@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Equipment } from "@/hooks/useEquipment";
 import { groupEquipment } from "./groupEquipment";
@@ -42,7 +41,7 @@ export const EquipmentPrintExportHtml: React.FC<{ equipment: Equipment[] }> = ({
                     <tr key={item.id}>
                       <td className="border px-2 py-1 align-middle">{item.barcode || "-"}</td>
                       <td className="border px-2 py-1 align-middle">
-                        {item.barcode ? (
+                        {typeof item.barcode === "string" && item.barcode.trim() !== "" ? (
                           <img
                             src={getBarcodeUrl(item.barcode)}
                             alt="Barcode"
