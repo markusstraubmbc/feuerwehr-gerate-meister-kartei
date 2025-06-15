@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Calendar, Clock, Play, AlertTriangle } from "lucide-react";
+import { Calendar, Clock, Play, AlertTriangle, CalendarRange } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEquipment } from "@/hooks/useEquipment";
@@ -8,29 +8,35 @@ import { useMaintenanceTemplates } from "@/hooks/useMaintenanceTemplates";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { addMonths, format } from "date-fns";
+import { addMonths, format, addDays } from "date-fns";
 import { de } from "date-fns/locale";
 
 export function AutoMaintenanceGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingYear, setIsGeneratingYear] = useState(false);
   const [generationReport, setGenerationReport] = useState<{
     created: number;
     skipped: number;
     errors: number;
+    type: 'manual' | 'yearly';
   } | null>(null);
 
   const { data: equipment = [] } = useEquipment();
   const { data: templates = [] } = useMaintenanceTemplates();
   const queryClient = useQueryClient();
 
-  const generateMaintenanceRecords = async () => {
-    setIsGenerating(true);
+  const generateMaintenanceRecords = async (generateForYear = false) => {
+    const setLoading = generateForYear ? setIsGeneratingYear : setIsGenerating;
+    setLoading(true);
     setGenerationReport(null);
 
     try {
       let created = 0;
       let skipped = 0;
       let errors = 0;
+
+      const now = new Date();
+      const endDate = generateForYear ? addDays(now, 180) : addMonths(now, 3); // 180 Tage für Jahr, 3 Monate für normal
 
       for (const item of equipment) {
         try {
@@ -43,46 +49,72 @@ export function AutoMaintenanceGenerator() {
             continue;
           }
 
-          // Calculate next maintenance date based on last check or purchase date
+          // Calculate maintenance dates
           const baseDate = item.last_check_date 
             ? new Date(item.last_check_date)
             : item.purchase_date 
             ? new Date(item.purchase_date)
             : new Date();
 
-          const nextDueDate = addMonths(baseDate, template.interval_months);
+          const maintenanceDates = [];
+          let currentDate = new Date(baseDate);
 
-          // Check if a maintenance record already exists for this equipment and due date
-          const { data: existingRecords } = await supabase
-            .from('maintenance_records')
-            .select('id')
-            .eq('equipment_id', item.id)
-            .eq('template_id', template.id)
-            .gte('due_date', format(nextDueDate, 'yyyy-MM-dd'))
-            .lt('due_date', format(addMonths(nextDueDate, 1), 'yyyy-MM-dd'));
-
-          if (existingRecords && existingRecords.length > 0) {
-            console.log(`Maintenance already exists for ${item.name}`);
-            skipped++;
-            continue;
+          if (generateForYear) {
+            // Generate all needed dates within the next 180 days
+            while (currentDate <= endDate) {
+              currentDate = new Date(currentDate);
+              currentDate.setMonth(currentDate.getMonth() + template.interval_months);
+              
+              if (currentDate <= endDate) {
+                maintenanceDates.push(new Date(currentDate));
+              }
+            }
+          } else {
+            // Generate only next maintenance date
+            const nextDueDate = addMonths(baseDate, template.interval_months);
+            if (nextDueDate <= endDate) {
+              maintenanceDates.push(nextDueDate);
+            }
           }
 
-          // Create new maintenance record
-          const { error } = await supabase
-            .from('maintenance_records')
-            .insert({
-              equipment_id: item.id,
-              template_id: template.id,
-              due_date: nextDueDate.toISOString(),
-              status: 'ausstehend',
-              performed_by: template.responsible_person_id
-            });
+          // Check existing records for each date and create missing ones
+          for (const dueDate of maintenanceDates) {
+            const startOfDay = new Date(dueDate);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(dueDate);
+            endOfDay.setHours(23, 59, 59, 999);
 
-          if (error) {
-            console.error(`Error creating maintenance for ${item.name}:`, error);
-            errors++;
-          } else {
-            created++;
+            const { data: existingRecords } = await supabase
+              .from('maintenance_records')
+              .select('id')
+              .eq('equipment_id', item.id)
+              .eq('template_id', template.id)
+              .gte('due_date', startOfDay.toISOString())
+              .lte('due_date', endOfDay.toISOString());
+
+            if (existingRecords && existingRecords.length > 0) {
+              console.log(`Maintenance already exists for ${item.name} on ${dueDate.toDateString()}`);
+              skipped++;
+              continue;
+            }
+
+            // Create new maintenance record
+            const { error } = await supabase
+              .from('maintenance_records')
+              .insert({
+                equipment_id: item.id,
+                template_id: template.id,
+                due_date: dueDate.toISOString(),
+                status: 'ausstehend',
+                performed_by: template.responsible_person_id
+              });
+
+            if (error) {
+              console.error(`Error creating maintenance for ${item.name} on ${dueDate.toDateString()}:`, error);
+              errors++;
+            } else {
+              created++;
+            }
           }
         } catch (error) {
           console.error(`Error processing equipment ${item.name}:`, error);
@@ -90,7 +122,12 @@ export function AutoMaintenanceGenerator() {
         }
       }
 
-      setGenerationReport({ created, skipped, errors });
+      setGenerationReport({ 
+        created, 
+        skipped, 
+        errors, 
+        type: generateForYear ? 'yearly' : 'manual' 
+      });
       
       if (created > 0) {
         queryClient.invalidateQueries({ queryKey: ["maintenance-records"] });
@@ -103,7 +140,43 @@ export function AutoMaintenanceGenerator() {
       console.error('Error generating maintenance records:', error);
       toast.error('Fehler beim Generieren der Wartungstermine');
     } finally {
-      setIsGenerating(false);
+      setLoading(false);
+    }
+  };
+
+  const generateYearlyMaintenanceViaFunction = async () => {
+    setIsGeneratingYear(true);
+    setGenerationReport(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('maintenance-auto-generator');
+      
+      if (error) {
+        console.error('Edge function error:', error);
+        toast.error('Fehler beim Generieren der Wartungstermine über Edge Function');
+        return;
+      }
+
+      if (data) {
+        setGenerationReport({ 
+          created: data.created || 0, 
+          skipped: data.skipped || 0, 
+          errors: data.errors || 0,
+          type: 'yearly'
+        });
+        
+        if (data.created > 0) {
+          queryClient.invalidateQueries({ queryKey: ["maintenance-records"] });
+          toast.success(`${data.created} neue Wartungstermine wurden über Edge Function erstellt`);
+        } else {
+          toast.info('Keine neuen Wartungstermine über Edge Function erforderlich');
+        }
+      }
+    } catch (error) {
+      console.error('Error calling edge function:', error);
+      toast.error('Fehler beim Aufruf der Edge Function');
+    } finally {
+      setIsGeneratingYear(false);
     }
   };
 
@@ -168,7 +241,9 @@ export function AutoMaintenanceGenerator() {
 
         {generationReport && (
           <div className="p-3 bg-gray-50 border rounded-lg">
-            <h4 className="font-medium mb-2">Generierungsbericht:</h4>
+            <h4 className="font-medium mb-2">
+              Generierungsbericht ({generationReport.type === 'yearly' ? '180 Tage' : 'Einzeltermine'}):
+            </h4>
             <div className="grid gap-2 md:grid-cols-3 text-sm">
               <div className="text-green-700">
                 ✓ {generationReport.created} erstellt
@@ -183,17 +258,47 @@ export function AutoMaintenanceGenerator() {
           </div>
         )}
 
-        <Button 
-          onClick={generateMaintenanceRecords}
-          disabled={isGenerating}
-          className="w-full"
-        >
-          <Play className="mr-2 h-4 w-4" />
-          {isGenerating ? 'Generiere Wartungstermine...' : 'Wartungstermine generieren'}
-        </Button>
+        <div className="grid gap-3 md:grid-cols-2">
+          <Button 
+            onClick={() => generateMaintenanceRecords(false)}
+            disabled={isGenerating || isGeneratingYear}
+            className="w-full"
+          >
+            <Play className="mr-2 h-4 w-4" />
+            {isGenerating ? 'Generiere nächste Termine...' : 'Nächste Wartungstermine generieren'}
+          </Button>
+
+          <Button 
+            onClick={() => generateMaintenanceRecords(true)}
+            disabled={isGenerating || isGeneratingYear}
+            variant="outline"
+            className="w-full"
+          >
+            <CalendarRange className="mr-2 h-4 w-4" />
+            {isGeneratingYear ? 'Generiere für 180 Tage...' : 'Alle Termine für nächste 180 Tage'}
+          </Button>
+        </div>
+
+        <div className="border-t pt-4">
+          <h4 className="font-medium mb-2">Automatisierung via Cron-Job</h4>
+          <p className="text-sm text-muted-foreground mb-3">
+            Verwende die Edge Function für automatische tägliche Generierung via Cron-Job.
+          </p>
+          <Button 
+            onClick={generateYearlyMaintenanceViaFunction}
+            disabled={isGenerating || isGeneratingYear}
+            variant="secondary"
+            className="w-full"
+          >
+            <Calendar className="mr-2 h-4 w-4" />
+            {isGeneratingYear ? 'Edge Function läuft...' : 'Edge Function für 180 Tage ausführen'}
+          </Button>
+        </div>
 
         <div className="text-xs text-muted-foreground space-y-1">
-          <p>• <strong>Berechnung:</strong> Nächster Termin = Letzte Wartung + Intervall (oder Kaufdatum + Intervall)</p>
+          <p>• <strong>Nächste Termine:</strong> Generiert nur die unmittelbar anstehenden Wartungstermine (nächste 3 Monate)</p>
+          <p>• <strong>180 Tage:</strong> Generiert alle fehlenden Wartungstermine für die nächsten 180 Tage</p>
+          <p>• <strong>Edge Function:</strong> Kann als Cron-Job konfiguriert werden für automatische tägliche Ausführung</p>
           <p>• <strong>Duplikate:</strong> Bereits existierende Termine werden übersprungen</p>
           <p>• <strong>Verantwortliche:</strong> Automatisch aus der Wartungsvorlage übernommen</p>
         </div>
