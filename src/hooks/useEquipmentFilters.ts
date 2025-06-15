@@ -50,7 +50,7 @@ export const useEquipmentFilters = () => {
       setSelectedPerson(null);
     }
     
-    if (filters.search) {
+    if (filters.search !== undefined) {
       setSearchTerm(filters.search);
     }
     
@@ -62,6 +62,7 @@ export const useEquipmentFilters = () => {
     setSelectedStatus(null);
     setSelectedCategory(null);
     setSelectedPerson(null);
+    setSelectedLocation(null);
     setSearchParams(new URLSearchParams());
   };
 
