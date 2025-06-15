@@ -27,16 +27,84 @@ export function DuplicateEquipmentDialog({ equipment, open, onOpenChange }: Dupl
   const [isProcessing, setIsProcessing] = useState(false);
   const queryClient = useQueryClient();
 
+  const generateUniqueInventoryNumber = async (baseNumber: string | null): Promise<string | null> => {
+    if (!baseNumber) return null;
+    
+    let counter = 1;
+    let newNumber = `${baseNumber}-KOPIE`;
+    
+    while (counter <= 100) { // Prevent infinite loop
+      const { data, error } = await supabase
+        .from("equipment")
+        .select("id")
+        .eq("inventory_number", newNumber)
+        .single();
+      
+      if (error && error.code === 'PGRST116') {
+        // No record found, this number is available
+        return newNumber;
+      }
+      
+      if (data) {
+        // Number exists, try next one
+        counter++;
+        newNumber = `${baseNumber}-KOPIE-${counter}`;
+      } else {
+        // Some other error occurred
+        break;
+      }
+    }
+    
+    // If we can't find a unique number, return null
+    return null;
+  };
+
+  const generateUniqueBarcode = async (baseBarcode: string | null): Promise<string | null> => {
+    if (!baseBarcode) return null;
+    
+    let counter = 1;
+    let newBarcode = `${baseBarcode}-KOPIE`;
+    
+    while (counter <= 100) { // Prevent infinite loop
+      const { data, error } = await supabase
+        .from("equipment")
+        .select("id")
+        .eq("barcode", newBarcode)
+        .single();
+      
+      if (error && error.code === 'PGRST116') {
+        // No record found, this barcode is available
+        return newBarcode;
+      }
+      
+      if (data) {
+        // Barcode exists, try next one
+        counter++;
+        newBarcode = `${baseBarcode}-KOPIE-${counter}`;
+      } else {
+        // Some other error occurred
+        break;
+      }
+    }
+    
+    // If we can't find a unique barcode, return null
+    return null;
+  };
+
   const handleDuplicate = async () => {
     if (!equipment || !duplicateName.trim()) return;
 
     setIsProcessing(true);
     try {
+      // Generate unique inventory number and barcode
+      const uniqueInventoryNumber = await generateUniqueInventoryNumber(equipment.inventory_number);
+      const uniqueBarcode = await generateUniqueBarcode(equipment.barcode);
+      
       // Create a clean object for the duplication
       const equipmentToDuplicate = {
         name: duplicateName.trim(),
-        inventory_number: equipment.inventory_number ? `${equipment.inventory_number}-KOPIE` : null,
-        barcode: equipment.barcode ? `${equipment.barcode}-KOPIE` : null,
+        inventory_number: uniqueInventoryNumber,
+        barcode: uniqueBarcode,
         serial_number: equipment.serial_number,
         manufacturer: equipment.manufacturer,
         model: equipment.model,
@@ -95,7 +163,8 @@ export function DuplicateEquipmentDialog({ equipment, open, onOpenChange }: Dupl
           </div>
           <div>
             <p className="text-sm text-muted-foreground">
-              Alle Eigenschaften des Originals werden in die neue Ausrüstung übernommen, außer der Name.
+              Alle Eigenschaften des Originals werden in die neue Ausrüstung übernommen. 
+              Inventarnummer und Barcode werden automatisch angepasst, um Duplikate zu vermeiden.
             </p>
           </div>
         </div>
