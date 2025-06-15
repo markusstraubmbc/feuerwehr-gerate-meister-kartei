@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
@@ -61,11 +60,7 @@ export const useMissionPrintExport = () => {
         yPos += 6;
       }
       if (mission.responsible_person) {
-        doc.text(
-          `Verantwortlich: ${mission.responsible_person.first_name} ${mission.responsible_person.last_name}`,
-          20,
-          yPos
-        );
+        doc.text(`Verantwortlich: ${mission.responsible_person.first_name} ${mission.responsible_person.last_name}`, 20, yPos);
         yPos += 6;
       }
       
@@ -90,28 +85,13 @@ export const useMissionPrintExport = () => {
       doc.text('Verwendete Einsatzmittel:', 20, yPos);
       yPos += 10;
 
-      // Detailliertes Debug-Log für Analyse des Problems
-      console.log("MissionEquipment für PDF export (raw):", missionEquipment);
-      if (Array.isArray(missionEquipment)) {
-        missionEquipment.forEach((e, idx) => {
-          console.log(
-            `== MissionEquipment[${idx}]:`,
-            "equipment:",
-            e?.equipment,
-            "equipment?.name:",
-            e?.equipment?.name,
-            "e.id:",
-            e.id
-          );
-        });
-      }
+      // Debug-Log für Einsatzmittel (wichtig für Fehleranalyse)
+      console.log("MissionEquipment for PDF export:", missionEquipment);
 
       // Prüfen auf valide Einsatzmittel (nur solche, die ein equipment-Objekt haben)
       const filteredEquipment = Array.isArray(missionEquipment)
         ? missionEquipment.filter(e => !!e.equipment)
         : [];
-
-      console.log("Gefilterte Einsatzmittel mit equipment-Objekt:", filteredEquipment);
 
       if (filteredEquipment.length > 0) {
         // Prepare equipment table data
@@ -164,19 +144,14 @@ export const useMissionPrintExport = () => {
       } else {
         doc.setFont(undefined, 'normal');
         doc.setFontSize(10);
-        // Erweiterte Info im PDF je nach echten Daten
-        let infoText = "Keine Einsatzmittel dokumentiert oder nicht geladen.";
-        if (
-          Array.isArray(missionEquipment) &&
-          missionEquipment.length > 0
-        ) {
-          const countNullEquipment = missionEquipment.filter(e => !e.equipment).length;
-          infoText = `Ausrüstung geladen, aber keine verknüpft (${countNullEquipment} x equipment: null)`;
-        }
-        doc.text(infoText, 20, yPos);
+        doc.text(
+          'Keine Einsatzmittel dokumentiert oder nicht geladen.',
+          20,
+          yPos
+        );
       }
 
-      // Footer mit Erstell-Zeit
+      // Footer with generation timestamp
       const pageHeight = doc.internal.pageSize.getHeight();
       doc.setFontSize(8);
       doc.setFont(undefined, 'normal');
@@ -187,7 +162,7 @@ export const useMissionPrintExport = () => {
         { align: 'center' }
       );
 
-      // PDF speichern
+      // Save the PDF
       const fileName = `${mission.mission_type === 'einsatz' ? 'Einsatz' : 'Übung'}-${mission.title.replace(/[^a-zA-Z0-9]/g, '_')}-${format(new Date(mission.mission_date), 'yyyy-MM-dd')}.pdf`;
       doc.save(fileName);
       
