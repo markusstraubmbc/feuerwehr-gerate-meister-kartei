@@ -1,89 +1,100 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeaders } from '../_shared/cors.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+  
+  const jobName = 'maintenance-auto-generator'
+  const startTime = new Date()
+  
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Log job start
+    const { data: logEntry } = await supabase
+      .from('cron_job_logs')
+      .insert({
+        job_name: jobName,
+        status: 'running',
+        started_at: startTime.toISOString()
+      })
+      .select()
+      .single()
 
-    console.log('Starting automatic maintenance generation...');
+    console.log('Starting maintenance auto-generator job...')
+    
+    let created = 0
+    let skipped = 0
+    let errors = 0
 
-    // Get all equipment
+    // Get all equipment with categories
     const { data: equipment, error: equipmentError } = await supabase
       .from('equipment')
-      .select('*');
+      .select(`
+        *,
+        categories (*)
+      `)
 
     if (equipmentError) {
-      console.error('Error fetching equipment:', equipmentError);
-      throw equipmentError;
+      throw equipmentError
     }
 
-    // Get all templates
+    // Get all maintenance templates
     const { data: templates, error: templatesError } = await supabase
       .from('maintenance_templates')
-      .select('*');
+      .select('*')
 
     if (templatesError) {
-      console.error('Error fetching templates:', templatesError);
-      throw templatesError;
+      throw templatesError
     }
 
-    let created = 0;
-    let skipped = 0;
-    let errors = 0;
+    const now = new Date()
+    const endDate = new Date(now.getTime() + (180 * 24 * 60 * 60 * 1000)) // 180 days from now
 
-    const now = new Date();
-    const endDate = new Date();
-    endDate.setDate(now.getDate() + 180); // Next 180 days
-
-    for (const item of equipment) {
+    for (const item of equipment || []) {
       try {
         // Find matching template based on category
-        const template = templates.find(t => t.category_id === item.category_id);
+        const template = templates?.find(t => t.category_id === item.category_id)
         
         if (!template) {
-          console.log(`No template found for equipment ${item.name}`);
-          skipped++;
-          continue;
+          console.log(`No template found for equipment ${item.name}`)
+          skipped++
+          continue
         }
 
-        // Calculate all missing maintenance dates for the next 180 days
+        // Calculate maintenance dates
         const baseDate = item.last_check_date 
           ? new Date(item.last_check_date)
           : item.purchase_date 
           ? new Date(item.purchase_date)
-          : new Date();
+          : new Date()
 
-        let currentDate = new Date(baseDate);
-        const maintenanceDates = [];
+        const maintenanceDates = []
+        let currentDate = new Date(baseDate)
 
         // Generate all needed dates within the next 180 days
         while (currentDate <= endDate) {
-          currentDate = new Date(currentDate);
-          currentDate.setMonth(currentDate.getMonth() + template.interval_months);
+          currentDate = new Date(currentDate)
+          currentDate.setMonth(currentDate.getMonth() + template.interval_months)
           
           if (currentDate <= endDate) {
-            maintenanceDates.push(new Date(currentDate));
+            maintenanceDates.push(new Date(currentDate))
           }
         }
 
         // Check existing records for each date and create missing ones
         for (const dueDate of maintenanceDates) {
-          const startOfDay = new Date(dueDate);
-          startOfDay.setHours(0, 0, 0, 0);
-          const endOfDay = new Date(dueDate);
-          endOfDay.setHours(23, 59, 59, 999);
+          const startOfDay = new Date(dueDate)
+          startOfDay.setHours(0, 0, 0, 0)
+          const endOfDay = new Date(dueDate)
+          endOfDay.setHours(23, 59, 59, 999)
 
           const { data: existingRecords } = await supabase
             .from('maintenance_records')
@@ -91,12 +102,12 @@ serve(async (req) => {
             .eq('equipment_id', item.id)
             .eq('template_id', template.id)
             .gte('due_date', startOfDay.toISOString())
-            .lte('due_date', endOfDay.toISOString());
+            .lte('due_date', endOfDay.toISOString())
 
           if (existingRecords && existingRecords.length > 0) {
-            console.log(`Maintenance already exists for ${item.name} on ${dueDate.toDateString()}`);
-            skipped++;
-            continue;
+            console.log(`Maintenance already exists for ${item.name} on ${dueDate.toDateString()}`)
+            skipped++
+            continue
           }
 
           // Create new maintenance record
@@ -108,35 +119,85 @@ serve(async (req) => {
               due_date: dueDate.toISOString(),
               status: 'ausstehend',
               performed_by: template.responsible_person_id
-            });
+            })
 
           if (error) {
-            console.error(`Error creating maintenance for ${item.name} on ${dueDate.toDateString()}:`, error);
-            errors++;
+            console.error(`Error creating maintenance for ${item.name} on ${dueDate.toDateString()}:`, error)
+            errors++
           } else {
-            console.log(`Created maintenance for ${item.name} on ${dueDate.toDateString()}`);
-            created++;
+            created++
           }
         }
       } catch (error) {
-        console.error(`Error processing equipment ${item.name}:`, error);
-        errors++;
+        console.error(`Error processing equipment ${item.name}:`, error)
+        errors++
       }
     }
 
-    const report = { created, skipped, errors, timestamp: new Date().toISOString() };
-    console.log('Maintenance generation completed:', report);
+    const endTime = new Date()
+    const duration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000)
+    
+    const result = { created, skipped, errors }
+    
+    // Update log entry with completion info
+    if (logEntry) {
+      await supabase
+        .from('cron_job_logs')
+        .update({
+          status: errors > 0 ? 'error' : 'success',
+          completed_at: endTime.toISOString(),
+          duration_seconds: duration,
+          details: result,
+          error_message: errors > 0 ? `${errors} errors occurred during processing` : null
+        })
+        .eq('id', logEntry.id)
+    }
 
-    return new Response(JSON.stringify(report), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
+    console.log(`Job completed: ${created} created, ${skipped} skipped, ${errors} errors`)
+
+    return new Response(
+      JSON.stringify(result),
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
+    )
 
   } catch (error) {
-    console.error('Error in maintenance auto-generator:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
+    console.error('Error in maintenance auto-generator:', error)
+    
+    const endTime = new Date()
+    const duration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000)
+    
+    // Log error
+    await supabase
+      .from('cron_job_logs')
+      .insert({
+        job_name: jobName,
+        status: 'error',
+        started_at: startTime.toISOString(),
+        completed_at: endTime.toISOString(),
+        duration_seconds: duration,
+        error_message: error.message,
+        details: { error: error.message }
+      })
+
+    return new Response(
+      JSON.stringify({ 
+        error: error.message,
+        created: 0,
+        skipped: 0,
+        errors: 1
+      }),
+      { 
+        status: 500,
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
+    )
   }
-});
+})

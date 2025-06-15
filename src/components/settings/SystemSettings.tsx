@@ -7,6 +7,7 @@ import { AutoMaintenanceGenerator } from "@/components/maintenance/AutoMaintenan
 import { SystemNameSettings } from "./SystemNameSettings";
 import { LogoSettings } from "./LogoSettings";
 import { MenuColorSettings } from "./MenuColorSettings";
+import { CronJobMonitoring } from "./CronJobMonitoring";
 
 const SystemSettings = () => {
   const { data: settings = {}, isLoading } = useSystemSettings();
@@ -119,6 +120,8 @@ const SystemSettings = () => {
       />
 
       <AutoMaintenanceGenerator />
+
+      <CronJobMonitoring />
 
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={updateSetting.isPending}>

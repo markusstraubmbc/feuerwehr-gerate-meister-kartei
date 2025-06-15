@@ -33,6 +33,42 @@ export type Database = {
         }
         Relationships: []
       }
+      cron_job_logs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          details: Json | null
+          duration_seconds: number | null
+          error_message: string | null
+          id: string
+          job_name: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          details?: Json | null
+          duration_seconds?: number | null
+          error_message?: string | null
+          id?: string
+          job_name: string
+          started_at?: string
+          status: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          details?: Json | null
+          duration_seconds?: number | null
+          error_message?: string | null
+          id?: string
+          job_name?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       equipment: {
         Row: {
           barcode: string | null
