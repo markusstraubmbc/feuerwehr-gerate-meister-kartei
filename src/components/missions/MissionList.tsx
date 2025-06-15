@@ -1,22 +1,18 @@
+
 import { useState } from "react";
-import { format } from "date-fns";
-import { de } from "date-fns/locale";
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
+  TableCell,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, Edit, Trash2, FileDown, Target, Calendar, Users } from "lucide-react";
+import { Target } from "lucide-react";
 import { Mission } from "@/hooks/useMissions";
-import { useMissionEquipment } from "@/hooks/useMissionEquipment";
-import { useMissionPrintExport } from "@/hooks/useMissionPrintExport";
 import { ViewMissionDialog } from "./ViewMissionDialog";
+import { MissionListRow } from "./MissionListRow";
 
 interface MissionListProps {
   missions: Mission[];
@@ -27,31 +23,10 @@ export const MissionList = ({ missions, isLoading }: MissionListProps) => {
   const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [exportingMissionId, setExportingMissionId] = useState<string | null>(null);
-  const { handlePdfDownload } = useMissionPrintExport();
-
-  // Mappe für jede Mission die zugehörigen Einsatzmittel hooks (cached pro row)
-  const missionEquipmentResults = missions.reduce((acc, mission) => {
-    acc[mission.id] = useMissionEquipment(mission.id);
-    return acc;
-  }, {} as Record<string, ReturnType<typeof useMissionEquipment>>);
 
   const handleView = (mission: Mission) => {
     setSelectedMission(mission);
     setIsViewDialogOpen(true);
-  };
-
-  // PDF-Export: mit geladenen MissionEquipment
-  const handleExportPdf = async (mission: Mission) => {
-    setExportingMissionId(mission.id);
-
-    // optional: reload equipment data, else just use query cache
-    const result = missionEquipmentResults[mission.id];
-    const missionEquipment = result?.data || [];
-    handlePdfDownload({
-      mission,
-      missionEquipment
-    });
-    setExportingMissionId(null);
   };
 
   if (isLoading) {
@@ -111,73 +86,15 @@ export const MissionList = ({ missions, isLoading }: MissionListProps) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {missions.map((mission) => {
-                  const equipResult = missionEquipmentResults[mission.id];
-                  const equipmentCount = equipResult?.data ? equipResult.data.filter(x => !!x.equipment).length : 0;
-
-                  return (
-                    <TableRow key={mission.id}>
-                      <TableCell className="font-medium">{mission.title}</TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={mission.mission_type === 'einsatz' ? 'destructive' : 'default'}
-                        >
-                          {mission.mission_type === 'einsatz' ? 'Einsatz' : 'Übung'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {format(new Date(mission.mission_date), 'dd.MM.yyyy', { locale: de })}
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        {mission.start_time && mission.end_time 
-                          ? `${mission.start_time} - ${mission.end_time}`
-                          : mission.start_time || "-"
-                        }
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        {mission.location || "-"}
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        {mission.responsible_person ? (
-                          <div className="flex items-center gap-1">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                            {mission.responsible_person.first_name} {mission.responsible_person.last_name}
-                          </div>
-                        ) : "-"}
-                      </TableCell>
-                      {/* Neue Spalte: Anzahl Einsatzmittel */}
-                      <TableCell className="hidden md:table-cell">
-                        {equipResult.isLoading
-                          ? <span className="text-xs text-muted-foreground">...</span>
-                          : equipmentCount || 0}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleExportPdf(mission)}
-                            title="Als PDF exportieren"
-                            disabled={!!exportingMissionId}
-                          >
-                            <FileDown className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleView(mission)}
-                            title="Details anzeigen"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {missions.map((mission) => (
+                  <MissionListRow
+                    key={mission.id}
+                    mission={mission}
+                    onView={handleView}
+                    exporting={!!exportingMissionId && exportingMissionId === mission.id}
+                    setExporting={(id) => setExportingMissionId(id)}
+                  />
+                ))}
               </TableBody>
             </Table>
           </div>
