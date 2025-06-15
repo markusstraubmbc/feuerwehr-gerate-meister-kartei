@@ -36,6 +36,13 @@ function groupEquipment(equipment: Equipment[]) {
   return group;
 }
 
+// Hilfsfunktion: Barcode-URL generieren (wie auch im Einzel-Export verwendet)
+function getBarcodeUrl(barcode: string) {
+  return `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(
+    barcode
+  )}&scale=2&height=12&includetext=true&textxalign=center&backgroundcolor=FFFFFF`;
+}
+
 interface EquipmentPrintExportProps {
   equipment: Equipment[];
   printRef?: RefObject<HTMLDivElement>;
@@ -100,7 +107,7 @@ export const useEquipmentPrintExport = ({ equipment, printRef }: EquipmentPrintE
     }
   });
 
-  const handlePdfDownload = () => {
+  const handlePdfDownload = async () => {
     try {
       const doc = new jsPDF({
         orientation: 'landscape',
@@ -108,7 +115,6 @@ export const useEquipmentPrintExport = ({ equipment, printRef }: EquipmentPrintE
         format: 'a4'
       });
 
-      // Titel
       doc.setFontSize(16);
       doc.setFont(undefined, 'bold');
       doc.text('Ausrüstungsliste (gruppiert nach Kategorie, Standort)', doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
@@ -121,40 +127,59 @@ export const useEquipmentPrintExport = ({ equipment, printRef }: EquipmentPrintE
       const grouped = groupEquipment(equipment);
 
       let startY = 45;
-
-      // Für jede Kategorie
-      Object.keys(grouped).sort().forEach(category => {
+      for (const category of Object.keys(grouped).sort()) {
         doc.setFontSize(12);
         doc.setFont(undefined, 'bold');
         doc.text(`Kategorie: ${category}`, 12, startY);
 
         startY += 7;
 
-        // Innerhalb jeder Kategorie die Standorte durchgehen
-        Object.keys(grouped[category]).sort().forEach(location => {
+        for (const location of Object.keys(grouped[category]).sort()) {
           doc.setFontSize(11);
           doc.setFont(undefined, 'bold');
           doc.text(`Standort: ${location}`, 18, startY);
 
           startY += 7;
 
-          // Kopfzeile der jeweiligen Tabelle
           const headers = [
-            "Barcode",
+            "Barcode (Text)",
+            "Strichcode",
             "Name",
             "Inventarnummer",
             "Hersteller",
           ];
 
-          // Daten für die aktuelle Standortgruppe
-          const bodyData = grouped[category][location].map(item => [
-            item.barcode || "-",
-            item.name || "-",
-            item.inventory_number || "-",
-            item.manufacturer || "-"
-          ]);
+          // Tabelle mit Barcode, Barcode-Bild, Name, Inventarnummer, Hersteller
+          const bodyData = await Promise.all(
+            grouped[category][location].map(async item => {
+              const barcodeText = item.barcode || "-";
+              let barcodeImgBase64 = "";
+              if (item.barcode) {
+                try {
+                  // Lade Barcode-Bild als DataURL
+                  const response = await fetch(getBarcodeUrl(item.barcode));
+                  const blob = await response.blob();
+                  barcodeImgBase64 = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                  });
+                } catch {
+                  barcodeImgBase64 = "";
+                }
+              }
+              return [
+                barcodeText,
+                barcodeImgBase64 ? { image: barcodeImgBase64, width: 70, height: 18 } : "-", // Image in Zelle
+                item.name || "-",
+                item.inventory_number || "-",
+                item.manufacturer || "-"
+              ];
+            })
+          );
 
-          // Tabelle der Standortgruppe
+          // Tabelle mit Bildern (jsPDF-AutoTable erlaubt image-Objekte in Zellen)
           autoTable(doc, {
             head: [headers],
             body: bodyData,
@@ -163,7 +188,8 @@ export const useEquipmentPrintExport = ({ equipment, printRef }: EquipmentPrintE
               fontSize: 8,
               cellPadding: 2,
               overflow: 'linebreak',
-              halign: 'left'
+              halign: 'left',
+              valign: 'middle'
             },
             headStyles: {
               fillColor: [240, 240, 240],
@@ -178,15 +204,12 @@ export const useEquipmentPrintExport = ({ equipment, printRef }: EquipmentPrintE
             margin: { left: 10, right: 10 }
           });
 
-          // autoTable passt den Y Wert nach unten automatisch an:
           startY = (doc as any).lastAutoTable.finalY + 8;
-        });
+        }
 
-        // nach jedem Kategorie-Abschnitt etwas vertikalen Abstand
         startY += 3;
-      });
+      }
 
-      // PDF speichern
       const fileName = `Ausrüstungsliste-gruppiert-${new Date().toISOString().slice(0, 10)}.pdf`;
       doc.save(fileName);
 
@@ -201,4 +224,64 @@ export const useEquipmentPrintExport = ({ equipment, printRef }: EquipmentPrintE
     handlePrint,
     handlePdfDownload
   };
+};
+
+// Neue React-Komponente für den Print-Export als HTML-Tabelle mit Strichcode-Bildern
+// Der printRef verweist im UI auf diese Komponente
+import React from "react";
+
+export const EquipmentPrintExportHtml: React.FC<{ equipment: Equipment[] }> = ({ equipment }) => {
+  const grouped = groupEquipment(equipment);
+
+  return (
+    <div>
+      <div className="print-title">
+        Ausrüstungsliste (gruppiert nach Kategorie, Standort)
+      </div>
+      <div className="print-info">
+        Erstellt am: {new Date().toLocaleDateString("de-DE")} - Anzahl Einträge: {equipment.length}
+      </div>
+      {Object.keys(grouped).sort().map(cat => (
+        <div key={cat} className="mb-6">
+          <div className="font-bold text-lg mb-2">Kategorie: {cat}</div>
+          {Object.keys(grouped[cat]).sort().map(loc => (
+            <div key={loc} className="mb-4">
+              <div className="font-semibold mb-1">Standort: {loc}</div>
+              <table className="w-full border-collapse text-[9pt] mb-2">
+                <thead>
+                  <tr>
+                    <th className="border px-2 py-1">Barcode (Text)</th>
+                    <th className="border px-2 py-1">Strichcode</th>
+                    <th className="border px-2 py-1">Name</th>
+                    <th className="border px-2 py-1">Inventarnummer</th>
+                    <th className="border px-2 py-1">Hersteller</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {grouped[cat][loc].map(item => (
+                    <tr key={item.id}>
+                      <td className="border px-2 py-1 align-middle">{item.barcode || "-"}</td>
+                      <td className="border px-2 py-1 align-middle">
+                        {item.barcode ? (
+                          <img
+                            src={getBarcodeUrl(item.barcode)}
+                            alt="Barcode"
+                            style={{ maxHeight: 32, maxWidth: 140, background: "#FFF" }}
+                            className="mx-auto d-block"
+                          />
+                        ) : "-"}
+                      </td>
+                      <td className="border px-2 py-1 align-middle">{item.name || "-"}</td>
+                      <td className="border px-2 py-1 align-middle">{item.inventory_number || "-"}</td>
+                      <td className="border px-2 py-1 align-middle">{item.manufacturer || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
 };
