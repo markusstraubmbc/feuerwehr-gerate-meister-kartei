@@ -8,6 +8,16 @@ export interface SystemSetting {
 }
 
 export const useSystemSettings = () => {
+  // Instrument for debugging
+  try {
+    // intentionally try to get QueryClient instance to see if it errors here
+    const queryClient = useQueryClient();
+    console.log("[useSystemSettings] QueryClient: OK", queryClient);
+  } catch (err) {
+    console.error("[useSystemSettings] QueryClient MISSING!!!", err);
+    throw err; // surface the error!
+  }
+
   return useQuery({
     queryKey: ["system-settings"],
     queryFn: async () => {
