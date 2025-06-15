@@ -514,6 +514,10 @@ export type Database = {
         Args: { equipment_id_param: string }
         Returns: Json[]
       }
+      truncate_table: {
+        Args: { table_name: string }
+        Returns: undefined
+      }
     }
     Enums: {
       equipment_status:

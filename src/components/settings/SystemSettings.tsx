@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -8,6 +7,7 @@ import { SystemNameSettings } from "./SystemNameSettings";
 import { LogoSettings } from "./LogoSettings";
 import { MenuColorSettings } from "./MenuColorSettings";
 import { CronJobMonitoring } from "./CronJobMonitoring";
+import { SystemBackupSettings } from "./SystemBackupSettings";
 
 const SystemSettings = () => {
   const { data: settings = {}, isLoading } = useSystemSettings();
@@ -122,6 +122,9 @@ const SystemSettings = () => {
       <AutoMaintenanceGenerator />
 
       <CronJobMonitoring />
+
+      {/* --- Backup/Restore Section --- */}
+      <SystemBackupSettings />
 
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={updateSetting.isPending}>
