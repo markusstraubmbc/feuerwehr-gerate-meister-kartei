@@ -1,4 +1,3 @@
-
 import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
 import { generateEquipmentDetailsPdf } from "@/components/equipment/EquipmentDetailsPdfExport";
 import { Equipment } from "@/hooks/useEquipment";
@@ -28,19 +27,7 @@ export const useEquipmentPdfExport = () => {
         .from("mission_equipment")
         .select(`
           *,
-          mission:mission_id (
-            id,
-            title,
-            mission_date,
-            mission_type,
-            description,
-            location,
-            created_at,
-            end_time,
-            responsible_person_id,
-            start_time,
-            updated_at
-          ),
+          mission:mission_id(*),
           added_by_person:added_by (
             id,
             first_name,

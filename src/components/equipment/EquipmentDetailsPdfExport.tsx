@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
@@ -132,9 +131,7 @@ export const generateEquipmentDetailsPdf = ({
         mission.mission.mission_type === 'einsatz' ? 'Einsatz' : 'Übung',
         mission.mission.title,
         mission.mission.location || '-',
-        mission.mission.responsible_person 
-          ? `${mission.mission.responsible_person.first_name} ${mission.mission.responsible_person.last_name}`
-          : '-'
+        mission.mission.responsible_persons || '-'
       ]);
 
       autoTable(doc, {

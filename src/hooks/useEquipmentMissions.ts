@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Mission } from "./useMissions";
@@ -26,9 +25,7 @@ export const useEquipmentMissions = (equipmentId: string) => {
         .from("mission_equipment")
         .select(`
           *,
-          mission:mission_id(*,
-            responsible_person:responsible_person_id(id, first_name, last_name)
-          ),
+          mission:mission_id(*),
           added_by_person:added_by(id, first_name, last_name)
         `)
         .eq('equipment_id', equipmentId)

@@ -1,9 +1,8 @@
-
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, User, Target, FileText } from "lucide-react";
+import { Calendar, MapPin, User, Target, FileText, Package } from "lucide-react";
 import { useEquipmentMissions } from "@/hooks/useEquipmentMissions";
 
 interface EquipmentMissionsTabProps {
@@ -67,25 +66,40 @@ export function EquipmentMissionsTab({ equipmentId }: EquipmentMissionsTabProps)
                   </Badge>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    {format(new Date(item.mission.mission_date), 'dd.MM.yyyy (EEEE)', { locale: de })}
-                    {item.mission.start_time && ` - ${item.mission.start_time}`}
-                    {item.mission.end_time && ` bis ${item.mission.end_time}`}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 shrink-0" />
+                    <span>
+                      {format(new Date(item.mission.mission_date), 'dd.MM.yyyy (EEEE)', { locale: de })}
+                      {item.mission.start_time && ` - ${item.mission.start_time}`}
+                      {item.mission.end_time && ` bis ${item.mission.end_time}`}
+                    </span>
                   </div>
                   
                   {item.mission.location && (
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-4 w-4" />
-                      {item.mission.location}
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 shrink-0" />
+                      <span>{item.mission.location}</span>
                     </div>
                   )}
                   
-                  {item.mission.responsible_person && (
-                    <div className="flex items-center gap-1">
-                      <User className="h-4 w-4" />
-                      {item.mission.responsible_person.first_name} {item.mission.responsible_person.last_name}
+                  {item.mission.responsible_persons && (
+                    <div className="flex items-start gap-2 md:col-span-2">
+                      <User className="h-4 w-4 shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <strong className="font-medium text-foreground">Verantwortlich: </strong>
+                        <span className="whitespace-pre-wrap">{item.mission.responsible_persons}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {item.mission.vehicles && (
+                    <div className="flex items-start gap-2 md:col-span-2">
+                      <Package className="h-4 w-4 shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <strong className="font-medium text-foreground">Fahrzeuge: </strong>
+                        <span className="whitespace-pre-wrap">{item.mission.vehicles}</span>
+                      </div>
                     </div>
                   )}
                 </div>
