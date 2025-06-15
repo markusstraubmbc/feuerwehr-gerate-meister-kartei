@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import {
   Table,
@@ -145,26 +144,28 @@ export function EquipmentList({
         .eq("equipment_id", equipmentItem.id)
         .order("created_at", { ascending: false });
 
-      // Fetch missions for this equipment using Supabase directly
+      // Fetch mission equipment records (full junction table data) for this equipment using Supabase directly
       const { data: missionEquipment = [] } = await supabase
         .from("mission_equipment")
         .select(`
-          mission:missions (
+          *,
+          mission:mission_id (
             id,
             title,
             mission_date,
             mission_type,
             description,
             location
+          ),
+          added_by_person:added_by (
+            id,
+            first_name,
+            last_name
           )
         `)
-        .eq("equipment_id", equipmentItem.id);
+        .eq("equipment_id", equipmentItem.id)
+        .order("added_at", { ascending: false });
 
-      // Extract missions from the junction table data
-      const missions = missionEquipment
-        .map(me => me.mission)
-        .filter(Boolean);
-      
       // Filter maintenance records for this equipment
       const equipmentMaintenance = maintenanceRecords.filter(
         record => record.equipment_id === equipmentItem.id
@@ -173,7 +174,7 @@ export function EquipmentList({
       generateEquipmentDetailsPdf({
         equipment: equipmentItem,
         comments: comments || [],
-        missions: missions || [],
+        missions: missionEquipment || [], // Pass the full mission equipment data with junction table info
         maintenanceRecords: equipmentMaintenance
       });
     } catch (error) {
