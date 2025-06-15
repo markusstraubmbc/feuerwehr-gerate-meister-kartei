@@ -1,4 +1,3 @@
-
 import { Equipment } from "@/hooks/useEquipment";
 import { useReactToPrint } from "react-to-print";
 import { jsPDF } from "jspdf";
@@ -6,6 +5,36 @@ import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { RefObject } from "react";
+
+// Hilfsfunktionen zum Gruppieren & Sortieren
+function groupEquipment(equipment: Equipment[]) {
+  // Gruppen: Kategorie -> Standort -> Liste mit sortierten Einträgen
+  // leere Strings für fehlende Werte
+  const group: Record<string, Record<string, Equipment[]>> = {};
+  for (const item of equipment) {
+    const category = item.category?.name || "Keine Kategorie";
+    const location = item.location?.name || "Kein Standort";
+    group[category] = group[category] || {};
+    group[category][location] = group[category][location] || [];
+    group[category][location].push(item);
+  }
+  // Sortiere Einträge pro Standortgruppe nach Barcode, Name, Inventarnummer, Hersteller
+  for (const cat in group) {
+    for (const loc in group[cat]) {
+      group[cat][loc].sort((a, b) => {
+        const fields: (keyof Equipment)[] = ["barcode", "name", "inventory_number", "manufacturer"];
+        for (const field of fields) {
+          const vA = (a[field] || "").toString().toLowerCase();
+          const vB = (b[field] || "").toString().toLowerCase();
+          if (vA < vB) return -1;
+          if (vA > vB) return 1;
+        }
+        return 0;
+      });
+    }
+  }
+  return group;
+}
 
 interface EquipmentPrintExportProps {
   equipment: Equipment[];
@@ -79,71 +108,88 @@ export const useEquipmentPrintExport = ({ equipment, printRef }: EquipmentPrintE
         format: 'a4'
       });
 
-      // Title
+      // Titel
       doc.setFontSize(16);
       doc.setFont(undefined, 'bold');
-      doc.text('Ausrüstungsliste', doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
-      
-      // Date and count info
+      doc.text('Ausrüstungsliste (gruppiert nach Kategorie, Standort)', doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+
       doc.setFontSize(10);
       doc.setFont(undefined, 'normal');
       doc.text(`Erstellt am: ${new Date().toLocaleDateString('de-DE')}`, doc.internal.pageSize.getWidth() / 2, 30, { align: 'center' });
       doc.text(`Anzahl Einträge: ${equipment.length}`, doc.internal.pageSize.getWidth() / 2, 35, { align: 'center' });
 
-      // Prepare table data
-      const tableData = equipment.map(item => [
-        item.inventory_number || '-',
-        item.name || '-',
-        item.location?.name || '-',
-        item.category?.name || '-',
-        item.status || '-',
-        item.last_check_date ? format(new Date(item.last_check_date), "dd.MM.yyyy") : '-',
-        item.next_check_date ? format(new Date(item.next_check_date), "dd.MM.yyyy") : '-',
-        item.responsible_person 
-          ? `${item.responsible_person.first_name} ${item.responsible_person.last_name}`
-          : '-'
-      ]);
+      const grouped = groupEquipment(equipment);
 
-      // Table headers
-      const headers = [
-        'Inventarnr.',
-        'Name', 
-        'Standort',
-        'Kategorie',
-        'Status',
-        'Letzte Prüfung',
-        'Nächste Prüfung',
-        'Verantwortlich'
-      ];
+      let startY = 45;
 
-      // Generate table
-      autoTable(doc, {
-        head: [headers],
-        body: tableData,
-        startY: 45,
-        styles: {
-          fontSize: 8,
-          cellPadding: 2,
-          overflow: 'linebreak',
-          halign: 'left'
-        },
-        headStyles: {
-          fillColor: [240, 240, 240],
-          textColor: [0, 0, 0],
-          fontStyle: 'bold'
-        },
-        alternateRowStyles: {
-          fillColor: [250, 250, 250]
-        },
-        tableLineColor: [0, 0, 0],
-        tableLineWidth: 0.1,
-        margin: { left: 10, right: 10 }
+      // Für jede Kategorie
+      Object.keys(grouped).sort().forEach(category => {
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text(`Kategorie: ${category}`, 12, startY);
+
+        startY += 7;
+
+        // Innerhalb jeder Kategorie die Standorte durchgehen
+        Object.keys(grouped[category]).sort().forEach(location => {
+          doc.setFontSize(11);
+          doc.setFont(undefined, 'bold');
+          doc.text(`Standort: ${location}`, 18, startY);
+
+          startY += 7;
+
+          // Kopfzeile der jeweiligen Tabelle
+          const headers = [
+            "Barcode",
+            "Name",
+            "Inventarnummer",
+            "Hersteller",
+          ];
+
+          // Daten für die aktuelle Standortgruppe
+          const bodyData = grouped[category][location].map(item => [
+            item.barcode || "-",
+            item.name || "-",
+            item.inventory_number || "-",
+            item.manufacturer || "-"
+          ]);
+
+          // Tabelle der Standortgruppe
+          autoTable(doc, {
+            head: [headers],
+            body: bodyData,
+            startY,
+            styles: {
+              fontSize: 8,
+              cellPadding: 2,
+              overflow: 'linebreak',
+              halign: 'left'
+            },
+            headStyles: {
+              fillColor: [240, 240, 240],
+              textColor: [0, 0, 0],
+              fontStyle: 'bold'
+            },
+            alternateRowStyles: {
+              fillColor: [250, 250, 250]
+            },
+            tableLineColor: [0, 0, 0],
+            tableLineWidth: 0.1,
+            margin: { left: 10, right: 10 }
+          });
+
+          // autoTable passt den Y Wert nach unten automatisch an:
+          startY = (doc as any).lastAutoTable.finalY + 8;
+        });
+
+        // nach jedem Kategorie-Abschnitt etwas vertikalen Abstand
+        startY += 3;
       });
 
-      // Save the PDF
-      const fileName = `Ausrüstungsliste-${new Date().toISOString().slice(0, 10)}.pdf`;
+      // PDF speichern
+      const fileName = `Ausrüstungsliste-gruppiert-${new Date().toISOString().slice(0, 10)}.pdf`;
       doc.save(fileName);
-      
+
       toast.success(`PDF wurde als ${fileName} heruntergeladen`);
     } catch (error) {
       console.error('Error generating PDF:', error);
