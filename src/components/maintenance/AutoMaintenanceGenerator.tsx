@@ -35,25 +35,27 @@ export function AutoMaintenanceGenerator() {
       let errors = 0;
 
       const now = new Date();
-      const endDate = generateForYear ? addDays(now, 180) : addMonths(now, 3); // 180 Tage für Jahr, 3 Monate für normal
+      const endDate = generateForYear ? addDays(now, 180) : addMonths(now, 3);
 
       for (const item of equipment) {
         try {
-          // Finde ALLE passenden Templates pro Kategorie!
-          const matchingTemplates = templates.filter(t => t.category_id === item.category_id);
+          // ALLE passenden Templates pro Kategorie finden (Refaktoring!)
+          const matchingTemplates = templates.filter(
+            t => t.category_id === item.category_id
+          );
 
-          if (!matchingTemplates.length) {
+          if (matchingTemplates.length === 0) {
             console.log(`No template found for equipment ${item.name}`);
             skipped++;
             continue;
           }
 
-          // Für jedes passende Template
+          // Jetzt für ALLE passenden Templates iterieren
           for (const template of matchingTemplates) {
             // Calculate maintenance dates
-            const baseDate = item.last_check_date 
+            const baseDate = item.last_check_date
               ? new Date(item.last_check_date)
-              : item.purchase_date 
+              : item.purchase_date
               ? new Date(item.purchase_date)
               : new Date();
 
@@ -82,31 +84,34 @@ export function AutoMaintenanceGenerator() {
               endOfDay.setHours(23, 59, 59, 999);
 
               const { data: existingRecords } = await supabase
-                .from('maintenance_records')
-                .select('id')
-                .eq('equipment_id', item.id)
-                .eq('template_id', template.id)
-                .gte('due_date', startOfDay.toISOString())
-                .lte('due_date', endOfDay.toISOString());
+                .from("maintenance_records")
+                .select("id")
+                .eq("equipment_id", item.id)
+                .eq("template_id", template.id)
+                .gte("due_date", startOfDay.toISOString())
+                .lte("due_date", endOfDay.toISOString());
 
               if (existingRecords && existingRecords.length > 0) {
-                console.log(`Maintenance already exists for ${item.name} / ${template.name} on ${dueDate.toDateString()}`);
+                console.log(
+                  `Maintenance already exists for ${item.name} / ${template.name} on ${dueDate.toDateString()}`
+                );
                 skipped++;
                 continue;
               }
 
-              const { error } = await supabase
-                .from('maintenance_records')
-                .insert({
-                  equipment_id: item.id,
-                  template_id: template.id,
-                  due_date: dueDate.toISOString(),
-                  status: 'ausstehend',
-                  performed_by: template.responsible_person_id
-                });
+              const { error } = await supabase.from("maintenance_records").insert({
+                equipment_id: item.id,
+                template_id: template.id,
+                due_date: dueDate.toISOString(),
+                status: "ausstehend",
+                performed_by: template.responsible_person_id,
+              });
 
               if (error) {
-                console.error(`Error creating maintenance for ${item.name} / ${template.name} on ${dueDate.toDateString()}:`, error);
+                console.error(
+                  `Error creating maintenance for ${item.name} / ${template.name} on ${dueDate.toDateString()}:`,
+                  error
+                );
                 errors++;
               } else {
                 created++;
@@ -119,23 +124,22 @@ export function AutoMaintenanceGenerator() {
         }
       }
 
-      setGenerationReport({ 
-        created, 
-        skipped, 
-        errors, 
-        type: generateForYear ? 'yearly' : 'manual' 
+      setGenerationReport({
+        created,
+        skipped,
+        errors,
+        type: generateForYear ? "yearly" : "manual",
       });
-      
+
       if (created > 0) {
         queryClient.invalidateQueries({ queryKey: ["maintenance-records"] });
         toast.success(`${created} neue Wartungstermine wurden erstellt`);
       } else {
-        toast.info('Keine neuen Wartungstermine erforderlich');
+        toast.info("Keine neuen Wartungstermine erforderlich");
       }
-
     } catch (error) {
-      console.error('Error generating maintenance records:', error);
-      toast.error('Fehler beim Generieren der Wartungstermine');
+      console.error("Error generating maintenance records:", error);
+      toast.error("Fehler beim Generieren der Wartungstermine");
     } finally {
       setLoading(false);
     }

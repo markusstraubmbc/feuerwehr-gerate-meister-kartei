@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
@@ -60,8 +59,10 @@ serve(async (req) => {
 
     for (const item of equipment || []) {
       try {
-        // Finde ALLE passenden Templates pro Kategorie!
-        const matchingTemplates = templates?.filter(t => t.category_id === item.category_id) || [];
+        // Refaktoring: ALLE passenden Templates pro Kategorie!
+        const matchingTemplates = templates?.filter(
+          t => t.category_id === item.category_id
+        ) || [];
 
         if (!matchingTemplates.length) {
           console.log(`No template found for equipment ${item.name}`)
@@ -69,7 +70,7 @@ serve(async (req) => {
           continue
         }
 
-        // Für JEDES passende Template
+        // Für JEDES passende Template (Refaktoring)
         for (const template of matchingTemplates) {
           // Calculate maintenance dates
           const baseDate = item.last_check_date 
