@@ -1,11 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useSystemSettings, useUpdateSystemSetting } from "@/hooks/useSystemSettings";
 import { AutoMaintenanceGenerator } from "@/components/maintenance/AutoMaintenanceGenerator";
+import { SystemNameSettings } from "./SystemNameSettings";
+import { LogoSettings } from "./LogoSettings";
+import { MenuColorSettings } from "./MenuColorSettings";
 
 const SystemSettings = () => {
   const { data: settings = {}, isLoading } = useSystemSettings();
@@ -96,157 +97,26 @@ const SystemSettings = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Systemname</CardTitle>
-          <CardDescription>Anpassen des Systemnamens, der in der Seitenleiste angezeigt wird</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Label htmlFor="system-name">Systemname</Label>
-            <Input
-              id="system-name"
-              value={systemName}
-              onChange={(e) => setSystemName(e.target.value)}
-              placeholder="Feuerwehr Inventar"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <SystemNameSettings 
+        systemName={systemName}
+        onSystemNameChange={setSystemName}
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Logo</CardTitle>
-          <CardDescription>Upload eines Logos für das System</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="logo">Logo-Datei</Label>
-            <Input
-              id="logo"
-              type="file"
-              accept="image/*"
-              onChange={handleLogoChange}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="logo-size">Logo-Größe (Pixel)</Label>
-            <Input
-              id="logo-size"
-              type="number"
-              min="16"
-              max="200"
-              value={logoSize}
-              onChange={(e) => setLogoSize(e.target.value)}
-              placeholder="48"
-            />
-            <p className="text-sm text-muted-foreground">
-              Empfohlene Größe: 48-96 Pixel
-            </p>
-          </div>
-          
-          {logoPreview && (
-            <div className="space-y-2">
-              <Label>Vorschau</Label>
-              <div className="p-4 border rounded-md bg-muted/50">
-                <img 
-                  src={logoPreview} 
-                  alt="Logo Vorschau" 
-                  style={{ 
-                    width: `${logoSize}px`, 
-                    height: `${logoSize}px`,
-                    objectFit: 'contain'
-                  }}
-                  className="rounded"
-                />
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <LogoSettings
+        logoPreview={logoPreview}
+        logoSize={logoSize}
+        onLogoChange={handleLogoChange}
+        onLogoSizeChange={setLogoSize}
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Menü-Farbeinstellungen</CardTitle>
-          <CardDescription>Anpassen der Farben für die Seitenleiste</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="background-color">Hintergrundfarbe</Label>
-            <div className="flex gap-2">
-              <Input
-                id="background-color"
-                type="color"
-                value={backgroundColor}
-                onChange={(e) => setBackgroundColor(e.target.value)}
-                className="w-16 h-10 p-1 border"
-              />
-              <Input
-                value={backgroundColor}
-                onChange={(e) => setBackgroundColor(e.target.value)}
-                placeholder="#1e293b"
-                className="flex-1"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="text-color">Textfarbe</Label>
-            <div className="flex gap-2">
-              <Input
-                id="text-color"
-                type="color"
-                value={textColor}
-                onChange={(e) => setTextColor(e.target.value)}
-                className="w-16 h-10 p-1 border"
-              />
-              <Input
-                value={textColor}
-                onChange={(e) => setTextColor(e.target.value)}
-                placeholder="#ffffff"
-                className="flex-1"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="selected-color">Farbe für ausgewähltes Menü</Label>
-            <div className="flex gap-2">
-              <Input
-                id="selected-color"
-                type="color"
-                value={selectedColor}
-                onChange={(e) => setSelectedColor(e.target.value)}
-                className="w-16 h-10 p-1 border"
-              />
-              <Input
-                value={selectedColor}
-                onChange={(e) => setSelectedColor(e.target.value)}
-                placeholder="#3b82f6"
-                className="flex-1"
-              />
-            </div>
-          </div>
-
-          <div className="p-4 border rounded-md" style={{ backgroundColor }}>
-            <div className="space-y-2">
-              <div 
-                className="p-2 rounded"
-                style={{ color: textColor }}
-              >
-                Normal Menüeintrag
-              </div>
-              <div 
-                className="p-2 rounded"
-                style={{ backgroundColor: selectedColor, color: '#ffffff' }}
-              >
-                Ausgewählter Menüeintrag
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <MenuColorSettings
+        backgroundColor={backgroundColor}
+        textColor={textColor}
+        selectedColor={selectedColor}
+        onBackgroundColorChange={setBackgroundColor}
+        onTextColorChange={setTextColor}
+        onSelectedColorChange={setSelectedColor}
+      />
 
       <AutoMaintenanceGenerator />
 
