@@ -1,13 +1,12 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Clock, MapPin, Users, Plus, Trash2, Package, FileDown } from "lucide-react";
+import { Clock, MapPin, Users, Plus, Trash2, Package, FileDown, Pen } from "lucide-react";
 import { Mission } from "@/hooks/useMissions";
 import { useMissionEquipment } from "@/hooks/useMissionEquipment";
 import { useMissionPrintExport } from "@/hooks/useMissionPrintExport";
@@ -15,6 +14,8 @@ import { AddEquipmentToMissionDialog } from "./AddEquipmentToMissionDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 interface ViewMissionDialogProps {
   mission: Mission;
@@ -23,10 +24,49 @@ interface ViewMissionDialogProps {
 }
 
 export const ViewMissionDialog = ({ mission, open, onOpenChange }: ViewMissionDialogProps) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editablePersons, setEditablePersons] = useState("");
+  const [editableVehicles, setEditableVehicles] = useState("");
   const [showAddEquipment, setShowAddEquipment] = useState(false);
   const { data: missionEquipment, isLoading } = useMissionEquipment(mission.id);
   const { handlePdfDownload } = useMissionPrintExport();
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (mission) {
+      setEditablePersons(mission.responsible_persons || "");
+      setEditableVehicles(mission.vehicles || "");
+    }
+  }, [mission]);
+
+  const handleCancelEdit = () => {
+    if (mission) {
+      setEditablePersons(mission.responsible_persons || "");
+      setEditableVehicles(mission.vehicles || "");
+    }
+    setIsEditing(false);
+  };
+
+  const handleSave = async () => {
+    try {
+      const { error } = await supabase
+        .from("missions")
+        .update({
+          responsible_persons: editablePersons.trim(),
+          vehicles: editableVehicles.trim(),
+        })
+        .eq("id", mission.id);
+
+      if (error) throw error;
+
+      toast.success("Einsatzdetails aktualisiert");
+      queryClient.invalidateQueries({ queryKey: ["missions"] });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating mission:', error);
+      toast.error("Fehler beim Speichern der Details");
+    }
+  };
 
   const handleRemoveEquipment = async (missionEquipmentId: string) => {
     try {
@@ -79,7 +119,15 @@ export const ViewMissionDialog = ({ mission, open, onOpenChange }: ViewMissionDi
             {/* Mission Details */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Details</CardTitle>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg">Details</CardTitle>
+                  {!isEditing && (
+                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                      <Pen className="h-4 w-4 mr-2" />
+                      Bearbeiten
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center text-sm">
@@ -98,24 +146,51 @@ export const ViewMissionDialog = ({ mission, open, onOpenChange }: ViewMissionDi
                   </div>
                 )}
                 
-                {mission.responsible_persons && (
-                  <div className="flex items-start text-sm">
-                    <Users className="h-4 w-4 mr-2 mt-1 shrink-0 text-muted-foreground" />
-                    <div>
-                      <strong className="mr-2">Verantwortlich:</strong>
-                      <span className="whitespace-pre-wrap">{mission.responsible_persons}</span>
+                {isEditing ? (
+                  <div className="space-y-4 pt-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="responsible_persons">Verantwortlich</Label>
+                      <Textarea
+                        id="responsible_persons"
+                        value={editablePersons}
+                        onChange={(e) => setEditablePersons(e.target.value)}
+                        placeholder="z.B. Max Mustermann, Erika Mustermann"
+                        className="min-h-[80px]"
+                      />
+                    </div>
+                     <div className="space-y-1">
+                      <Label htmlFor="vehicles">Fahrzeuge</Label>
+                      <Textarea
+                        id="vehicles"
+                        value={editableVehicles}
+                        onChange={(e) => setEditableVehicles(e.target.value)}
+                        placeholder="z.B. HLF 20, DLK 23/12"
+                        className="min-h-[80px]"
+                      />
                     </div>
                   </div>
-                )}
+                ) : (
+                  <>
+                    {mission.responsible_persons && (
+                      <div className="flex items-start text-sm">
+                        <Users className="h-4 w-4 mr-2 mt-1 shrink-0 text-muted-foreground" />
+                        <div>
+                          <strong className="mr-2">Verantwortlich:</strong>
+                          <span className="whitespace-pre-wrap">{mission.responsible_persons}</span>
+                        </div>
+                      </div>
+                    )}
 
-                {mission.vehicles && (
-                  <div className="flex items-start text-sm">
-                    <Package className="h-4 w-4 mr-2 mt-1 shrink-0 text-muted-foreground" />
-                    <div>
-                      <strong className="mr-2">Fahrzeuge:</strong>
-                       <span className="whitespace-pre-wrap">{mission.vehicles}</span>
-                    </div>
-                  </div>
+                    {mission.vehicles && (
+                      <div className="flex items-start text-sm">
+                        <Package className="h-4 w-4 mr-2 mt-1 shrink-0 text-muted-foreground" />
+                        <div>
+                          <strong className="mr-2">Fahrzeuge:</strong>
+                           <span className="whitespace-pre-wrap">{mission.vehicles}</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {mission.description && (
@@ -125,6 +200,12 @@ export const ViewMissionDialog = ({ mission, open, onOpenChange }: ViewMissionDi
                   </div>
                 )}
               </CardContent>
+              {isEditing && (
+                <CardFooter className="flex justify-end gap-2">
+                  <Button variant="ghost" onClick={handleCancelEdit}>Abbrechen</Button>
+                  <Button onClick={handleSave}>Speichern</Button>
+                </CardFooter>
+              )}
             </Card>
 
             <Separator />
