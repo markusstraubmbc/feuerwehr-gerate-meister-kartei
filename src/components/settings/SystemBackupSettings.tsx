@@ -3,22 +3,37 @@ import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Download, Upload } from "lucide-react";
+// Supabase-Client importieren
+import { supabase } from "@/integrations/supabase/client";
 
 export const SystemBackupSettings: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Holt das aktuelle Auth token
+  async function getAuthHeader() {
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
+    if (error || !session?.access_token) return undefined;
+    return { Authorization: `Bearer ${session.access_token}` };
+  }
+
   // Download backup
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
+      const authHeader = await getAuthHeader();
+
       const response = await fetch(
         "https://pkhkswzixavvildtoxxt.supabase.co/functions/v1/database-backup",
         {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            ...(authHeader || {}),
           },
         }
       );
@@ -58,12 +73,15 @@ export const SystemBackupSettings: React.FC = () => {
       const fileText = await file.text();
       const data = JSON.parse(fileText);
 
+      const authHeader = await getAuthHeader();
+
       const response = await fetch(
         "https://pkhkswzixavvildtoxxt.supabase.co/functions/v1/database-backup",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            ...(authHeader || {}),
           },
           body: JSON.stringify(data),
         }
@@ -136,3 +154,4 @@ export const SystemBackupSettings: React.FC = () => {
     </div>
   );
 };
+
