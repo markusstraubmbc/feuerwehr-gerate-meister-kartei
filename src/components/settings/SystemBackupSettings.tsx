@@ -1,8 +1,9 @@
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Download, Upload } from "lucide-react";
+import { Download, Upload, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 // Supabase-Client importieren
 import { supabase } from "@/integrations/supabase/client";
 
@@ -10,6 +11,36 @@ export const SystemBackupSettings: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
+
+  // Prüfe Authentifizierungsstatus beim Laden der Komponente
+  useEffect(() => {
+    checkAuthStatus();
+    
+    // Höre auf Authentifizierungsänderungen
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session);
+      if (event === 'SIGNED_OUT') {
+        setIsAuthenticated(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const checkAuthStatus = async () => {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      console.log('Auth status check:', { hasSession: !!session, error });
+      setIsAuthenticated(!!session);
+    } catch (error) {
+      console.error('Auth status check failed:', error);
+      setIsAuthenticated(false);
+    } finally {
+      setAuthChecking(false);
+    }
+  };
 
   // Holt das aktuelle Auth token mit verbesserter Fehlerbehandlung
   async function getAuthHeader() {
@@ -82,6 +113,11 @@ export const SystemBackupSettings: React.FC = () => {
 
   // Download backup
   const handleDownload = async () => {
+    if (!isAuthenticated) {
+      toast.error("Sie müssen angemeldet sein, um ein Backup zu erstellen.");
+      return;
+    }
+
     setIsDownloading(true);
     try {
       console.log('Starting backup download...');
@@ -154,6 +190,11 @@ export const SystemBackupSettings: React.FC = () => {
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
+    if (!isAuthenticated) {
+      toast.error("Sie müssen angemeldet sein, um ein Backup wiederherzustellen.");
+      return;
+    }
+
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -217,12 +258,30 @@ export const SystemBackupSettings: React.FC = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  if (authChecking) {
+    return (
+      <div className="border rounded-lg p-4 bg-slate-50 space-y-3">
+        <div className="text-center">Prüfe Authentifizierungsstatus...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="border rounded-lg p-4 bg-slate-50 space-y-3">
       <h3 className="font-semibold text-lg flex items-center gap-2">
         <Download className="w-5 h-5" />
         System-Daten Backup & Wiederherstellung
       </h3>
+      
+      {!isAuthenticated && (
+        <Alert className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Sie müssen angemeldet sein, um Backup-Funktionen zu nutzen. Bitte melden Sie sich an.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <p className="text-sm mb-2 text-muted-foreground">
         Erstellen Sie ein vollständiges Backup aller Systemdaten oder stellen Sie ein Backup wieder her.<br />
         <span className="font-medium text-destructive">
@@ -234,7 +293,7 @@ export const SystemBackupSettings: React.FC = () => {
           variant="outline"
           size="sm"
           onClick={handleDownload}
-          disabled={isDownloading}
+          disabled={isDownloading || !isAuthenticated}
           className="flex items-center gap-2"
         >
           <Download className="w-4 h-4" />{" "}
@@ -245,7 +304,7 @@ export const SystemBackupSettings: React.FC = () => {
             asChild
             variant="outline"
             size="sm"
-            disabled={isUploading}
+            disabled={isUploading || !isAuthenticated}
             className="flex items-center gap-2"
           >
             <span>
@@ -259,7 +318,7 @@ export const SystemBackupSettings: React.FC = () => {
             onChange={handleFileChange}
             ref={fileInputRef}
             className="hidden"
-            disabled={isUploading}
+            disabled={isUploading || !isAuthenticated}
           />
         </label>
       </div>
