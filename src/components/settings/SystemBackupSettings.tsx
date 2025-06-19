@@ -14,40 +14,65 @@ export const SystemBackupSettings: React.FC = () => {
   // Holt das aktuelle Auth token mit verbesserter Fehlerbehandlung
   async function getAuthHeader() {
     try {
-      // Erst versuchen, die aktuelle Session zu bekommen
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
+      console.log('Getting auth header...');
       
-      console.log('Session check:', { hasSession: !!session, hasToken: !!session?.access_token, error });
+      // Erst prüfen, ob ein User angemeldet ist
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      console.log('User check:', { hasUser: !!user, userError });
       
-      if (error) {
-        console.error('Session error:', error);
-        throw new Error(`Authentifizierungsfehler: ${error.message}`);
+      if (userError) {
+        console.error('User error:', userError);
+        throw new Error(`Benutzer-Authentifizierungsfehler: ${userError.message}`);
       }
       
-      if (!session) {
-        throw new Error("Keine aktive Sitzung gefunden. Bitte melden Sie sich erneut an.");
+      if (!user) {
+        throw new Error("Kein angemeldeter Benutzer gefunden. Bitte melden Sie sich erneut an.");
       }
       
-      if (!session.access_token) {
-        throw new Error("Kein gültiges Zugriffstoken gefunden. Bitte melden Sie sich erneut an.");
+      // Dann die Session holen
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('Session check:', { hasSession: !!session, hasToken: !!session?.access_token, sessionError });
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        // Versuche Session zu refreshen
+        console.log('Attempting to refresh session...');
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError || !refreshData.session) {
+          throw new Error("Session konnte nicht erneuert werden. Bitte melden Sie sich erneut an.");
+        }
+        
+        console.log('Session refreshed successfully');
+        return { Authorization: `Bearer ${refreshData.session.access_token}` };
+      }
+      
+      if (!session || !session.access_token) {
+        console.log('No session or token, attempting refresh...');
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError || !refreshData.session) {
+          throw new Error("Keine gültige Session gefunden. Bitte melden Sie sich erneut an.");
+        }
+        
+        console.log('Session obtained through refresh');
+        return { Authorization: `Bearer ${refreshData.session.access_token}` };
       }
       
       // Token-Gültigkeit prüfen
       const now = Math.floor(Date.now() / 1000);
       if (session.expires_at && session.expires_at < now) {
-        console.log('Token expired, attempting refresh...');
+        console.log('Token expired, refreshing...');
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
         
         if (refreshError || !refreshData.session) {
-          throw new Error("Session abgelaufen. Bitte melden Sie sich erneut an.");
+          throw new Error("Session abgelaufen und konnte nicht erneuert werden. Bitte melden Sie sich erneut an.");
         }
         
         return { Authorization: `Bearer ${refreshData.session.access_token}` };
       }
       
+      console.log('Using existing valid session');
       return { Authorization: `Bearer ${session.access_token}` };
     } catch (error: any) {
       console.error('Auth header error:', error);
