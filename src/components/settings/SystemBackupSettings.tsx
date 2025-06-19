@@ -11,17 +11,48 @@ export const SystemBackupSettings: React.FC = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Holt das aktuelle Auth token
+  // Holt das aktuelle Auth token mit verbesserter Fehlerbehandlung
   async function getAuthHeader() {
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.getSession();
-    if (error || !session?.access_token) {
-      console.log('Auth error or no session:', error);
-      return undefined;
+    try {
+      // Erst versuchen, die aktuelle Session zu bekommen
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+      
+      console.log('Session check:', { hasSession: !!session, hasToken: !!session?.access_token, error });
+      
+      if (error) {
+        console.error('Session error:', error);
+        throw new Error(`Authentifizierungsfehler: ${error.message}`);
+      }
+      
+      if (!session) {
+        throw new Error("Keine aktive Sitzung gefunden. Bitte melden Sie sich erneut an.");
+      }
+      
+      if (!session.access_token) {
+        throw new Error("Kein gültiges Zugriffstoken gefunden. Bitte melden Sie sich erneut an.");
+      }
+      
+      // Token-Gültigkeit prüfen
+      const now = Math.floor(Date.now() / 1000);
+      if (session.expires_at && session.expires_at < now) {
+        console.log('Token expired, attempting refresh...');
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError || !refreshData.session) {
+          throw new Error("Session abgelaufen. Bitte melden Sie sich erneut an.");
+        }
+        
+        return { Authorization: `Bearer ${refreshData.session.access_token}` };
+      }
+      
+      return { Authorization: `Bearer ${session.access_token}` };
+    } catch (error: any) {
+      console.error('Auth header error:', error);
+      throw error;
     }
-    return { Authorization: `Bearer ${session.access_token}` };
   }
 
   // Download backup
@@ -31,9 +62,7 @@ export const SystemBackupSettings: React.FC = () => {
       console.log('Starting backup download...');
       
       const authHeader = await getAuthHeader();
-      if (!authHeader) {
-        throw new Error("Keine gültige Authentifizierung gefunden. Bitte melden Sie sich erneut an.");
-      }
+      console.log('Auth header obtained successfully');
 
       console.log('Making request to backup function...');
       const response = await fetch(
@@ -56,7 +85,14 @@ export const SystemBackupSettings: React.FC = () => {
           const errorData = await response.text();
           console.log('Error response body:', errorData);
           if (errorData) {
-            errorMsg += ` - ${errorData}`;
+            try {
+              const parsedError = JSON.parse(errorData);
+              if (parsedError && parsedError.error) {
+                errorMsg = parsedError.error;
+              }
+            } catch {
+              errorMsg += ` - ${errorData}`;
+            }
           }
         } catch (e) {
           console.log('Could not parse error response:', e);
@@ -105,9 +141,7 @@ export const SystemBackupSettings: React.FC = () => {
       console.log('Backup file parsed, keys:', Object.keys(data));
 
       const authHeader = await getAuthHeader();
-      if (!authHeader) {
-        throw new Error("Keine gültige Authentifizierung gefunden. Bitte melden Sie sich erneut an.");
-      }
+      console.log('Auth header obtained successfully for restore');
 
       console.log('Making restore request...');
       const response = await fetch(
@@ -133,10 +167,10 @@ export const SystemBackupSettings: React.FC = () => {
             try {
               const parsedError = JSON.parse(errData);
               if (parsedError && parsedError.error) {
-                errorMsg += " - " + parsedError.error;
+                errorMsg = parsedError.error;
               }
             } catch {
-              errorMsg += " - " + errData;
+              errorMsg += ` - ${errData}`;
             }
           }
         } catch (e) {
