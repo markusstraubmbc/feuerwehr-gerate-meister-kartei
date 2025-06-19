@@ -17,7 +17,10 @@ export const SystemBackupSettings: React.FC = () => {
       data: { session },
       error,
     } = await supabase.auth.getSession();
-    if (error || !session?.access_token) return undefined;
+    if (error || !session?.access_token) {
+      console.log('Auth error or no session:', error);
+      return undefined;
+    }
     return { Authorization: `Bearer ${session.access_token}` };
   }
 
@@ -25,21 +28,45 @@ export const SystemBackupSettings: React.FC = () => {
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
+      console.log('Starting backup download...');
+      
       const authHeader = await getAuthHeader();
+      if (!authHeader) {
+        throw new Error("Keine gültige Authentifizierung gefunden. Bitte melden Sie sich erneut an.");
+      }
 
+      console.log('Making request to backup function...');
       const response = await fetch(
         "https://pkhkswzixavvildtoxxt.supabase.co/functions/v1/database-backup",
         {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            ...(authHeader || {}),
+            ...authHeader,
           },
         }
       );
 
-      if (!response.ok) throw new Error("Backup konnte nicht geladen werden.");
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
+      if (!response.ok) {
+        let errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.text();
+          console.log('Error response body:', errorData);
+          if (errorData) {
+            errorMsg += ` - ${errorData}`;
+          }
+        } catch (e) {
+          console.log('Could not parse error response:', e);
+        }
+        throw new Error(errorMsg);
+      }
+
       const data = await response.json();
+      console.log('Backup data received, keys:', Object.keys(data));
+      
       const blob = new Blob([JSON.stringify(data, null, 2)], {
         type: "application/json",
       });
@@ -56,6 +83,7 @@ export const SystemBackupSettings: React.FC = () => {
 
       toast.success("Backup wurde erfolgreich heruntergeladen!");
     } catch (err: any) {
+      console.error('Backup download error:', err);
       toast.error("Fehler beim Erstellen des Backups: " + err.message);
     }
     setIsDownloading(false);
@@ -70,34 +98,59 @@ export const SystemBackupSettings: React.FC = () => {
 
     setIsUploading(true);
     try {
+      console.log('Starting backup restore...');
+      
       const fileText = await file.text();
       const data = JSON.parse(fileText);
+      console.log('Backup file parsed, keys:', Object.keys(data));
 
       const authHeader = await getAuthHeader();
+      if (!authHeader) {
+        throw new Error("Keine gültige Authentifizierung gefunden. Bitte melden Sie sich erneut an.");
+      }
 
+      console.log('Making restore request...');
       const response = await fetch(
         "https://pkhkswzixavvildtoxxt.supabase.co/functions/v1/database-backup",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(authHeader || {}),
+            ...authHeader,
           },
           body: JSON.stringify(data),
         }
       );
 
+      console.log('Restore response status:', response.status);
+
       if (!response.ok) {
-        let errorMsg = "Fehler beim Wiederherstellen des Backups.";
+        let errorMsg = `HTTP ${response.status}: ${response.statusText}`;
         try {
-          const errData = await response.json();
-          if (errData && errData.error) errorMsg += " " + errData.error;
-        } catch {}
+          const errData = await response.text();
+          console.log('Restore error response:', errData);
+          if (errData) {
+            try {
+              const parsedError = JSON.parse(errData);
+              if (parsedError && parsedError.error) {
+                errorMsg += " - " + parsedError.error;
+              }
+            } catch {
+              errorMsg += " - " + errData;
+            }
+          }
+        } catch (e) {
+          console.log('Could not parse restore error response:', e);
+        }
         throw new Error(errorMsg);
       }
 
+      const result = await response.json();
+      console.log('Restore result:', result);
+
       toast.success("Backup-Daten wurden erfolgreich wiederhergestellt!");
     } catch (err: any) {
+      console.error('Backup restore error:', err);
       toast.error("Fehler beim Wiederherstellen: " + err.message);
     }
     setIsUploading(false);
@@ -154,4 +207,3 @@ export const SystemBackupSettings: React.FC = () => {
     </div>
   );
 };
-
