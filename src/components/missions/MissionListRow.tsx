@@ -3,12 +3,13 @@ import { useMissionEquipment } from "@/hooks/useMissionEquipment";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableRow, TableCell } from "@/components/ui/table";
-import { FileDown, Eye, Calendar } from "lucide-react";
+import { FileDown, Eye, Calendar, PackagePlus } from "lucide-react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { Mission } from "@/hooks/useMissions";
 import { useMissionPrintExport } from "@/hooks/useMissionPrintExport";
 import { useState } from "react";
+import { AddEquipmentToMissionDialog } from "./AddEquipmentToMissionDialog";
 
 interface MissionListRowProps {
   mission: Mission;
@@ -23,6 +24,7 @@ export const MissionListRow = ({
   exporting,
   setExporting,
 }: MissionListRowProps) => {
+  const [showAddEquipment, setShowAddEquipment] = useState(false);
   const { data, isLoading } = useMissionEquipment(mission.id);
   const { handlePdfDownload } = useMissionPrintExport();
 
@@ -77,6 +79,14 @@ export const MissionListRow = ({
           <Button
             variant="ghost"
             size="icon"
+            onClick={() => setShowAddEquipment(true)}
+            title="Ausrüstung schnell hinzufügen"
+          >
+            <PackagePlus className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={handleExportPdf}
             title="Als PDF exportieren"
             disabled={exporting}
@@ -93,6 +103,13 @@ export const MissionListRow = ({
           </Button>
         </div>
       </TableCell>
+      
+      <AddEquipmentToMissionDialog
+        missionId={mission.id}
+        missionTitle={mission.title}
+        open={showAddEquipment}
+        onOpenChange={setShowAddEquipment}
+      />
     </TableRow>
   );
 };
