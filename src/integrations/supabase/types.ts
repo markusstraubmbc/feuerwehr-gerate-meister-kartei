@@ -392,6 +392,33 @@ export type Database = {
           },
         ]
       }
+      mission_equipment_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          vehicle_reference: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          vehicle_reference?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          vehicle_reference?: string | null
+        }
+        Relationships: []
+      }
       missions: {
         Row: {
           created_at: string
@@ -487,6 +514,45 @@ export type Database = {
           value?: Json
         }
         Relationships: []
+      }
+      template_equipment_items: {
+        Row: {
+          created_at: string
+          equipment_id: string
+          id: string
+          notes: string | null
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          equipment_id: string
+          id?: string
+          notes?: string | null
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          equipment_id?: string
+          id?: string
+          notes?: string | null
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_equipment_items_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_equipment_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "mission_equipment_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

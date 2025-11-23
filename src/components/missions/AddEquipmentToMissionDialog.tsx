@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import * as React from "react";
 import {
   Dialog,
   DialogContent,
@@ -86,6 +87,47 @@ export function AddEquipmentToMissionDialog({
 
       return true;
     });
+
+  // Auto-add when filtered to exactly 1 equipment
+  const autoAddEquipment = async (equipmentId: string) => {
+    try {
+      const { error } = await supabase
+        .from("mission_equipment")
+        .insert({
+          mission_id: missionId,
+          equipment_id: equipmentId,
+          added_by: addedBy || null,
+          notes: notes || null,
+        });
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ["mission-equipment", missionId] });
+      queryClient.invalidateQueries({ queryKey: ["missions"] });
+      
+      toast.success("Ausrüstung hinzugefügt");
+      
+      // Clear search to show next items
+      setSearchTerm("");
+      setCategoryFilter("");
+      setLocationFilter("");
+    } catch (error) {
+      console.error("Error auto-adding equipment:", error);
+      toast.error("Fehler beim Hinzufügen");
+    }
+  };
+
+  // Check if we should auto-add
+  React.useEffect(() => {
+    if (filteredEquipment.length === 1 && (searchTerm || categoryFilter || locationFilter)) {
+      const equipmentId = filteredEquipment[0].id;
+      // Small delay to allow user to see what's happening
+      const timer = setTimeout(() => {
+        autoAddEquipment(equipmentId);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [filteredEquipment.length, searchTerm, categoryFilter, locationFilter]);
 
   const handleSubmit = async () => {
     if (selectedEquipment.length === 0) {

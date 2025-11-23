@@ -6,11 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Clock, MapPin, Users, Plus, Trash2, Package, FileDown, Pen } from "lucide-react";
+import { Clock, MapPin, Users, Plus, Trash2, Package, FileDown, Pen, FileText } from "lucide-react";
 import { Mission } from "@/hooks/useMissions";
 import { useMissionEquipment } from "@/hooks/useMissionEquipment";
 import { useMissionPrintExport } from "@/hooks/useMissionPrintExport";
 import { AddEquipmentToMissionDialog } from "./AddEquipmentToMissionDialog";
+import { TemplateSelector } from "./TemplateSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -28,6 +29,7 @@ export const ViewMissionDialog = ({ mission, open, onOpenChange }: ViewMissionDi
   const [editablePersons, setEditablePersons] = useState("");
   const [editableVehicles, setEditableVehicles] = useState("");
   const [showAddEquipment, setShowAddEquipment] = useState(false);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const { data: missionEquipment, isLoading } = useMissionEquipment(mission.id);
   const { handlePdfDownload } = useMissionPrintExport();
   const queryClient = useQueryClient();
@@ -218,10 +220,16 @@ export const ViewMissionDialog = ({ mission, open, onOpenChange }: ViewMissionDi
                     <Package className="h-5 w-5 mr-2" />
                     Verwendete Ausrüstung ({missionEquipment?.length || 0})
                   </CardTitle>
-                  <Button onClick={() => setShowAddEquipment(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Ausrüstung hinzufügen
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setShowTemplateSelector(true)}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Vorlage anwenden
+                    </Button>
+                    <Button onClick={() => setShowAddEquipment(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Ausrüstung hinzufügen
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -274,6 +282,13 @@ export const ViewMissionDialog = ({ mission, open, onOpenChange }: ViewMissionDi
         missionTitle={mission.title}
         open={showAddEquipment}
         onOpenChange={setShowAddEquipment}
+      />
+
+      <TemplateSelector
+        missionId={mission.id}
+        missionTitle={mission.title}
+        open={showTemplateSelector}
+        onOpenChange={setShowTemplateSelector}
       />
     </>
   );

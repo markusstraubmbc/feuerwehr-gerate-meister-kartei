@@ -7,7 +7,9 @@ import {
   FileCheck, 
   Mail,
   ArrowLeft,
-  Cog
+  Cog,
+  Tag,
+  PackageSearch
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -57,6 +59,21 @@ const Settings = () => {
             </p>
           </CardContent>
         </Card>
+
+        <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate("/settings/categories")}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Tag className="h-5 w-5" />
+              Kategorien
+            </CardTitle>
+            <CardDescription>Ausrüstungskategorien verwalten</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">
+              Kategorien für die Ausrüstung erstellen und verwalten.
+            </p>
+          </CardContent>
+        </Card>
         
         <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate("/settings/maintenance-templates")}>
           <CardHeader>
@@ -69,6 +86,21 @@ const Settings = () => {
           <CardContent>
             <p className="text-sm">
               Vorlagen für wiederkehrende Wartungs- und Prüfaufgaben erstellen und verwalten.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate("/settings/equipment-templates")}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PackageSearch className="h-5 w-5" />
+              Ausrüstungs-Vorlagen
+            </CardTitle>
+            <CardDescription>Vorlagen für Einsatz-Ausrüstung</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">
+              Ausrüstungssets für Fahrzeuge und Einsätze definieren und verwalten.
             </p>
           </CardContent>
         </Card>
