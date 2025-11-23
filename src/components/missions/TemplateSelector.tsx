@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEquipmentTemplates, useTemplateEquipmentItems } from "@/hooks/useEquipmentTemplates";
+import { useMissionEquipment } from "@/hooks/useMissionEquipment";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -29,6 +30,13 @@ export function TemplateSelector({
   const queryClient = useQueryClient();
   const { data: templates = [] } = useEquipmentTemplates();
   const { data: templateItems = [] } = useTemplateEquipmentItems(selectedTemplateId);
+  const { data: existingEquipment = [] } = useMissionEquipment(missionId);
+
+  // Filter out equipment that's already added to the mission
+  const existingEquipmentIds = existingEquipment.map(item => item.equipment_id);
+  const newEquipmentItems = templateItems.filter(
+    item => !existingEquipmentIds.includes(item.equipment_id)
+  );
 
   const handleApplyTemplate = async () => {
     if (!selectedTemplateId || templateItems.length === 0) {
@@ -36,10 +44,15 @@ export function TemplateSelector({
       return;
     }
 
+    if (newEquipmentItems.length === 0) {
+      toast.error("Alle Ausrüstungen aus dieser Vorlage wurden bereits hinzugefügt");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const insertData = templateItems.map(item => ({
+      const insertData = newEquipmentItems.map(item => ({
         mission_id: missionId,
         equipment_id: item.equipment_id,
         added_by: addedBy || null,
@@ -55,7 +68,14 @@ export function TemplateSelector({
       queryClient.invalidateQueries({ queryKey: ["mission-equipment", missionId] });
       queryClient.invalidateQueries({ queryKey: ["missions"] });
 
-      toast.success(`${templateItems.length} Ausrüstungsgegenstände aus Vorlage hinzugefügt`);
+      const skippedCount = templateItems.length - newEquipmentItems.length;
+      if (skippedCount > 0) {
+        toast.success(
+          `${newEquipmentItems.length} Ausrüstungsgegenstände hinzugefügt. ${skippedCount} bereits vorhanden.`
+        );
+      } else {
+        toast.success(`${newEquipmentItems.length} Ausrüstungsgegenstände aus Vorlage hinzugefügt`);
+      }
       
       setSelectedTemplateId("");
       setAddedBy("");
@@ -106,22 +126,33 @@ export function TemplateSelector({
               <div className="flex items-center gap-2 mb-2">
                 <Package className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium text-sm">
-                  Ausrüstung ({templateItems.length} Gegenstände)
+                  Ausrüstung ({newEquipmentItems.length} neue, {templateItems.length - newEquipmentItems.length} bereits vorhanden)
                 </span>
               </div>
-              {templateItems.map((item) => (
-                <div key={item.id} className="text-sm p-2 bg-muted rounded">
-                  <div className="font-medium">{item.equipment?.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {item.equipment?.category?.name} • {item.equipment?.location?.name}
-                  </div>
-                  {item.notes && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Notiz: {item.notes}
+              {templateItems.map((item) => {
+                const isAlreadyAdded = existingEquipmentIds.includes(item.equipment_id);
+                return (
+                  <div 
+                    key={item.id} 
+                    className={`text-sm p-2 rounded ${isAlreadyAdded ? 'bg-muted/50 opacity-50' : 'bg-muted'}`}
+                  >
+                    <div className="font-medium flex items-center gap-2">
+                      {item.equipment?.name}
+                      {isAlreadyAdded && (
+                        <span className="text-xs text-muted-foreground">(bereits hinzugefügt)</span>
+                      )}
                     </div>
-                  )}
-                </div>
-              ))}
+                    <div className="text-xs text-muted-foreground">
+                      {item.equipment?.category?.name} • {item.equipment?.location?.name}
+                    </div>
+                    {item.notes && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Notiz: {item.notes}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

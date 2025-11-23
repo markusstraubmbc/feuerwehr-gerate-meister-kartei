@@ -5,18 +5,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Trash2, Package } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Package, Download, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   useEquipmentTemplates,
   useTemplateEquipmentItems,
   useCreateTemplate,
   useDeleteTemplate,
-  useAddEquipmentToTemplate,
   useRemoveEquipmentFromTemplate,
 } from "@/hooks/useEquipmentTemplates";
-import { useEquipment } from "@/hooks/useEquipment";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AddEquipmentToTemplateDialog } from "@/components/equipment-templates/AddEquipmentToTemplateDialog";
+import { toast } from "sonner";
 
 const EquipmentTemplateSettings = () => {
   const navigate = useNavigate();
@@ -26,15 +25,11 @@ const EquipmentTemplateSettings = () => {
   const [newTemplateName, setNewTemplateName] = useState("");
   const [newTemplateVehicle, setNewTemplateVehicle] = useState("");
   const [newTemplateDescription, setNewTemplateDescription] = useState("");
-  const [selectedEquipmentId, setSelectedEquipmentId] = useState("");
-  const [equipmentNotes, setEquipmentNotes] = useState("");
 
   const { data: templates = [] } = useEquipmentTemplates();
   const { data: templateItems = [] } = useTemplateEquipmentItems(selectedTemplate || "");
-  const { data: allEquipment = [] } = useEquipment();
   const createTemplate = useCreateTemplate();
   const deleteTemplate = useDeleteTemplate();
-  const addEquipment = useAddEquipmentToTemplate();
   const removeEquipment = useRemoveEquipmentFromTemplate();
 
   const handleCreateTemplate = () => {
@@ -57,23 +52,69 @@ const EquipmentTemplateSettings = () => {
     );
   };
 
-  const handleAddEquipment = () => {
-    if (!selectedTemplate || !selectedEquipmentId) return;
+  const handleExport = () => {
+    if (!selectedTemplate) {
+      toast.error("Bitte wählen Sie eine Vorlage aus");
+      return;
+    }
 
-    addEquipment.mutate(
-      {
-        template_id: selectedTemplate,
-        equipment_id: selectedEquipmentId,
-        notes: equipmentNotes || undefined,
+    const template = templates.find(t => t.id === selectedTemplate);
+    if (!template) return;
+
+    const exportData = {
+      template: {
+        name: template.name,
+        vehicle_reference: template.vehicle_reference,
+        description: template.description,
       },
-      {
-        onSuccess: () => {
-          setShowAddEquipmentDialog(false);
-          setSelectedEquipmentId("");
-          setEquipmentNotes("");
-        },
+      items: templateItems.map(item => ({
+        equipment_name: item.equipment?.name,
+        notes: item.notes,
+      })),
+    };
+
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `vorlage_${template.name.replace(/\s+/g, "_")}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast.success("Vorlage exportiert");
+  };
+
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const importData = JSON.parse(e.target?.result as string);
+        
+        // Create the template
+        createTemplate.mutate(
+          {
+            name: importData.template.name,
+            vehicle_reference: importData.template.vehicle_reference,
+            description: importData.template.description,
+          },
+          {
+            onSuccess: (newTemplate) => {
+              toast.success(`Vorlage "${newTemplate.name}" importiert. Bitte fügen Sie die Ausrüstungen manuell hinzu.`);
+              setSelectedTemplate(newTemplate.id);
+            },
+          }
+        );
+      } catch (error) {
+        console.error("Error importing template:", error);
+        toast.error("Fehler beim Importieren der Vorlage");
       }
-    );
+    };
+    reader.readAsText(file);
+    event.target.value = "";
   };
 
   const handleDeleteTemplate = (id: string) => {
@@ -96,7 +137,22 @@ const EquipmentTemplateSettings = () => {
         <h1 className="text-3xl font-bold">Ausrüstungs-Vorlagen</h1>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <input
+          type="file"
+          accept=".json"
+          onChange={handleImport}
+          className="hidden"
+          id="import-template"
+        />
+        <Button variant="outline" onClick={() => document.getElementById('import-template')?.click()}>
+          <Upload className="h-4 w-4 mr-2" />
+          Importieren
+        </Button>
+        <Button variant="outline" onClick={handleExport} disabled={!selectedTemplate}>
+          <Download className="h-4 w-4 mr-2" />
+          Exportieren
+        </Button>
         <Button onClick={() => setShowNewDialog(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Neue Vorlage
@@ -241,45 +297,14 @@ const EquipmentTemplateSettings = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showAddEquipmentDialog} onOpenChange={setShowAddEquipmentDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Ausrüstung hinzufügen</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="equipment-select">Ausrüstung</Label>
-              <Select value={selectedEquipmentId} onValueChange={setSelectedEquipmentId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Ausrüstung wählen..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {allEquipment.map((equipment) => (
-                    <SelectItem key={equipment.id} value={equipment.id}>
-                      {equipment.name} - {equipment.category?.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="equipment-notes">Notizen (optional)</Label>
-              <Textarea
-                id="equipment-notes"
-                value={equipmentNotes}
-                onChange={(e) => setEquipmentNotes(e.target.value)}
-                placeholder="Zusätzliche Informationen"
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowAddEquipmentDialog(false)}>
-                Abbrechen
-              </Button>
-              <Button onClick={handleAddEquipment}>Hinzufügen</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {selectedTemplate && (
+        <AddEquipmentToTemplateDialog
+          open={showAddEquipmentDialog}
+          onOpenChange={setShowAddEquipmentDialog}
+          templateId={selectedTemplate}
+          templateName={templates.find(t => t.id === selectedTemplate)?.name || ""}
+        />
+      )}
     </div>
   );
 };
