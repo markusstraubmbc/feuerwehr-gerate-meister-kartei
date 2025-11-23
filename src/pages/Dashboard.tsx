@@ -31,6 +31,7 @@ import {
 import { CompleteMaintenanceDialog } from "@/components/maintenance/CompleteMaintenanceDialog";
 import { EditMaintenanceDialog } from "@/components/maintenance/EditMaintenanceDialog";
 import { MaintenanceWidgets } from "@/components/dashboard/MaintenanceWidgets";
+import { OverdueMaintenanceWidget } from "@/components/dashboard/OverdueMaintenanceWidget";
 import { SELECT_ALL_VALUE } from "@/lib/constants";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
@@ -308,6 +309,9 @@ const Dashboard = () => {
 
       {/* New Maintenance Widgets */}
       <MaintenanceWidgets />
+
+      {/* Overdue Maintenance and Equipment Issues Widget */}
+      <OverdueMaintenanceWidget />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
