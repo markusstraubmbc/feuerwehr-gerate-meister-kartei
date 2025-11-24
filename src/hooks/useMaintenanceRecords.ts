@@ -4,7 +4,9 @@ import type { Database } from "@/integrations/supabase/types";
 import { MaintenanceTemplate } from "./useMaintenanceTemplates";
 
 export type MaintenanceRecord = Database["public"]["Tables"]["maintenance_records"]["Row"] & {
-  equipment: Database["public"]["Tables"]["equipment"]["Row"];
+  equipment: Database["public"]["Tables"]["equipment"]["Row"] & {
+    location: Database["public"]["Tables"]["locations"]["Row"] | null;
+  };
   template: MaintenanceTemplate | null;
   performer: Database["public"]["Tables"]["persons"]["Row"] | null;
   documentation_image_url?: string | null;
@@ -37,7 +39,7 @@ export const useMaintenanceRecords = (statusFilter?: Database["public"]["Enums"]
         .from("maintenance_records")
         .select(`
           *,
-          equipment:equipment_id (*),
+          equipment:equipment_id (*, location:location_id (*)),
           template:template_id (*),
           performer:performed_by (*)
         `)

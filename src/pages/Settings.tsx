@@ -9,7 +9,8 @@ import {
   ArrowLeft,
   Cog,
   Tag,
-  PackageSearch
+  PackageSearch,
+  ClipboardCheck
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -101,6 +102,21 @@ const Settings = () => {
           <CardContent>
             <p className="text-sm">
               Ausrüstungssets für Fahrzeuge und Einsätze definieren und verwalten.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate("/settings/template-inventory")}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5" />
+              Vorlagen-Inventur
+            </CardTitle>
+            <CardDescription>Inventur für Ausrüstungsvorlagen</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">
+              Führen Sie Inventuren für Ausrüstungsvorlagen durch und verwalten Sie die Historie.
             </p>
           </CardContent>
         </Card>

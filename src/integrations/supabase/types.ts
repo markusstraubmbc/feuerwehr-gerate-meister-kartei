@@ -198,6 +198,58 @@ export type Database = {
           },
         ]
       }
+      inventory_check_items: {
+        Row: {
+          checked_at: string | null
+          equipment_id: string | null
+          id: string
+          inventory_check_id: string | null
+          notes: string | null
+          replacement_equipment_id: string | null
+          status: string | null
+        }
+        Insert: {
+          checked_at?: string | null
+          equipment_id?: string | null
+          id?: string
+          inventory_check_id?: string | null
+          notes?: string | null
+          replacement_equipment_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          checked_at?: string | null
+          equipment_id?: string | null
+          id?: string
+          inventory_check_id?: string | null
+          notes?: string | null
+          replacement_equipment_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_check_items_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_check_items_inventory_check_id_fkey"
+            columns: ["inventory_check_id"]
+            isOneToOne: false
+            referencedRelation: "template_inventory_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_check_items_replacement_equipment_id_fkey"
+            columns: ["replacement_equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           created_at: string
@@ -547,6 +599,54 @@ export type Database = {
           },
           {
             foreignKeyName: "template_equipment_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "mission_equipment_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_inventory_checks: {
+        Row: {
+          checked_by: string | null
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          started_at: string | null
+          status: string | null
+          template_id: string | null
+        }
+        Insert: {
+          checked_by?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          started_at?: string | null
+          status?: string | null
+          template_id?: string | null
+        }
+        Update: {
+          checked_by?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          started_at?: string | null
+          status?: string | null
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_inventory_checks_checked_by_fkey"
+            columns: ["checked_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_inventory_checks_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "mission_equipment_templates"
