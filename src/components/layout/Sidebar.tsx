@@ -71,7 +71,7 @@ export function Sidebar() {
           borderColor: menuBackgroundColor,
         }}
       >
-        <div className="px-4 py-2 flex items-center gap-3">
+        <div className="px-4 py-2 flex flex-col items-center gap-2">
           {logo && (
             <img 
               src={logo} 
@@ -85,7 +85,7 @@ export function Sidebar() {
             />
           )}
           <h1 
-            className="text-xl font-bold"
+            className="text-xl font-bold text-center"
             style={{ color: menuTextColor }}
           >
             {systemName}
