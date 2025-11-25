@@ -10,6 +10,12 @@ import { MenuColorSettings } from "./MenuColorSettings";
 import { CronJobMonitoring } from "./CronJobMonitoring";
 import { SystemBackupSettings } from "./SystemBackupSettings";
 
+const DEFAULT_COLORS = {
+  menuBackground: "#1e293b",
+  menuText: "#ffffff",
+  menuSelected: "#3b82f6",
+};
+
 const SystemSettings = () => {
   const { data: settings = {}, isLoading } = useSystemSettings();
   const updateSetting = useUpdateSystemSetting();
@@ -101,6 +107,13 @@ const SystemSettings = () => {
     }
   };
 
+  const handleReset = () => {
+    setBackgroundColor(DEFAULT_COLORS.menuBackground);
+    setTextColor(DEFAULT_COLORS.menuText);
+    setSelectedColor(DEFAULT_COLORS.menuSelected);
+    toast.info("Farben werden beim Speichern zurückgesetzt");
+  };
+
   if (isLoading) {
     return <div>Lade Einstellungen...</div>;
   }
@@ -128,6 +141,7 @@ const SystemSettings = () => {
         onBackgroundColorChange={setBackgroundColor}
         onTextColorChange={setTextColor}
         onSelectedColorChange={setSelectedColor}
+        onReset={handleReset}
       />
 
       <AutoMaintenanceGenerator />

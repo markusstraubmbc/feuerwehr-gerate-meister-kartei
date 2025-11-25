@@ -1,8 +1,9 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { RotateCcw } from "lucide-react";
 
 interface MenuColorSettingsProps {
   backgroundColor: string;
@@ -11,6 +12,7 @@ interface MenuColorSettingsProps {
   onBackgroundColorChange: (value: string) => void;
   onTextColorChange: (value: string) => void;
   onSelectedColorChange: (value: string) => void;
+  onReset?: () => void;
 }
 
 export const MenuColorSettings = ({ 
@@ -19,13 +21,24 @@ export const MenuColorSettings = ({
   selectedColor, 
   onBackgroundColorChange, 
   onTextColorChange, 
-  onSelectedColorChange 
+  onSelectedColorChange,
+  onReset
 }: MenuColorSettingsProps) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Menü-Farbeinstellungen</CardTitle>
-        <CardDescription>Anpassen der Farben für die Seitenleiste</CardDescription>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>Menü-Farbeinstellungen</CardTitle>
+            <CardDescription>Anpassen der Farben für die Seitenleiste</CardDescription>
+          </div>
+          {onReset && (
+            <Button variant="outline" size="sm" onClick={onReset}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Zurücksetzen
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">

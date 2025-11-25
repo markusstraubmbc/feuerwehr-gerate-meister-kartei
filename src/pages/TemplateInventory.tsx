@@ -1,22 +1,23 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useTemplateInventoryChecks, useCreateInventoryCheck } from "@/hooks/useTemplateInventory";
 import { useEquipmentTemplates } from "@/hooks/useEquipmentTemplates";
 import { usePersons } from "@/hooks/usePersons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PackageSearch, Plus } from "lucide-react";
+import { PackageSearch, Plus, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { InventoryCheckSession } from "@/components/equipment-templates/InventoryCheckSession";
 
 const TemplateInventory = () => {
-  const navigate = useNavigate();
   const { data: checks = [] } = useTemplateInventoryChecks();
   const { data: templates = [] } = useEquipmentTemplates();
   const { data: persons = [] } = usePersons();
   const createCheck = useCreateInventoryCheck();
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [selectedPerson, setSelectedPerson] = useState<string>("");
+  const [activeCheckId, setActiveCheckId] = useState<string | null>(null);
 
   const handleStartInventory = async () => {
     if (!selectedTemplate || !selectedPerson) {
@@ -99,31 +100,67 @@ const TemplateInventory = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {checks.map((check) => (
-              <div key={check.id} className="border p-4 rounded-lg">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold">{check.template.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {check.checked_by_person?.first_name} {check.checked_by_person?.last_name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(check.started_at).toLocaleDateString('de-DE')}
-                    </p>
+            {checks.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                Noch keine Inventuren durchgeführt
+              </p>
+            ) : (
+              checks.map((check) => (
+                <div key={check.id} className="border p-4 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{check.template.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {check.checked_by_person?.first_name} {check.checked_by_person?.last_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Gestartet: {new Date(check.started_at || "").toLocaleDateString('de-DE')}
+                        {check.completed_at && ` • Abgeschlossen: ${new Date(check.completed_at).toLocaleDateString('de-DE')}`}
+                      </p>
+                      {check.notes && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Notiz: {check.notes}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={
+                          check.status === 'completed' ? 'default' :
+                          check.status === 'cancelled' ? 'destructive' :
+                          'secondary'
+                        }
+                      >
+                        {check.status === 'completed' ? 'Abgeschlossen' :
+                         check.status === 'cancelled' ? 'Abgebrochen' :
+                         'In Bearbeitung'}
+                      </Badge>
+                      {check.status === 'in_progress' && (
+                        <Button 
+                          size="sm" 
+                          onClick={() => setActiveCheckId(check.id)}
+                        >
+                          <PlayCircle className="h-4 w-4 mr-1" />
+                          Fortsetzen
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <span className={`text-sm px-2 py-1 rounded ${
-                    check.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    check.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {check.status}
-                  </span>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
+
+      {/* Inventory Session Dialog */}
+      {activeCheckId && (
+        <InventoryCheckSession
+          checkId={activeCheckId}
+          open={!!activeCheckId}
+          onOpenChange={(open) => !open && setActiveCheckId(null)}
+        />
+      )}
     </div>
   );
 };
