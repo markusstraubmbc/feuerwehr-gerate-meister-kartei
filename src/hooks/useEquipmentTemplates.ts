@@ -20,6 +20,8 @@ export interface TemplateEquipmentItem {
   equipment?: {
     id: string;
     name: string;
+    barcode?: string | null;
+    inventory_number?: string | null;
     category?: { id: string; name: string };
     location?: { id: string; name: string };
   };
@@ -51,6 +53,8 @@ export const useTemplateEquipmentItems = (templateId: string) => {
           equipment:equipment_id(
             id,
             name,
+            barcode,
+            inventory_number,
             category:category_id(id, name),
             location:location_id(id, name)
           )
