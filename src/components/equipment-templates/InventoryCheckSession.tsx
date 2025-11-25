@@ -13,8 +13,11 @@ import {
 } from "@/hooks/useTemplateInventory";
 import { useTemplateEquipmentItems } from "@/hooks/useEquipmentTemplates";
 import { useEquipment } from "@/hooks/useEquipment";
-import { CheckCircle2, XCircle, RefreshCw, ChevronRight, ChevronLeft } from "lucide-react";
+import { CheckCircle2, XCircle, RefreshCw, ChevronRight, ChevronLeft, ScanLine, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { QRScanner } from "@/components/equipment/QRScanner";
+import { ReplacementEquipmentDialog } from "./ReplacementEquipmentDialog";
+import { AddMissingItemsDialog } from "./AddMissingItemsDialog";
 
 interface InventoryCheckSessionProps {
   checkId: string;
@@ -35,6 +38,9 @@ export function InventoryCheckSession({ checkId, open, onOpenChange }: Inventory
   const [status, setStatus] = useState<"present" | "missing" | "replaced">("present");
   const [replacementId, setReplacementId] = useState<string>("");
   const [notes, setNotes] = useState("");
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [replacementDialogOpen, setReplacementDialogOpen] = useState(false);
+  const [missingItemsDialogOpen, setMissingItemsDialogOpen] = useState(false);
 
   const currentItem = templateItems[currentIndex];
   const progress = (checkedItems.length / templateItems.length) * 100;
@@ -71,19 +77,49 @@ export function InventoryCheckSession({ checkId, open, onOpenChange }: Inventory
 
       // Move to next item or complete
       if (isLastItem) {
-        await updateCheck.mutateAsync({
-          id: checkId,
-          status: "completed",
-          completed_at: new Date().toISOString(),
-        });
-        toast.success("Inventur abgeschlossen!");
-        onOpenChange(false);
+        // Show dialog to add missing items
+        setMissingItemsDialogOpen(true);
       } else {
         setCurrentIndex(prev => prev + 1);
       }
     } catch (error) {
       toast.error("Fehler beim Prüfen");
     }
+  };
+
+  const handleCompleteInventory = async () => {
+    try {
+      await updateCheck.mutateAsync({
+        id: checkId,
+        status: "completed",
+        completed_at: new Date().toISOString(),
+      });
+      toast.success("Inventur abgeschlossen!");
+      onOpenChange(false);
+    } catch (error) {
+      toast.error("Fehler beim Abschließen");
+    }
+  };
+
+  const handleScan = (barcode: string) => {
+    // Check if current item matches scanned barcode
+    if (currentItem.equipment?.barcode === barcode) {
+      // Auto-advance with "present" status
+      setStatus("present");
+      setScannerOpen(false);
+      
+      // Automatically check item after small delay
+      setTimeout(() => {
+        handleCheckItem();
+      }, 300);
+    } else {
+      toast.error("Barcode stimmt nicht mit aktueller Position überein");
+    }
+  };
+
+  const handleReplacementSelected = (equipmentId: string) => {
+    setReplacementId(equipmentId);
+    setReplacementDialogOpen(false);
   };
 
   const handlePrevious = () => {
@@ -143,10 +179,26 @@ export function InventoryCheckSession({ checkId, open, onOpenChange }: Inventory
           {/* Current item */}
           <div className="border rounded-lg p-4 bg-muted/50">
             <div className="flex justify-between items-start mb-2">
-              <h3 className="font-semibold text-lg">{currentItem.equipment?.name}</h3>
-              <Badge variant="outline">
-                {currentIndex + 1} / {templateItems.length}
-              </Badge>
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg">{currentItem.equipment?.name}</h3>
+                {currentItem.equipment?.barcode && (
+                  <p className="text-sm text-muted-foreground">
+                    Barcode: {currentItem.equipment.barcode}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setScannerOpen(true)}
+                >
+                  <ScanLine className="h-4 w-4" />
+                </Button>
+                <Badge variant="outline">
+                  {currentIndex + 1} / {templateItems.length}
+                </Badge>
+              </div>
             </div>
             {currentItem.equipment?.category && (
               <p className="text-sm text-muted-foreground">
@@ -200,18 +252,31 @@ export function InventoryCheckSession({ checkId, open, onOpenChange }: Inventory
           {status === "replaced" && (
             <div className="space-y-2">
               <label className="text-sm font-medium">Ersetzt durch</label>
-              <Select value={replacementId} onValueChange={setReplacementId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Ersatzausrüstung wählen..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableReplacements.map((eq) => (
-                    <SelectItem key={eq.id} value={eq.id}>
-                      {eq.name} {eq.inventory_number && `(${eq.inventory_number})`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={replacementId} onValueChange={setReplacementId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Ersatzausrüstung wählen..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableReplacements.slice(0, 5).map((eq) => (
+                      <SelectItem key={eq.id} value={eq.id}>
+                        {eq.name} {eq.inventory_number && `(${eq.inventory_number})`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  onClick={() => setReplacementDialogOpen(true)}
+                >
+                  Suchen
+                </Button>
+              </div>
+              {replacementId && (
+                <p className="text-sm text-muted-foreground">
+                  Ausgewählt: {availableReplacements.find(eq => eq.id === replacementId)?.name}
+                </p>
+              )}
             </div>
           )}
 
@@ -263,6 +328,31 @@ export function InventoryCheckSession({ checkId, open, onOpenChange }: Inventory
             </div>
           </div>
         </div>
+
+        {/* Scanner Dialog */}
+        <QRScanner
+          open={scannerOpen}
+          onOpenChange={setScannerOpen}
+          onScan={handleScan}
+        />
+
+        {/* Replacement Equipment Dialog */}
+        <ReplacementEquipmentDialog
+          open={replacementDialogOpen}
+          onOpenChange={setReplacementDialogOpen}
+          onSelect={handleReplacementSelected}
+          currentEquipmentId={currentItem?.equipment_id}
+        />
+
+        {/* Add Missing Items Dialog */}
+        <AddMissingItemsDialog
+          open={missingItemsDialogOpen}
+          onOpenChange={setMissingItemsDialogOpen}
+          checkId={checkId}
+          templateItems={templateItems}
+          checkedItems={checkedItems}
+          onComplete={handleCompleteInventory}
+        />
       </DialogContent>
     </Dialog>
   );
