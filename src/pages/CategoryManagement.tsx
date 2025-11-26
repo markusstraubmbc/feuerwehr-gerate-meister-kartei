@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCategories } from "@/hooks/useCategories";
+import { usePersons } from "@/hooks/usePersons";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -16,10 +18,12 @@ import { Trash2, Pencil } from "lucide-react";
 const CategoryManagement = () => {
   const navigate = useNavigate();
   const { data: categories = [], isLoading } = useCategories();
+  const { data: persons = [] } = usePersons();
   const [showDialog, setShowDialog] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [responsiblePersonId, setResponsiblePersonId] = useState("");
   const queryClient = useQueryClient();
 
   const handleSave = async () => {
@@ -32,14 +36,22 @@ const CategoryManagement = () => {
       if (editingCategory) {
         const { error } = await supabase
           .from("categories")
-          .update({ name, description })
+          .update({ 
+            name, 
+            description,
+            responsible_person_id: responsiblePersonId || null
+          })
           .eq("id", editingCategory.id);
         if (error) throw error;
         toast.success("Kategorie aktualisiert");
       } else {
         const { error } = await supabase
           .from("categories")
-          .insert({ name, description });
+          .insert({ 
+            name, 
+            description,
+            responsible_person_id: responsiblePersonId || null
+          });
         if (error) throw error;
         toast.success("Kategorie erstellt");
       }
@@ -74,6 +86,7 @@ const CategoryManagement = () => {
     setEditingCategory(category);
     setName(category.name);
     setDescription(category.description || "");
+    setResponsiblePersonId(category.responsible_person_id || "");
     setShowDialog(true);
   };
 
@@ -82,6 +95,7 @@ const CategoryManagement = () => {
     setEditingCategory(null);
     setName("");
     setDescription("");
+    setResponsiblePersonId("");
   };
 
   return (
@@ -163,6 +177,22 @@ const CategoryManagement = () => {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Optionale Beschreibung"
               />
+            </div>
+            <div>
+              <Label htmlFor="responsible">Verantwortliche Person</Label>
+              <Select value={responsiblePersonId} onValueChange={setResponsiblePersonId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Person auswählen..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Keine</SelectItem>
+                  {persons.map((person) => (
+                    <SelectItem key={person.id} value={person.id}>
+                      {person.first_name} {person.last_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={handleCloseDialog}>

@@ -6,12 +6,50 @@ import { useEquipment } from "@/hooks/useEquipment";
 import { format, addDays } from "date-fns";
 import { de } from "date-fns/locale";
 
-export const MaintenanceWidgets = () => {
+interface MaintenanceWidgetsProps {
+  categoryFilter?: string;
+  personFilter?: string;
+  locationFilter?: string;
+  yearFilter?: string;
+}
+
+export const MaintenanceWidgets = ({ 
+  categoryFilter,
+  personFilter,
+  locationFilter,
+  yearFilter 
+}: MaintenanceWidgetsProps) => {
   const { data: maintenanceRecords = [] } = useMaintenanceRecords();
   const { data: equipment = [] } = useEquipment();
 
+  // Apply filters
+  const filteredRecords = maintenanceRecords.filter(record => {
+    const equipmentItem = equipment.find(item => item.id === record.equipment_id);
+    
+    if (categoryFilter && categoryFilter !== "" && equipmentItem?.category_id !== categoryFilter) {
+      return false;
+    }
+    
+    if (personFilter && personFilter !== "" && record.performed_by !== personFilter) {
+      return false;
+    }
+    
+    if (locationFilter && locationFilter !== "" && equipmentItem?.location_id !== locationFilter) {
+      return false;
+    }
+    
+    if (yearFilter && record.due_date) {
+      const recordYear = new Date(record.due_date).getFullYear().toString();
+      if (recordYear !== yearFilter) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
+
   // Filter for pending maintenance
-  const pendingMaintenance = maintenanceRecords
+  const pendingMaintenance = filteredRecords
     .filter(record => record.status !== "abgeschlossen")
     .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
 

@@ -25,6 +25,7 @@ const SystemSettings = () => {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState('');
   const [logoSize, setLogoSize] = useState('48');
+  const [logoWidth, setLogoWidth] = useState('48');
   const [backgroundColor, setBackgroundColor] = useState('#1e293b');
   const [textColor, setTextColor] = useState('#ffffff');
   const [selectedColor, setSelectedColor] = useState('#3b82f6');
@@ -35,6 +36,7 @@ const SystemSettings = () => {
       setDomainName(settings.domainName || '');
       setLogoPreview(settings.companyLogo || '');
       setLogoSize(settings.logoSize || '48');
+      setLogoWidth(settings.logoWidth || '48');
       setBackgroundColor(settings.menuBackgroundColor || '#1e293b');
       setTextColor(settings.menuTextColor || '#ffffff');
       setSelectedColor(settings.menuSelectedColor || '#3b82f6');
@@ -84,6 +86,12 @@ const SystemSettings = () => {
         value: logoSize
       });
       
+      // Save logo width
+      await updateSetting.mutateAsync({
+        key: 'logoWidth',
+        value: logoWidth
+      });
+      
       // Save colors
       await updateSetting.mutateAsync({
         key: 'menuBackgroundColor',
@@ -130,8 +138,10 @@ const SystemSettings = () => {
       <LogoSettings
         logoPreview={logoPreview}
         logoSize={logoSize}
+        logoWidth={logoWidth}
         onLogoChange={handleLogoChange}
         onLogoSizeChange={setLogoSize}
+        onLogoWidthChange={setLogoWidth}
       />
 
       <MenuColorSettings

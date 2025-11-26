@@ -17,13 +17,23 @@ import {
 import { useCategories } from "@/hooks/useCategories";
 import { useMaintenanceTemplates } from "@/hooks/useMaintenanceTemplates";
 
-export function OverdueMaintenanceWidget() {
+interface OverdueMaintenanceWidgetProps {
+  categoryFilter?: string;
+  personFilter?: string;
+  locationFilter?: string;
+}
+
+export function OverdueMaintenanceWidget({
+  categoryFilter,
+  personFilter,
+  locationFilter
+}: OverdueMaintenanceWidgetProps) {
   const navigate = useNavigate();
   const { data: maintenanceRecords = [] } = useMaintenanceRecords();
   const { data: categories = [] } = useCategories();
   const { data: templates = [] } = useMaintenanceTemplates();
   
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [localCategoryFilter, setLocalCategoryFilter] = useState<string>("all");
   const [templateFilter, setTemplateFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -32,7 +42,21 @@ export function OverdueMaintenanceWidget() {
 
   // Filter and categorize maintenance records
   const filteredRecords = maintenanceRecords.filter(record => {
-    if (categoryFilter !== "all" && record.equipment?.category_id !== categoryFilter) {
+    const equipmentItem = record.equipment;
+    
+    // Apply parent filters from Dashboard
+    if (categoryFilter && categoryFilter !== "" && equipmentItem?.category_id !== categoryFilter) {
+      return false;
+    }
+    if (personFilter && personFilter !== "" && record.performed_by !== personFilter) {
+      return false;
+    }
+    if (locationFilter && locationFilter !== "" && equipmentItem?.location_id !== locationFilter) {
+      return false;
+    }
+    
+    // Apply local filters
+    if (localCategoryFilter !== "all" && equipmentItem?.category_id !== localCategoryFilter) {
       return false;
     }
     if (templateFilter !== "all" && record.template_id !== templateFilter) {
@@ -96,7 +120,7 @@ export function OverdueMaintenanceWidget() {
             </SelectContent>
           </Select>
 
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <Select value={localCategoryFilter} onValueChange={setLocalCategoryFilter}>
             <SelectTrigger>
               <SelectValue placeholder="Kategorie..." />
             </SelectTrigger>
@@ -127,7 +151,7 @@ export function OverdueMaintenanceWidget() {
           <Button
             variant="outline"
             onClick={() => {
-              setCategoryFilter("all");
+              setLocalCategoryFilter("all");
               setTemplateFilter("all");
               setStatusFilter("all");
             }}
