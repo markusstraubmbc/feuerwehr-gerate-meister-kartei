@@ -13,12 +13,14 @@ import {
   Calendar,
   Filter,
   PenLine,
-  FileDown
+  FileDown,
+  MapPin
 } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
 import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
 import { useCategories } from "@/hooks/useCategories";
 import { usePersons } from "@/hooks/usePersons";
+import { useLocations } from "@/hooks/useLocations";
 import { format, addDays } from "date-fns";
 import { de } from "date-fns/locale";
 import { 
@@ -45,12 +47,15 @@ const Dashboard = () => {
   
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [selectedPersonId, setSelectedPersonId] = useState("");
+  const [selectedLocationId, setSelectedLocationId] = useState("");
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
   const navigate = useNavigate();
   const dashboardRef = useRef<HTMLDivElement>(null);
+  const { data: locations = [] } = useLocations();
   
   const filteredEquipment = equipment.filter(item => {
     if (selectedCategoryId && selectedCategoryId !== SELECT_ALL_VALUE && item.category_id !== selectedCategoryId) {
@@ -58,6 +63,10 @@ const Dashboard = () => {
     }
     
     if (selectedPersonId && selectedPersonId !== SELECT_ALL_VALUE && item.responsible_person_id !== selectedPersonId) {
+      return false;
+    }
+    
+    if (selectedLocationId && selectedLocationId !== SELECT_ALL_VALUE && item.location_id !== selectedLocationId) {
       return false;
     }
     
@@ -73,6 +82,17 @@ const Dashboard = () => {
     
     if (selectedPersonId && selectedPersonId !== SELECT_ALL_VALUE && record.performed_by !== selectedPersonId) {
       return false;
+    }
+    
+    if (selectedLocationId && selectedLocationId !== SELECT_ALL_VALUE && equipmentItem?.location_id !== selectedLocationId) {
+      return false;
+    }
+    
+    if (selectedYear && record.due_date) {
+      const recordYear = new Date(record.due_date).getFullYear().toString();
+      if (recordYear !== selectedYear) {
+        return false;
+      }
     }
     
     return true;
@@ -251,9 +271,36 @@ const Dashboard = () => {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="Standort" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SELECT_ALL_VALUE}>Alle Standorte</SelectItem>
+                {locations.map((location) => (
+                  <SelectItem key={location.id} value={location.id}>
+                    {location.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="Jahr" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button variant="outline" size="sm" className="h-10" onClick={() => {
               setSelectedCategoryId("");
               setSelectedPersonId("");
+              setSelectedLocationId("");
+              setSelectedYear(new Date().getFullYear().toString());
             }}>
               <Filter className="h-4 w-4 mr-2" />
               Zurücksetzen
@@ -308,10 +355,19 @@ const Dashboard = () => {
       </div>
 
       {/* New Maintenance Widgets */}
-      <MaintenanceWidgets />
+      <MaintenanceWidgets 
+        categoryFilter={selectedCategoryId}
+        personFilter={selectedPersonId}
+        locationFilter={selectedLocationId}
+        yearFilter={selectedYear}
+      />
 
       {/* Overdue Maintenance and Equipment Issues Widget */}
-      <OverdueMaintenanceWidget />
+      <OverdueMaintenanceWidget 
+        categoryFilter={selectedCategoryId}
+        personFilter={selectedPersonId}
+        locationFilter={selectedLocationId}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>

@@ -110,7 +110,7 @@ const Settings = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ClipboardCheck className="h-5 w-5" />
-              Vorlagen-Inventur
+              Inventur Ausrüstung
             </CardTitle>
             <CardDescription>Inventur für Ausrüstungsvorlagen</CardDescription>
           </CardHeader>
