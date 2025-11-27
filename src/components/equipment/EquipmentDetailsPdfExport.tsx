@@ -94,19 +94,21 @@ export const generateEquipmentDetailsPdf = ({
       const commentsData = comments.map(comment => [
         format(new Date(comment.created_at), 'dd.MM.yyyy HH:mm', { locale: de }),
         `${comment.person.first_name} ${comment.person.last_name}`,
+        comment.action?.name || '-',
         comment.comment
       ]);
 
       autoTable(doc, {
         startY: yPosition,
-        head: [['Datum', 'Person', 'Kommentar']],
+        head: [['Datum', 'Person', 'Aktion', 'Kommentar']],
         body: commentsData,
         theme: 'striped',
         styles: { fontSize: 8, cellPadding: 3 },
         columnStyles: {
           0: { cellWidth: 25 },
-          1: { cellWidth: 35 },
-          2: { cellWidth: 'auto' }
+          1: { cellWidth: 30 },
+          2: { cellWidth: 25 },
+          3: { cellWidth: 'auto' }
         },
         margin: { left: margin, right: margin }
       });
