@@ -67,7 +67,7 @@ export function CommentsDialog({ equipment, open, onOpenChange }: CommentsDialog
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="space-y-4 max-h-[40vh] overflow-y-auto p-2 border rounded-md">
+            <div className="space-y-4 max-h-[50vh] overflow-y-auto p-2 border rounded-md">
               {comments.length === 0 ? (
                 <p className="text-center text-muted-foreground py-4">
                   Keine Aktionen vorhanden

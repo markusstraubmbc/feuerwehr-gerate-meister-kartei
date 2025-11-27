@@ -88,7 +88,7 @@ export const generateEquipmentDetailsPdf = ({
 
       doc.setFontSize(14);
       doc.setFont(undefined, 'bold');
-      doc.text(`Kommentare (${comments.length})`, margin, yPosition);
+      doc.text(`Aktionen (${comments.length})`, margin, yPosition);
       yPosition += 10;
 
       const commentsData = comments.map(comment => [
@@ -100,7 +100,7 @@ export const generateEquipmentDetailsPdf = ({
 
       autoTable(doc, {
         startY: yPosition,
-        head: [['Datum', 'Person', 'Aktion', 'Kommentar']],
+        head: [['Datum', 'Person', 'Aktion', 'Beschreibung']],
         body: commentsData,
         theme: 'striped',
         styles: { fontSize: 8, cellPadding: 3 },
