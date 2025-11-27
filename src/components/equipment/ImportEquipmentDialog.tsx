@@ -41,30 +41,54 @@ export function ImportEquipmentDialog({
   const [progress, setProgress] = useState(0);
   
   const downloadTemplate = () => {
-    // Erstelle ein Beispiel-Excel-Workbook
-    const worksheet = XLSX.utils.json_to_sheet([{
-      name: "Beispiel Ausrüstung",
-      inventory_number: "INV001",
-      barcode: "BC001",
-      serial_number: "SN001",
-      manufacturer: "Hersteller",
-      model: "Modell",
-      category_id: "",
-      location_id: "",
-      responsible_person_id: "",
-      status: "einsatzbereit",
-      last_check_date: "2023-01-01",
-      next_check_date: "2024-01-01",
-      purchase_date: "2022-01-01",
-      replacement_date: "2025-01-01",
-      notes: "Notizen"
-    }]);
-    
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Vorlage");
-    
-    // Speichern als XLSX
-    XLSX.writeFile(workbook, "equipment_import_template.xlsx");
+    try {
+      // Erstelle ein Beispiel-Excel-Workbook
+      const worksheet = XLSX.utils.json_to_sheet([{
+        name: "Beispiel Ausrüstung",
+        inventory_number: "INV001",
+        barcode: "BC001",
+        serial_number: "SN001",
+        manufacturer: "Hersteller",
+        model: "Modell",
+        category_id: "",
+        location_id: "",
+        responsible_person_id: "",
+        status: "einsatzbereit",
+        last_check_date: "2023-01-01",
+        next_check_date: "2024-01-01",
+        purchase_date: "2022-01-01",
+        replacement_date: "2025-01-01",
+        notes: "Notizen"
+      }]);
+      
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Vorlage");
+      
+      // Speichern als XLSX mit expliziter Blob-Methode
+      const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      
+      // Download-Link erstellen
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'equipment_import_template.xlsx';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Vorlage heruntergeladen",
+        description: "Die Excel-Vorlage wurde erfolgreich heruntergeladen.",
+      });
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Download fehlgeschlagen",
+        description: err.message || "Fehler beim Herunterladen der Vorlage.",
+      });
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
