@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, FileSpreadsheet, FileDown } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
 import { useCategories } from "@/hooks/useCategories";
 import { useLocations } from "@/hooks/useLocations";
@@ -14,6 +14,11 @@ import { AddCommentForm } from "@/components/equipment/AddCommentForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import { format } from "date-fns";
+import { de } from "date-fns/locale";
 
 const statusOptions = [
   { value: "all", label: "Alle Status" },
@@ -108,6 +113,7 @@ const ActionsCenter = () => {
 
       toast.success("Aktion für ausgewählte Ausrüstungen hinzugefügt");
       queryClient.invalidateQueries({ queryKey: ["equipment"] });
+      setSelectedEquipmentIds([]);
       return true;
     } catch (error) {
       console.error("Error adding bulk action:", error);
@@ -116,6 +122,174 @@ const ActionsCenter = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const exportSelectedToExcel = () => {
+    if (selectedEquipmentIds.length === 0) {
+      toast.error("Bitte wählen Sie mindestens eine Ausrüstung aus");
+      return;
+    }
+
+    const selectedEquipment = equipment.filter((item) =>
+      selectedEquipmentIds.includes(item.id)
+    );
+
+    const data = selectedEquipment.map((item) => ({
+      Name: item.name,
+      Inventarnummer: item.inventory_number || "-",
+      Barcode: item.barcode || "-",
+      Kategorie: item.category?.name || "-",
+      Standort: item.location?.name || "-",
+      Status: item.status,
+      Hersteller: item.manufacturer || "-",
+      Modell: item.model || "-",
+      Seriennummer: item.serial_number || "-",
+      Verantwortlich:
+        item.responsible_person
+          ? `${item.responsible_person.first_name} ${item.responsible_person.last_name}`
+          : "-",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Ausgewählte Ausrüstung");
+
+    const fileName = `Ausruestung_Auswahl_${format(new Date(), "yyyy-MM-dd")}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    toast.success("Excel-Datei erstellt");
+  };
+
+  const exportSelectedToPDF = () => {
+    if (selectedEquipmentIds.length === 0) {
+      toast.error("Bitte wählen Sie mindestens eine Ausrüstung aus");
+      return;
+    }
+
+    const selectedEquipment = equipment.filter((item) =>
+      selectedEquipmentIds.includes(item.id)
+    );
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPosition = 20;
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont(undefined, "bold");
+    doc.text("Ausgewählte Ausrüstung - Bericht", pageWidth / 2, yPosition, {
+      align: "center",
+    });
+    yPosition += 10;
+
+    doc.setFontSize(10);
+    doc.setFont(undefined, "normal");
+    doc.text(
+      `Datum: ${format(new Date(), "dd.MM.yyyy HH:mm", { locale: de })}`,
+      pageWidth / 2,
+      yPosition,
+      { align: "center" }
+    );
+    yPosition += 15;
+
+    // Summary
+    doc.setFontSize(12);
+    doc.setFont(undefined, "bold");
+    doc.text("Zusammenfassung", 20, yPosition);
+    yPosition += 7;
+
+    const summaryData = [
+      ["Anzahl ausgewählter Ausrüstungen", selectedEquipment.length.toString()],
+      [
+        "Kategorien",
+        [
+          ...new Set(
+            selectedEquipment
+              .map((item) => item.category?.name)
+              .filter(Boolean)
+          ),
+        ].join(", ") || "-",
+      ],
+      [
+        "Standorte",
+        [
+          ...new Set(
+            selectedEquipment
+              .map((item) => item.location?.name)
+              .filter(Boolean)
+          ),
+        ].join(", ") || "-",
+      ],
+    ];
+
+    autoTable(doc, {
+      startY: yPosition,
+      head: [],
+      body: summaryData,
+      theme: "grid",
+      styles: { fontSize: 10, cellPadding: 3 },
+      columnStyles: {
+        0: { fontStyle: "bold", cellWidth: 60 },
+        1: { cellWidth: "auto" },
+      },
+      margin: { left: 20, right: 20 },
+    });
+
+    yPosition = (doc as any).lastAutoTable.finalY + 15;
+
+    // Equipment Details
+    if (yPosition > 220) {
+      doc.addPage();
+      yPosition = 20;
+    }
+
+    doc.setFontSize(12);
+    doc.setFont(undefined, "bold");
+    doc.text("Ausrüstungsdetails", 20, yPosition);
+    yPosition += 7;
+
+    const equipmentData = selectedEquipment.map((item) => [
+      item.name,
+      item.inventory_number || "-",
+      item.barcode || "-",
+      item.category?.name || "-",
+      item.location?.name || "-",
+      item.status,
+    ]);
+
+    autoTable(doc, {
+      startY: yPosition,
+      head: [["Name", "Inv.Nr.", "Barcode", "Kategorie", "Standort", "Status"]],
+      body: equipmentData,
+      theme: "striped",
+      styles: { fontSize: 8, cellPadding: 2 },
+      columnStyles: {
+        0: { cellWidth: 40 },
+        1: { cellWidth: 25 },
+        2: { cellWidth: 25 },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 30 },
+        5: { cellWidth: 20 },
+      },
+      margin: { left: 20, right: 20 },
+    });
+
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setFont(undefined, "normal");
+      doc.text(
+        `Ausrüstungsbericht | Seite ${i} von ${pageCount}`,
+        pageWidth / 2,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: "center" }
+      );
+    }
+
+    const fileName = `Ausruestung_Auswahl_${format(new Date(), "yyyy-MM-dd")}.pdf`;
+    doc.save(fileName);
+    toast.success("PDF-Bericht erstellt");
   };
 
   if (isLoading) {
@@ -135,8 +309,30 @@ const ActionsCenter = () => {
             Führen Sie Aktionen schnell für mehrere Ausrüstungen gleichzeitig durch.
           </p>
         </div>
-        <div className="text-sm text-muted-foreground">
-          {selectedEquipmentIds.length} Ausrüstung(en) ausgewählt
+        <div className="flex items-center gap-3">
+          <div className="text-sm text-muted-foreground">
+            {selectedEquipmentIds.length} Ausrüstung(en) ausgewählt
+          </div>
+          {selectedEquipmentIds.length > 0 && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportSelectedToExcel}
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Excel
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportSelectedToPDF}
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                PDF
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -246,7 +442,7 @@ const ActionsCenter = () => {
                       <TableCell>{item.category?.name || "-"}</TableCell>
                       <TableCell>{item.location?.name || "-"}</TableCell>
                       <TableCell className="capitalize">{item.status}</TableCell>
-                    </TableCell>
+                    </TableRow>
                   ))}
                 </TableBody>
               </Table>
