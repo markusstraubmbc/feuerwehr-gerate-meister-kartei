@@ -11,7 +11,9 @@ import {
   Tag,
   PackageSearch,
   ClipboardCheck,
-  MessageSquare
+  MessageSquare,
+  Clock,
+  FileText
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -151,6 +153,36 @@ const Settings = () => {
             </p>
           </CardContent>
         </Card>
+
+        <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate("/settings/automated-maintenance")}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Automatische Wartung
+            </CardTitle>
+            <CardDescription>Wartungsgenerierung & Cron-Jobs</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">
+              Automatische Wartungsgenerierung konfigurieren und Cron-Job Status überwachen.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate("/settings/email-actions-overview")}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              E-Mail & Aktionen Übersicht
+            </CardTitle>
+            <CardDescription>Übersicht über erzeugte E-Mails und Aktionen</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">
+              Zeigen Sie gesendete E-Mails und durchgeführte Aktionen an Ausrüstungen an.
+            </p>
+          </CardContent>
+        </Card>
         
         <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate("/settings/system")}>
           <CardHeader>
@@ -158,11 +190,11 @@ const Settings = () => {
               <Cog className="h-5 w-5" />
               System
             </CardTitle>
-            <CardDescription>Logo, Anwendungsname und alle Systemeinstellungen</CardDescription>
+            <CardDescription>Logo, Anwendungsname und Systemeinstellungen</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm">
-              Systemlogo hochladen, Namen der Anwendung anpassen, Farbeinstellungen und Cron-Job Status verwalten.
+              Systemlogo hochladen, Namen der Anwendung anpassen und Farbeinstellungen verwalten.
             </p>
           </CardContent>
         </Card>

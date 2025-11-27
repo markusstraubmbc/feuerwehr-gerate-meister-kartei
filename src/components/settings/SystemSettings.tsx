@@ -3,14 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useSystemSettings, useUpdateSystemSetting } from "@/hooks/useSystemSettings";
-import { AutoMaintenanceGenerator } from "@/components/maintenance/AutoMaintenanceGenerator";
 import { SystemNameSettings } from "./SystemNameSettings";
 import { LogoSettings } from "./LogoSettings";
 import { MenuColorSettings } from "./MenuColorSettings";
-import { CronJobMonitoring } from "./CronJobMonitoring";
 import { SystemBackupSettings } from "./SystemBackupSettings";
 import { HelpContactSettings } from "./HelpContactSettings";
-import { MissionReportEmailSettings } from "./MissionReportEmailSettings";
 
 const DEFAULT_COLORS = {
   menuBackground: "#1e293b",
@@ -199,13 +196,6 @@ const SystemSettings = () => {
         onReset={handleReset}
       />
 
-      <AutoMaintenanceGenerator />
-
-      <CronJobMonitoring />
-
-      <MissionReportEmailSettings />
-
-      {/* --- Backup/Restore Section --- */}
       <SystemBackupSettings />
       
       <HelpContactSettings
