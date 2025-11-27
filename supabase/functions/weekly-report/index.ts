@@ -41,14 +41,33 @@ serve(async (req) => {
       );
     }
 
-    // Get sender configuration
-    const emailSenderDomain = settingsMap.emailSenderDomain || 'mailsend.straub-it.de';
-    const emailFromAddress = settingsMap.emailFromAddress || 'wartungsmanagement';
-    const senderEmail = `${emailFromAddress.includes('@') ? emailFromAddress.split('@')[0] : emailFromAddress}@${emailSenderDomain}`;
-    const fromField = `Wartungsmanagement <${senderEmail}>`;
+    // Get sender configuration from settings
+    const { data: senderEmailData } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "sender_email")
+      .maybeSingle();
 
-    // Get recipients
-    const recipients = settingsMap.emailRecipients?.split(',').map((e: string) => e.trim()).filter(Boolean) || [];
+    const { data: senderNameData } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "sender_name")
+      .maybeSingle();
+
+    const senderEmail = senderEmailData?.value as string || "onboarding@resend.dev";
+    const senderName = senderNameData?.value as string || "Wartungssystem";
+    const fromField = `${senderName} <${senderEmail}>`;
+    
+    console.log(`Using sender: ${fromField}`);
+
+    // Get recipients from settings (stored as JSON array)
+    const { data: recipientsData } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "email_recipients")
+      .maybeSingle();
+
+    const recipients = Array.isArray(recipientsData?.value) ? recipientsData.value : [];
 
     if (recipients.length === 0) {
       console.log("No recipients configured");

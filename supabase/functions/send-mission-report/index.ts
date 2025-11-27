@@ -71,6 +71,22 @@ const handler = async (req: Request): Promise<Response> => {
     const reportEmail = settingsData.value as string;
     console.log(`Sending report to: ${reportEmail}`);
 
+    // Get sender configuration
+    const { data: senderEmailData } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "sender_email")
+      .maybeSingle();
+
+    const { data: senderNameData } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "sender_name")
+      .maybeSingle();
+
+    const senderEmail = senderEmailData?.value as string || "onboarding@resend.dev";
+    const senderName = senderNameData?.value as string || "Einsatzberichte";
+
     // Prepare email recipients
     const ccEmails = responsiblePersonsEmails.filter(
       (email) => email && email !== reportEmail
@@ -84,7 +100,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email with PDF attachment
     const emailResponse = await resend.emails.send({
-      from: "Einsatzberichte <onboarding@resend.dev>",
+      from: `${senderName} <${senderEmail}>`,
       to: [reportEmail],
       cc: ccEmails.length > 0 ? ccEmails : undefined,
       subject: `${reportType}bericht: ${missionTitle} - ${missionDate}`,
