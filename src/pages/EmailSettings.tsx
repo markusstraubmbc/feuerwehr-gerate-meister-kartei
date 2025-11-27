@@ -25,6 +25,7 @@ const EmailSettings = () => {
     senderDomain: 'mailsend.straub-it.de',
     recipientEmails: '',
     reminderDays: 7,
+    notificationIntervalDays: 7,
     monthlyReport: false,
     testEmail: ''
   });
@@ -38,6 +39,7 @@ const EmailSettings = () => {
         senderDomain: settings.emailSenderDomain || 'mailsend.straub-it.de',
         recipientEmails: settings.emailRecipients || '',
         reminderDays: settings.reminderDays || 7,
+        notificationIntervalDays: settings.maintenance_notification_interval_days || 7,
         monthlyReport: settings.monthlyReportEnabled || false,
         testEmail: settings.testEmailAddress || ''
       });
@@ -67,6 +69,10 @@ const EmailSettings = () => {
         updateSettingMutation.mutateAsync({
           key: 'reminderDays',
           value: emailConfig.reminderDays
+        }),
+        updateSettingMutation.mutateAsync({
+          key: 'maintenance_notification_interval_days',
+          value: emailConfig.notificationIntervalDays
         }),
         updateSettingMutation.mutateAsync({
           key: 'monthlyReportEnabled',
@@ -246,6 +252,23 @@ const EmailSettings = () => {
                   setEmailConfig(prev => ({ ...prev, reminderDays: parseInt(e.target.value) || 7 }))
                 }
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notification-interval">Benachrichtigungsintervall (Tage)</Label>
+              <Input
+                id="notification-interval"
+                type="number"
+                min="1"
+                max="30"
+                value={emailConfig.notificationIntervalDays}
+                onChange={(e) => 
+                  setEmailConfig(prev => ({ ...prev, notificationIntervalDays: parseInt(e.target.value) || 7 }))
+                }
+              />
+              <p className="text-sm text-muted-foreground">
+                Wartungsbenachrichtigungen für dieselbe Ausrüstung werden erst nach diesem Zeitraum erneut versendet
+              </p>
             </div>
             
             <div className="flex items-center space-x-2">
