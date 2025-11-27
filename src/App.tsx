@@ -25,6 +25,8 @@ import EquipmentTemplateSettings from "./pages/EquipmentTemplateSettings";
 import TemplateInventory from "./pages/TemplateInventory";
 import EquipmentActionsSettings from "./pages/EquipmentActionsSettings";
 import ActionsCenter from "./pages/ActionsCenter";
+import AutomatedMaintenanceSettings from "./pages/AutomatedMaintenanceSettings";
+import EmailActionsOverview from "./pages/EmailActionsOverview";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -64,6 +66,8 @@ function AppContent() {
               <Route path="settings/template-inventory" element={<TemplateInventory />} />
               <Route path="settings/equipment-actions" element={<EquipmentActionsSettings />} />
               <Route path="settings/email" element={<EmailSettings />} />
+              <Route path="settings/automated-maintenance" element={<AutomatedMaintenanceSettings />} />
+              <Route path="settings/email-actions-overview" element={<EmailActionsOverview />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
