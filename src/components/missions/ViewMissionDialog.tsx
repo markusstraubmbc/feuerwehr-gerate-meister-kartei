@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Clock, MapPin, Users, Plus, Trash2, Package, FileDown, Pen, FileText } from "lucide-react";
+import { Clock, MapPin, Users, Plus, Trash2, Package, FileDown, Pen, FileText, Mail } from "lucide-react";
 import { Mission } from "@/hooks/useMissions";
 import { useMissionEquipment } from "@/hooks/useMissionEquipment";
 import { useMissionPrintExport } from "@/hooks/useMissionPrintExport";
@@ -31,6 +31,7 @@ export const ViewMissionDialog = ({ mission, open, onOpenChange }: ViewMissionDi
   const [editableVehicles, setEditableVehicles] = useState("");
   const [showAddEquipment, setShowAddEquipment] = useState(false);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const { data: missionEquipment, isLoading } = useMissionEquipment(mission.id);
   const { handlePdfDownload } = useMissionPrintExport();
   const { sendMissionReport } = useSendMissionReport();
@@ -109,6 +110,18 @@ export const ViewMissionDialog = ({ mission, open, onOpenChange }: ViewMissionDi
     });
   };
 
+  const handleSendReport = async () => {
+    setIsSendingEmail(true);
+    try {
+      await sendMissionReport({
+        mission,
+        missionEquipment: missionEquipment || []
+      });
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -124,10 +137,21 @@ export const ViewMissionDialog = ({ mission, open, onOpenChange }: ViewMissionDi
                   {mission.mission_type === 'einsatz' ? 'Einsatz' : 'Übung'}
                 </Badge>
               </div>
-              <Button variant="outline" size="sm" onClick={handleExportPdf}>
-                <FileDown className="h-4 w-4 mr-2" />
-                PDF Export
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleSendReport}
+                  disabled={isSendingEmail}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Per E-Mail senden
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleExportPdf}>
+                  <FileDown className="h-4 w-4 mr-2" />
+                  PDF Export
+                </Button>
+              </div>
             </div>
           </DialogHeader>
 
