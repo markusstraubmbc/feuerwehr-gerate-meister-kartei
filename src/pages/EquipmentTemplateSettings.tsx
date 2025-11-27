@@ -15,6 +15,7 @@ import {
   useRemoveEquipmentFromTemplate,
 } from "@/hooks/useEquipmentTemplates";
 import { AddEquipmentToTemplateDialog } from "@/components/equipment-templates/AddEquipmentToTemplateDialog";
+import { TemplateExcelExport } from "@/components/equipment-templates/TemplateExcelExport";
 import { toast } from "sonner";
 
 const EquipmentTemplateSettings = () => {
@@ -138,21 +139,11 @@ const EquipmentTemplateSettings = () => {
       </div>
 
       <div className="flex justify-end gap-2">
-        <input
-          type="file"
-          accept=".json"
-          onChange={handleImport}
-          className="hidden"
-          id="import-template"
+        <TemplateExcelExport 
+          templateId={selectedTemplate || undefined}
+          templateName={templates.find(t => t.id === selectedTemplate)?.name}
+          templateItems={templateItems}
         />
-        <Button variant="outline" onClick={() => document.getElementById('import-template')?.click()}>
-          <Upload className="h-4 w-4 mr-2" />
-          Importieren
-        </Button>
-        <Button variant="outline" onClick={handleExport} disabled={!selectedTemplate}>
-          <Download className="h-4 w-4 mr-2" />
-          Exportieren
-        </Button>
         <Button onClick={() => setShowNewDialog(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Neue Vorlage

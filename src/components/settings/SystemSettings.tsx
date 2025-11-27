@@ -9,6 +9,7 @@ import { LogoSettings } from "./LogoSettings";
 import { MenuColorSettings } from "./MenuColorSettings";
 import { CronJobMonitoring } from "./CronJobMonitoring";
 import { SystemBackupSettings } from "./SystemBackupSettings";
+import { HelpContactSettings } from "./HelpContactSettings";
 
 const DEFAULT_COLORS = {
   menuBackground: "#1e293b",
@@ -29,6 +30,12 @@ const SystemSettings = () => {
   const [backgroundColor, setBackgroundColor] = useState('#1e293b');
   const [textColor, setTextColor] = useState('#ffffff');
   const [selectedColor, setSelectedColor] = useState('#3b82f6');
+  const [contactPerson, setContactPerson] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [serviceHours, setServiceHours] = useState('');
+  const [otherInfo, setOtherInfo] = useState('');
+  const [legalInfo, setLegalInfo] = useState('');
 
   useEffect(() => {
     if (!isLoading && settings) {
@@ -40,6 +47,12 @@ const SystemSettings = () => {
       setBackgroundColor(settings.menuBackgroundColor || '#1e293b');
       setTextColor(settings.menuTextColor || '#ffffff');
       setSelectedColor(settings.menuSelectedColor || '#3b82f6');
+      setContactPerson(settings.contactPerson || 'IT-Support Team');
+      setContactPhone(settings.contactPhone || '+49 123 456789');
+      setContactEmail(settings.contactEmail || 'support@feuerwehr-inventar.de');
+      setServiceHours(settings.serviceHours || 'Mo-Fr: 8:00-17:00 Uhr\nSa: 9:00-13:00 Uhr');
+      setOtherInfo(settings.otherInfo || 'Bei technischen Fragen oder Problemen stehen wir Ihnen gerne zur Verfügung.\n\nSystem-Version: 1.0.0\nLetztes Update: ' + new Date().toLocaleDateString('de-DE'));
+      setLegalInfo(settings.legalInfo || 'Feuerwehr-Inventarsystem\nEntwickelt für die Feuerwehr\n\nDatenschutz: Alle Daten werden DSGVO-konform verarbeitet.\nImpressum: Kontaktieren Sie uns für weitere Informationen.');
     }
   }, [settings, isLoading]);
 
@@ -107,6 +120,37 @@ const SystemSettings = () => {
         key: 'menuSelectedColor',
         value: selectedColor
       });
+      
+      // Save help/contact settings
+      await updateSetting.mutateAsync({
+        key: 'contactPerson',
+        value: contactPerson
+      });
+      
+      await updateSetting.mutateAsync({
+        key: 'contactPhone',
+        value: contactPhone
+      });
+      
+      await updateSetting.mutateAsync({
+        key: 'contactEmail',
+        value: contactEmail
+      });
+      
+      await updateSetting.mutateAsync({
+        key: 'serviceHours',
+        value: serviceHours
+      });
+      
+      await updateSetting.mutateAsync({
+        key: 'otherInfo',
+        value: otherInfo
+      });
+      
+      await updateSetting.mutateAsync({
+        key: 'legalInfo',
+        value: legalInfo
+      });
 
       toast.success('Systemeinstellungen wurden gespeichert');
     } catch (error) {
@@ -160,6 +204,21 @@ const SystemSettings = () => {
 
       {/* --- Backup/Restore Section --- */}
       <SystemBackupSettings />
+      
+      <HelpContactSettings
+        contactPerson={contactPerson}
+        contactPhone={contactPhone}
+        contactEmail={contactEmail}
+        serviceHours={serviceHours}
+        otherInfo={otherInfo}
+        legalInfo={legalInfo}
+        onContactPersonChange={setContactPerson}
+        onContactPhoneChange={setContactPhone}
+        onContactEmailChange={setContactEmail}
+        onServiceHoursChange={setServiceHours}
+        onOtherInfoChange={setOtherInfo}
+        onLegalInfoChange={setLegalInfo}
+      />
 
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={updateSetting.isPending}>
