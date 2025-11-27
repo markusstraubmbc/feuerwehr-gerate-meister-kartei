@@ -349,7 +349,6 @@ serve(async (req) => {
       </body>
       </html>
     `;
-    `;
 
     // Send individualized emails to responsible persons
     const individualEmailPromises: Promise<any>[] = [];
