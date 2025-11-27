@@ -43,9 +43,9 @@ const TemplateInventory = () => {
   const [activeCheckId, setActiveCheckId] = useState<string | null>(null);
   
   // Filters
-  const [filterPerson, setFilterPerson] = useState<string>("");
+  const [filterPerson, setFilterPerson] = useState<string>("all_persons");
   const [filterCategory, setFilterCategory] = useState<string>("");
-  const [filterStatus, setFilterStatus] = useState<string>("");
+  const [filterStatus, setFilterStatus] = useState<string>("all_status");
 
   const handleStartInventory = async () => {
     if (!selectedTemplate || !selectedPerson) {
@@ -97,7 +97,7 @@ const TemplateInventory = () => {
 
   // Apply filters
   const filteredChecks = checks.filter(check => {
-    if (filterPerson && check.checked_by !== filterPerson) {
+    if (filterPerson && filterPerson !== "all_persons" && check.checked_by !== filterPerson) {
       return false;
     }
     if (filterCategory) {
@@ -105,7 +105,7 @@ const TemplateInventory = () => {
       // We need to check if any equipment in the template belongs to the category
       // For simplicity, we skip this filter for now as it requires more data
     }
-    if (filterStatus && check.status !== filterStatus) {
+    if (filterStatus && filterStatus !== "all_status" && check.status !== filterStatus) {
       return false;
     }
     return true;
@@ -176,7 +176,7 @@ const TemplateInventory = () => {
                 <SelectValue placeholder="Person..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Alle Personen</SelectItem>
+                <SelectItem value="all_persons">Alle Personen</SelectItem>
                 {persons.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {p.first_name} {p.last_name}
@@ -189,7 +189,7 @@ const TemplateInventory = () => {
                 <SelectValue placeholder="Status..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Alle Status</SelectItem>
+                <SelectItem value="all_status">Alle Status</SelectItem>
                 <SelectItem value="in_progress">In Bearbeitung</SelectItem>
                 <SelectItem value="completed">Abgeschlossen</SelectItem>
                 <SelectItem value="cancelled">Abgebrochen</SelectItem>
@@ -199,9 +199,9 @@ const TemplateInventory = () => {
               variant="outline" 
               size="sm"
               onClick={() => {
-                setFilterPerson("");
+                setFilterPerson("all_persons");
                 setFilterCategory("");
-                setFilterStatus("");
+                setFilterStatus("all_status");
               }}
             >
               <Filter className="h-4 w-4 mr-2" />
