@@ -75,53 +75,14 @@ serve(async (req) => {
     
     console.log(`Using sender: ${fromField}`);
 
-    // Get weekly report recipients from settings (stored as JSON array)
+    // Get central weekly report recipients from settings (stored as JSON array)
     const { data: recipientsData } = await supabase
       .from("settings")
       .select("value")
       .eq("key", "email_recipients")
       .maybeSingle();
 
-    const weeklyRecipients = Array.isArray(recipientsData?.value) ? recipientsData.value : [];
-    
-    // Fetch all maintenance template responsible persons
-    const { data: templatesData } = await supabase
-      .from("maintenance_templates")
-      .select(`
-        responsible_person:responsible_person_id (
-          email
-        )
-      `);
-    
-    const templateResponsibleEmails = templatesData
-      ?.map((t: any) => t.responsible_person?.email)
-      .filter((email: string | undefined) => email) || [];
-    
-    // Combine both recipient lists and remove duplicates
-    const allRecipients = [...new Set([...weeklyRecipients, ...templateResponsibleEmails])];
-
-    if (allRecipients.length === 0) {
-      console.log("No recipients configured");
-      
-      const duration = (Date.now() - startTime) / 1000;
-      await supabase
-        .from("cron_job_logs")
-        .update({
-          status: "success",
-          completed_at: new Date().toISOString(),
-          duration_seconds: duration,
-          details: { message: "Keine Empfänger konfiguriert" },
-        })
-        .eq("id", logId);
-      
-      return new Response(
-        JSON.stringify({ message: "No recipients configured" }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
-    }
+    const centralRecipients = Array.isArray(recipientsData?.value) ? recipientsData.value : [];
 
     // Get date ranges - 4 weeks ahead instead of 7 days
     const now = new Date();
@@ -130,25 +91,33 @@ serve(async (req) => {
     const nextFourWeeks = new Date(now);
     nextFourWeeks.setDate(nextFourWeeks.getDate() + 28); // 4 weeks
 
-    // Get overdue maintenance
+    // Get overdue maintenance with template details including responsible person
     const { data: overdueMaintenance } = await supabase
       .from("maintenance_records")
       .select(`
         *,
         equipment:equipment_id (name, barcode, location:location_id (name)),
-        template:template_id (name),
+        template:template_id (
+          name,
+          id,
+          responsible_person:responsible_person_id (id, email, first_name, last_name)
+        ),
         performer:performed_by (first_name, last_name)
       `)
       .eq("status", "ausstehend")
       .lt("due_date", now.toISOString());
 
-    // Get upcoming maintenance (next 4 weeks)
+    // Get upcoming maintenance (next 4 weeks) with template details
     const { data: upcomingMaintenance } = await supabase
       .from("maintenance_records")
       .select(`
         *,
         equipment:equipment_id (name, barcode, location:location_id (name)),
-        template:template_id (name),
+        template:template_id (
+          name,
+          id,
+          responsible_person:responsible_person_id (id, email, first_name, last_name)
+        ),
         performer:performed_by (first_name, last_name)
       `)
       .in("status", ["ausstehend", "geplant"])
@@ -177,8 +146,50 @@ serve(async (req) => {
       `)
       .in("status", ["defekt", "wartung", "prüfung fällig"]);
 
-    // Create HTML report
-    const html = `
+    // Group maintenance by responsible person
+    const maintenanceByPerson = new Map<string, {
+      email: string;
+      name: string;
+      overdue: any[];
+      upcoming: any[];
+    }>();
+
+    // Process overdue maintenance
+    overdueMaintenance?.forEach(m => {
+      const person = m.template?.responsible_person;
+      if (person?.email) {
+        const key = person.email;
+        if (!maintenanceByPerson.has(key)) {
+          maintenanceByPerson.set(key, {
+            email: person.email,
+            name: `${person.first_name} ${person.last_name}`,
+            overdue: [],
+            upcoming: []
+          });
+        }
+        maintenanceByPerson.get(key)!.overdue.push(m);
+      }
+    });
+
+    // Process upcoming maintenance
+    upcomingMaintenance?.forEach(m => {
+      const person = m.template?.responsible_person;
+      if (person?.email) {
+        const key = person.email;
+        if (!maintenanceByPerson.has(key)) {
+          maintenanceByPerson.set(key, {
+            email: person.email,
+            name: `${person.first_name} ${person.last_name}`,
+            overdue: [],
+            upcoming: []
+          });
+        }
+        maintenanceByPerson.get(key)!.upcoming.push(m);
+      }
+    });
+
+    // Function to create HTML report
+    const createHtmlReport = (overdue: any[], upcoming: any[], completed: any[], issues: any[], personName?: string) => `
       <!DOCTYPE html>
       <html>
       <head>
@@ -201,33 +212,35 @@ serve(async (req) => {
         </style>
       </head>
       <body>
-        <h1>📊 Wöchentlicher Wartungsbericht</h1>
+        <h1>📊 Wöchentlicher Wartungsbericht${personName ? ` - ${personName}` : ''}</h1>
         <p>Zeitraum: ${lastWeek.toLocaleDateString('de-DE')} - ${now.toLocaleDateString('de-DE')}</p>
         
         <div class="summary">
           <h3>Zusammenfassung</h3>
           <div class="stats">
             <div class="stat-card">
-              <div class="stat-number critical">${overdueMaintenance?.length || 0}</div>
+              <div class="stat-number critical">${overdue?.length || 0}</div>
               <div class="stat-label">Überfällige Wartungen</div>
             </div>
             <div class="stat-card">
-              <div class="stat-number warning">${upcomingMaintenance?.length || 0}</div>
+              <div class="stat-number warning">${upcoming?.length || 0}</div>
               <div class="stat-label">Anstehend (4 Wochen)</div>
             </div>
+            ${!personName ? `
             <div class="stat-card">
-              <div class="stat-number success">${completedMaintenance?.length || 0}</div>
+              <div class="stat-number success">${completed?.length || 0}</div>
               <div class="stat-label">Abgeschlossen (7 Tage)</div>
             </div>
             <div class="stat-card">
-              <div class="stat-number critical">${equipmentIssues?.length || 0}</div>
+              <div class="stat-number critical">${issues?.length || 0}</div>
               <div class="stat-label">Ausrüstung mit Problemen</div>
             </div>
+            ` : ''}
           </div>
         </div>
 
-        ${(overdueMaintenance?.length || 0) > 0 ? `
-          <h2 class="critical">⚠️ Überfällige Wartungen (${overdueMaintenance.length})</h2>
+        ${(overdue?.length || 0) > 0 ? `
+          <h2 class="critical">⚠️ Überfällige Wartungen (${overdue.length})</h2>
           <table>
             <thead>
               <tr>
@@ -239,7 +252,7 @@ serve(async (req) => {
               </tr>
             </thead>
             <tbody>
-              ${overdueMaintenance.map(m => `
+              ${overdue.map(m => `
                 <tr>
                   <td>${m.equipment.name}</td>
                   <td>${m.equipment.location?.name || 'Nicht zugewiesen'}</td>
@@ -252,7 +265,7 @@ serve(async (req) => {
           </table>
         ` : ''}
 
-        ${(upcomingMaintenance?.length || 0) > 0 ? `
+        ${(upcoming?.length || 0) > 0 ? `
           <h2 class="warning">📅 Anstehende Wartungen (Nächste 4 Wochen)</h2>
           <table>
             <thead>
@@ -265,7 +278,7 @@ serve(async (req) => {
               </tr>
             </thead>
             <tbody>
-              ${upcomingMaintenance.map(m => `
+              ${upcoming.map(m => `
                 <tr>
                   <td>${m.equipment.name}</td>
                   <td>${m.equipment.location?.name || 'Nicht zugewiesen'}</td>
@@ -278,7 +291,7 @@ serve(async (req) => {
           </table>
         ` : ''}
 
-        ${(completedMaintenance?.length || 0) > 0 ? `
+        ${!personName && (completed?.length || 0) > 0 ? `
           <h2 class="success">✅ Abgeschlossene Wartungen (Letzte 7 Tage)</h2>
           <table>
             <thead>
@@ -291,7 +304,7 @@ serve(async (req) => {
               </tr>
             </thead>
             <tbody>
-              ${completedMaintenance.slice(0, 10).map(m => `
+              ${completed.slice(0, 10).map(m => `
                 <tr>
                   <td>${m.equipment.name}</td>
                   <td>${m.equipment.location?.name || 'Nicht zugewiesen'}</td>
@@ -300,13 +313,13 @@ serve(async (req) => {
                   <td>${m.performer ? `${m.performer.first_name} ${m.performer.last_name}` : 'Nicht bekannt'}</td>
                 </tr>
               `).join('')}
-              ${completedMaintenance.length > 10 ? `<tr><td colspan="5" style="text-align: center; font-style: italic;">... und ${completedMaintenance.length - 10} weitere</td></tr>` : ''}
+              ${completed.length > 10 ? `<tr><td colspan="5" style="text-align: center; font-style: italic;">... und ${completed.length - 10} weitere</td></tr>` : ''}
             </tbody>
           </table>
         ` : ''}
 
-        ${(equipmentIssues?.length || 0) > 0 ? `
-          <h2 class="critical">🔧 Ausrüstung mit Problemen (${equipmentIssues.length})</h2>
+        ${!personName && (issues?.length || 0) > 0 ? `
+          <h2 class="critical">🔧 Ausrüstung mit Problemen (${issues.length})</h2>
           <table>
             <thead>
               <tr>
@@ -317,7 +330,7 @@ serve(async (req) => {
               </tr>
             </thead>
             <tbody>
-              ${equipmentIssues.map(eq => `
+              ${issues.map(eq => `
                 <tr>
                   <td>${eq.name}</td>
                   <td>${eq.location?.name || 'Nicht zugewiesen'}</td>
@@ -336,21 +349,52 @@ serve(async (req) => {
       </body>
       </html>
     `;
+    `;
 
-    // Send emails
-    const emailPromises = allRecipients.map((email: string) =>
+    // Send individualized emails to responsible persons
+    const individualEmailPromises: Promise<any>[] = [];
+    let individualEmailCount = 0;
+
+    for (const [email, data] of maintenanceByPerson.entries()) {
+      // Only send if there are overdue or upcoming items
+      if (data.overdue.length > 0 || data.upcoming.length > 0) {
+        const personalizedHtml = createHtmlReport(data.overdue, data.upcoming, [], [], data.name);
+        
+        individualEmailPromises.push(
+          resend.emails.send({
+            from: fromField,
+            to: [email],
+            subject: `📊 Ihr Wöchentlicher Wartungsbericht - ${now.toLocaleDateString('de-DE')}`,
+            html: personalizedHtml,
+          })
+        );
+        individualEmailCount++;
+      }
+    }
+
+    // Send comprehensive email to central recipients
+    const centralHtml = createHtmlReport(
+      overdueMaintenance || [],
+      upcomingMaintenance || [],
+      completedMaintenance || [],
+      equipmentIssues || []
+    );
+
+    const centralEmailPromises = centralRecipients.map((email: string) =>
       resend.emails.send({
         from: fromField,
         to: [email],
-        subject: `📊 Wöchentlicher Wartungsbericht - ${now.toLocaleDateString('de-DE')}`,
-        html: html,
+        subject: `📊 Wöchentlicher Wartungsbericht (Gesamt) - ${now.toLocaleDateString('de-DE')}`,
+        html: centralHtml,
       })
     );
 
-    const results = await Promise.allSettled(emailPromises);
+    // Send all emails
+    const allEmailPromises = [...individualEmailPromises, ...centralEmailPromises];
+    const results = await Promise.allSettled(allEmailPromises);
     const successCount = results.filter(r => r.status === 'fulfilled').length;
 
-    console.log(`Weekly report sent to ${successCount}/${allRecipients.length} recipients`);
+    console.log(`Weekly report sent to ${successCount} recipients (${individualEmailCount} personalized, ${centralRecipients.length} central)`);
 
     // Update cron job log with success
     const duration = (Date.now() - startTime) / 1000;
@@ -361,8 +405,9 @@ serve(async (req) => {
         completed_at: new Date().toISOString(),
         duration_seconds: duration,
         details: {
-          message: `Wochenbericht an ${successCount} Empfänger versendet`,
-          recipients: allRecipients,
+          message: `Wochenbericht an ${successCount} Empfänger versendet (${individualEmailCount} personalisiert, ${centralRecipients.length} zentral)`,
+          individualRecipients: individualEmailCount,
+          centralRecipients: centralRecipients,
           stats: {
             overdue: overdueMaintenance?.length || 0,
             upcoming: upcomingMaintenance?.length || 0,
@@ -376,7 +421,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Weekly report sent to ${successCount}/${allRecipients.length} recipients`,
+        message: `Weekly report sent to ${successCount} recipients (${individualEmailCount} personalized, ${centralRecipients.length} central)`,
         stats: {
           overdue: overdueMaintenance?.length || 0,
           upcoming: upcomingMaintenance?.length || 0,
@@ -395,6 +440,10 @@ serve(async (req) => {
     
     // Update cron job log with error
     const duration = (Date.now() - startTime) / 1000;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
     await supabase
       .from("cron_job_logs")
       .update({
