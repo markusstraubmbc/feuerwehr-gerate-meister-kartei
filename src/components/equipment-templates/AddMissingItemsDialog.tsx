@@ -1,20 +1,42 @@
 import { useState } from "react";
+import * as React from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, CheckCircle2, ScanLine } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, CheckCircle2, Search, Package, Filter } from "lucide-react";
 import { useCreateInventoryCheckItem, useUpdateInventoryCheck } from "@/hooks/useTemplateInventory";
 import { useEquipment } from "@/hooks/useEquipment";
 import { useAddEquipmentToTemplate } from "@/hooks/useEquipmentTemplates";
+import { useCategories } from "@/hooks/useCategories";
+import { useLocations } from "@/hooks/useLocations";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { QRScanner } from "@/components/equipment/QRScanner";
 import type { TemplateEquipmentItem } from "@/hooks/useEquipmentTemplates";
 
 interface AddMissingItemsDialogProps {
@@ -39,14 +61,27 @@ export function AddMissingItemsDialog({
   const createItem = useCreateInventoryCheckItem();
   const updateCheck = useUpdateInventoryCheck();
   const { data: allEquipment = [] } = useEquipment();
+  const { data: categories = [] } = useCategories();
+  const { data: locations = [] } = useLocations();
   const [notes, setNotes] = useState("");
-  const [scannerOpen, setScannerOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
   const { mutateAsync: addEquipmentToTemplate } = useAddEquipmentToTemplate();
 
   // Get items that haven't been checked yet
   const checkedEquipmentIds = checkedItems.map(item => item.equipment_id);
   const missingItems = templateItems.filter(
     item => !checkedEquipmentIds.includes(item.equipment_id)
+  );
+
+  // Filter available equipment (not in template and not already checked)
+  const templateEquipmentIds = templateItems.map(item => item.equipment_id);
+  const availableEquipment = allEquipment.filter(eq => 
+    !templateEquipmentIds.includes(eq.id) && 
+    !checkedEquipmentIds.includes(eq.id)
   );
 
   // Update template when item is missing or replaced
@@ -91,32 +126,84 @@ export function AddMissingItemsDialog({
     }
   };
 
-  const handleScanNewItem = async (barcode: string) => {
-    const equipment = allEquipment.find(eq => eq.barcode === barcode);
-    if (equipment) {
-      // Check if equipment is already in template
-      const isInTemplate = templateItems.some(item => item.equipment_id === equipment.id);
-      
-      if (!isInTemplate && templateId) {
+  const filteredAvailableEquipment = availableEquipment.filter(item => {
+    // Search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = (
+        item.name.toLowerCase().includes(searchLower) ||
+        item.barcode?.toLowerCase().includes(searchLower) ||
+        item.inventory_number?.toLowerCase().includes(searchLower)
+      );
+      if (!matchesSearch) return false;
+    }
+
+    // Category filter
+    if (categoryFilter && categoryFilter !== "all_categories" && item.category?.id !== categoryFilter) {
+      return false;
+    }
+
+    // Location filter
+    if (locationFilter && locationFilter !== "all_locations" && item.location?.id !== locationFilter) {
+      return false;
+    }
+
+    return true;
+  });
+
+  const handleAddSelected = async () => {
+    if (selectedEquipment.length === 0) return;
+
+    try {
+      for (const equipmentId of selectedEquipment) {
         // Add to template
-        try {
-          await addEquipmentToTemplate({
-            template_id: templateId,
-            equipment_id: equipment.id,
-            notes: notes || undefined,
-          });
-          toast.success("Ausrüstung zur Vorlage hinzugefügt und als vorhanden markiert");
-        } catch (error) {
-          toast.error("Fehler beim Hinzufügen zur Vorlage");
-          return;
-        }
+        await addEquipmentToTemplate({
+          template_id: templateId,
+          equipment_id: equipmentId,
+          notes: notes || undefined,
+        });
+        
+        // Mark as present in inventory
+        await createItem.mutateAsync({
+          inventory_check_id: checkId,
+          equipment_id: equipmentId,
+          status: "present",
+          notes: notes || undefined,
+        });
       }
       
-      await handleAddMissing(equipment.id, "present");
-      setScannerOpen(false);
-    } else {
-      toast.error("Ausrüstung nicht gefunden");
+      toast.success(`${selectedEquipment.length} Ausrüstung(en) hinzugefügt`);
+      setSelectedEquipment([]);
+      setNotes("");
+      setSearchTerm("");
+      setCategoryFilter("");
+      setLocationFilter("");
+    } catch (error) {
+      toast.error("Fehler beim Hinzufügen");
     }
+  };
+
+  const handleEquipmentToggle = (equipmentId: string) => {
+    setSelectedEquipment(prev => 
+      prev.includes(equipmentId)
+        ? prev.filter(id => id !== equipmentId)
+        : [...prev, equipmentId]
+    );
+  };
+
+  const selectAllVisible = () => {
+    const visibleIds = filteredAvailableEquipment.map(item => item.id);
+    setSelectedEquipment(visibleIds);
+  };
+
+  const clearSelection = () => {
+    setSelectedEquipment([]);
+  };
+
+  const clearFilters = () => {
+    setCategoryFilter("");
+    setLocationFilter("");
+    setSearchTerm("");
   };
 
   const handleManualAdd = () => {
@@ -151,11 +238,16 @@ export function AddMissingItemsDialog({
       }
       
       toast.success("Alle nicht geprüften Positionen als fehlend markiert");
+      setIsCompleteDialogOpen(false);
       onComplete();
       onOpenChange(false);
     } catch (error) {
       toast.error("Fehler beim Abschließen");
     }
+  };
+
+  const handleCompleteClick = () => {
+    setIsCompleteDialogOpen(true);
   };
 
   return (
@@ -215,26 +307,123 @@ export function AddMissingItemsDialog({
                   </div>
                 ))}
 
-                <div className="space-y-2 pt-4 border-t">
-                  <div className="text-sm font-medium mb-2">Weitere Ausrüstung hinzufügen</div>
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="text-sm font-medium">Weitere Ausrüstung hinzufügen</div>
+                  
+                  {/* Search */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Nach Name, Barcode oder Inventarnummer suchen..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+
+                  {/* Filters */}
+                  <div className="grid gap-2 md:grid-cols-3">
+                    <div>
+                      <Label htmlFor="category-filter">Kategorie</Label>
+                      <Select value={categoryFilter || "all_categories"} onValueChange={setCategoryFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Alle Kategorien" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all_categories">Alle Kategorien</SelectItem>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="location-filter">Standort</Label>
+                      <Select value={locationFilter || "all_locations"} onValueChange={setLocationFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Alle Standorte" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all_locations">Alle Standorte</SelectItem>
+                          {locations.map((location) => (
+                            <SelectItem key={location.id} value={location.id}>
+                              {location.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex items-end">
+                      <Button variant="outline" onClick={clearFilters} className="w-full">
+                        <Filter className="mr-2 h-4 w-4" />
+                        Zurücksetzen
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Selection buttons */}
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={selectAllVisible}>
+                      <Package className="mr-2 h-4 w-4" />
+                      Alle auswählen ({filteredAvailableEquipment.length})
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={clearSelection}>
+                      Auswahl löschen ({selectedEquipment.length})
+                    </Button>
+                  </div>
+
+                  {/* Equipment list */}
+                  <div className="max-h-64 overflow-y-auto border rounded-lg">
+                    <div className="p-2 space-y-2">
+                      {filteredAvailableEquipment.length > 0 ? (
+                        filteredAvailableEquipment.map((item) => (
+                          <div key={item.id} className="flex items-center space-x-3 p-2 hover:bg-muted rounded">
+                            <Checkbox
+                              checked={selectedEquipment.includes(item.id)}
+                              onCheckedChange={() => handleEquipmentToggle(item.id)}
+                            />
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{item.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {item.barcode ? `Barcode: ${item.barcode}` : ''}
+                                {item.barcode && item.inventory_number ? ' • ' : ''}
+                                {item.inventory_number ? `Inv-Nr: ${item.inventory_number}` : ''}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-center text-muted-foreground py-4 text-sm">
+                          {searchTerm || categoryFilter || locationFilter ? 'Keine passende Ausrüstung gefunden' : 'Keine weitere Ausrüstung verfügbar'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <Label htmlFor="notes">Notizen (optional)</Label>
+                    <Textarea
+                      id="notes"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Notizen für alle ausgewählten..."
+                      rows={2}
+                    />
+                  </div>
+
+                  {/* Add button */}
                   <Button 
-                    variant="outline" 
+                    onClick={handleAddSelected}
+                    disabled={selectedEquipment.length === 0}
                     className="w-full"
-                    onClick={() => setScannerOpen(true)}
                   >
-                    <ScanLine className="h-4 w-4 mr-2" />
-                    Ausrüstung scannen
+                    {selectedEquipment.length} Hinzufügen
                   </Button>
-                  <Textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Notizen für neu hinzugefügte Ausrüstung..."
-                    rows={2}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Scannen Sie zusätzliche Ausrüstung, die gefunden wurde aber nicht in der Vorlage ist. 
-                    Diese wird automatisch zur Vorlage hinzugefügt.
-                  </p>
                 </div>
               </>
             )}
@@ -246,18 +435,34 @@ export function AddMissingItemsDialog({
                 Alle als fehlend
               </Button>
             )}
-            <Button onClick={() => { onComplete(); onOpenChange(false); }} className="ml-auto">
+            <Button onClick={handleCompleteClick} className="ml-auto">
               Inventur abschließen
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      <QRScanner
-        open={scannerOpen}
-        onOpenChange={setScannerOpen}
-        onScan={handleScanNewItem}
-      />
+      <AlertDialog open={isCompleteDialogOpen} onOpenChange={setIsCompleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Inventur abschließen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sind Sie sicher, dass Sie die Inventur abschließen möchten? 
+              {missingItems.length > 0 && (
+                <span className="block mt-2 text-orange-600">
+                  Es gibt noch {missingItems.length} nicht geprüfte Position(en).
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { onComplete(); onOpenChange(false); setIsCompleteDialogOpen(false); }}>
+              Ja, abschließen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

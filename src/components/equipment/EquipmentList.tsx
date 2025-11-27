@@ -144,7 +144,7 @@ export function EquipmentList({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Inventarnummer</TableHead>
+                <TableHead>Inv.-Nr.</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead className="hidden md:table-cell">Standort</TableHead>
                 <TableHead className="hidden md:table-cell">Kategorie</TableHead>
