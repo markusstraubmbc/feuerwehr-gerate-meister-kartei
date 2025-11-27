@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, Clock, Play, AlertTriangle, CalendarRange } from "lucide-react";
+import { Calendar, Clock, Play, AlertTriangle, CalendarRange, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEquipment } from "@/hooks/useEquipment";
@@ -20,6 +20,7 @@ export function AutoMaintenanceGenerator() {
     type: 'manual' | 'yearly';
   } | null>(null);
   const [isResetting, setIsResetting] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
   const { data: equipment = [] } = useEquipment();
   const { data: templates = [] } = useMaintenanceTemplates();
@@ -189,6 +190,43 @@ export function AutoMaintenanceGenerator() {
   };
 
   const equipmentWithoutTemplates = getEquipmentWithoutTemplates();
+
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+  const cronJobUrls = [
+    {
+      name: "Automatische Wartungsgenerierung",
+      function: "maintenance-auto-generator",
+      description: "Generiert Wartungstermine für die nächsten 180 Tage"
+    },
+    {
+      name: "E-Mail Scheduler",
+      function: "email-scheduler",
+      description: "Versendet geplante E-Mail-Benachrichtigungen"
+    },
+    {
+      name: "Wartungs-Benachrichtigungen",
+      function: "maintenance-notifications",
+      description: "Sendet Benachrichtigungen für fällige Wartungen"
+    },
+    {
+      name: "Wochenbericht",
+      function: "weekly-report",
+      description: "Generiert und sendet wöchentliche Berichte"
+    }
+  ];
+
+  const copyToClipboard = async (url: string, functionName: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedUrl(functionName);
+      toast.success("URL in Zwischenablage kopiert");
+      setTimeout(() => setCopiedUrl(null), 2000);
+    } catch (error) {
+      toast.error("Fehler beim Kopieren der URL");
+    }
+  };
 
   // --- NEU: Reset-Funktion für alle offenen Wartungen ---
   const resetAndRegenerateMaintenance = async () => {
@@ -361,6 +399,57 @@ export function AutoMaintenanceGenerator() {
           <p>• <strong>Edge Function:</strong> Kann als Cron-Job konfiguriert werden für automatische tägliche Ausführung</p>
           <p>• <strong>Duplikate:</strong> Bereits existierende Termine werden übersprungen</p>
           <p>• <strong>Verantwortliche:</strong> Automatisch aus der Wartungsvorlage übernommen</p>
+        </div>
+
+        <div className="border-t pt-4 mt-4">
+          <h4 className="font-medium mb-3">Cron-Job URLs für automatische Ausführung</h4>
+          <p className="text-sm text-muted-foreground mb-3">
+            Diese URLs können in einem externen Cron-Job Service (z.B. cron-job.org) eingetragen werden, 
+            um die automatische Ausführung zu planen.
+          </p>
+          
+          <div className="space-y-3">
+            {cronJobUrls.map((job) => {
+              const url = `${SUPABASE_URL}/functions/v1/${job.function}`;
+              const isCopied = copiedUrl === job.function;
+              
+              return (
+                <div key={job.function} className="p-3 bg-muted/50 rounded-lg space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{job.name}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{job.description}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyToClipboard(url, job.function)}
+                      className="shrink-0"
+                    >
+                      {isCopied ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  <div className="bg-background p-2 rounded border text-xs font-mono break-all">
+                    {url}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-xs text-blue-800">
+              <strong>Hinweis:</strong> Für die Verwendung mit externen Cron-Services müssen Sie 
+              den Authorization Header mit dem Supabase Anon Key hinzufügen:
+            </p>
+            <div className="mt-2 bg-white p-2 rounded border border-blue-200 text-xs font-mono break-all">
+              Authorization: Bearer {SUPABASE_ANON_KEY}
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
