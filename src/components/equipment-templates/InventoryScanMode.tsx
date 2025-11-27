@@ -49,12 +49,16 @@ export function InventoryScanMode({ checkId, open, onOpenChange }: InventoryScan
   const [recentScans, setRecentScans] = useState<RecentScan[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const autoScanTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize audio context
   useEffect(() => {
     audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     return () => {
       audioContextRef.current?.close();
+      if (autoScanTimeoutRef.current) {
+        clearTimeout(autoScanTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -245,7 +249,27 @@ export function InventoryScanMode({ checkId, open, onOpenChange }: InventoryScan
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
+      if (autoScanTimeoutRef.current) {
+        clearTimeout(autoScanTimeoutRef.current);
+      }
       handleScan(barcodeInput);
+    }
+  };
+
+  // Auto-scan when barcode is detected
+  const handleBarcodeChange = (value: string) => {
+    setBarcodeInput(value);
+    
+    // Clear existing timeout
+    if (autoScanTimeoutRef.current) {
+      clearTimeout(autoScanTimeoutRef.current);
+    }
+
+    // Set new timeout for auto-scan (300ms after last input)
+    if (value.trim().length >= 3) { // Minimum barcode length
+      autoScanTimeoutRef.current = setTimeout(() => {
+        handleScan(value);
+      }, 300);
     }
   };
 
@@ -348,7 +372,7 @@ export function InventoryScanMode({ checkId, open, onOpenChange }: InventoryScan
               )}
             </div>
 
-            {/* Recent Scans */}
+            {/* Recent Scan - Only show the last one */}
             {recentScans.length > 0 && (
               <div className="border rounded-lg p-3 bg-green-50 dark:bg-green-950/20">
                 <div className="flex items-center gap-2 mb-2">
@@ -357,30 +381,22 @@ export function InventoryScanMode({ checkId, open, onOpenChange }: InventoryScan
                     Zuletzt erfasst
                   </h4>
                 </div>
-                <div className="space-y-1">
-                  {recentScans.map((scan, index) => (
-                    <div
-                      key={`${scan.equipmentId}-${scan.timestamp.getTime()}`}
-                      className={cn(
-                        "flex items-center justify-between p-2 rounded text-sm",
-                        index === 0 ? "bg-green-100 dark:bg-green-900/30" : "bg-green-50 dark:bg-green-950/10"
+                <div className="bg-green-100 dark:bg-green-900/30 rounded p-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                      <span className="truncate font-medium text-sm">{recentScans[0].equipmentName}</span>
+                      {recentScans[0].wasNew && (
+                        <Badge variant="secondary" className="text-xs">
+                          <Plus className="h-2 w-2 mr-1" />
+                          Neu
+                        </Badge>
                       )}
-                    >
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <CheckCircle2 className="h-3 w-3 text-green-600 dark:text-green-400 flex-shrink-0" />
-                        <span className="truncate font-medium">{scan.equipmentName}</span>
-                        {scan.wasNew && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Plus className="h-2 w-2 mr-1" />
-                            Neu
-                          </Badge>
-                        )}
-                      </div>
-                      <span className="text-xs text-muted-foreground ml-2">
-                        {format(scan.timestamp, "HH:mm:ss", { locale: de })}
-                      </span>
                     </div>
-                  ))}
+                    <span className="text-xs text-muted-foreground ml-2">
+                      {format(recentScans[0].timestamp, "HH:mm:ss", { locale: de })}
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
@@ -396,14 +412,14 @@ export function InventoryScanMode({ checkId, open, onOpenChange }: InventoryScan
                   ref={inputRef}
                   type="text"
                   value={barcodeInput}
-                  onChange={(e) => setBarcodeInput(e.target.value)}
+                  onChange={(e) => handleBarcodeChange(e.target.value)}
                   onKeyDown={handleInputKeyDown}
                   placeholder="Barcode hier scannen oder eingeben..."
                   className="text-lg font-mono"
                   autoFocus
                 />
                 <p className="text-xs text-muted-foreground">
-                  Scanner fügt Barcode automatisch ein. Drücken Sie Enter oder scannen Sie erneut.
+                  Scanner fügt Barcode automatisch ein und verarbeitet nach 0,3 Sekunden.
                 </p>
               </div>
             </div>
