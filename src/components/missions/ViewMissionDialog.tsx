@@ -10,6 +10,7 @@ import { Clock, MapPin, Users, Plus, Trash2, Package, FileDown, Pen, FileText } 
 import { Mission } from "@/hooks/useMissions";
 import { useMissionEquipment } from "@/hooks/useMissionEquipment";
 import { useMissionPrintExport } from "@/hooks/useMissionPrintExport";
+import { useSendMissionReport } from "@/hooks/useSendMissionReport";
 import { AddEquipmentToMissionDialog } from "./AddEquipmentToMissionDialog";
 import { TemplateSelector } from "./TemplateSelector";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +33,7 @@ export const ViewMissionDialog = ({ mission, open, onOpenChange }: ViewMissionDi
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const { data: missionEquipment, isLoading } = useMissionEquipment(mission.id);
   const { handlePdfDownload } = useMissionPrintExport();
+  const { sendMissionReport } = useSendMissionReport();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -64,8 +66,20 @@ export const ViewMissionDialog = ({ mission, open, onOpenChange }: ViewMissionDi
       toast.success("Einsatzdetails aktualisiert");
       queryClient.invalidateQueries({ queryKey: ["missions"] });
       setIsEditing(false);
+
+      // Send mission report via email
+      if (missionEquipment) {
+        await sendMissionReport({
+          mission: {
+            ...mission,
+            responsible_persons: editablePersons.trim(),
+            vehicles: editableVehicles.trim(),
+          },
+          missionEquipment,
+        });
+      }
     } catch (error) {
-      console.error('Error updating mission:', error);
+      console.error("Error updating mission:", error);
       toast.error("Fehler beim Speichern der Details");
     }
   };
