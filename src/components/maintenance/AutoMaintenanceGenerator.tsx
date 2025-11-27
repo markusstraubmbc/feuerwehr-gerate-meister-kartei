@@ -217,6 +217,12 @@ export function AutoMaintenanceGenerator() {
       name: "Wochenbericht",
       function: "weekly-report",
       description: "Generiert und sendet wöchentliche Berichte"
+    },
+    {
+      name: "Alle Cron-Jobs auf einmal",
+      function: "run-all-cron-jobs",
+      description: "Führt alle Cron-Jobs nacheinander aus",
+      isMain: true
     }
   ];
 
@@ -456,10 +462,24 @@ export function AutoMaintenanceGenerator() {
               const isTesting = testingFunction === job.function;
               
               return (
-                <div key={job.function} className="p-3 bg-muted/50 rounded-lg space-y-2">
+                <div 
+                  key={job.function} 
+                  className={`p-3 rounded-lg space-y-2 ${
+                    job.isMain 
+                      ? 'bg-blue-50 border-2 border-blue-300' 
+                      : 'bg-muted/50'
+                  }`}
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
-                      <p className="font-medium text-sm">{job.name}</p>
+                      <p className={`font-medium text-sm ${job.isMain ? 'text-blue-900' : ''}`}>
+                        {job.name}
+                        {job.isMain && (
+                          <span className="ml-2 text-xs px-2 py-0.5 rounded bg-blue-200 text-blue-800">
+                            Empfohlen
+                          </span>
+                        )}
+                      </p>
                       <p className="text-xs text-muted-foreground mt-1">{job.description}</p>
                     </div>
                     <div className="flex gap-1 shrink-0">
@@ -498,14 +518,11 @@ export function AutoMaintenanceGenerator() {
             })}
           </div>
 
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-xs text-blue-800">
-              <strong>Hinweis:</strong> Für die Verwendung mit externen Cron-Services müssen Sie 
-              den Authorization Header mit dem Supabase Anon Key hinzufügen:
+          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-xs text-green-800">
+              <strong>Hinweis:</strong> Alle Cron-Job URLs können ohne Authentifizierung aufgerufen werden. 
+              Sie benötigen keinen Authorization Header mehr und können direkt per HTTP GET/POST Aufruf genutzt werden.
             </p>
-            <div className="mt-2 bg-white p-2 rounded border border-blue-200 text-xs font-mono break-all">
-              Authorization: Bearer {SUPABASE_ANON_KEY}
-            </div>
           </div>
         </div>
 
