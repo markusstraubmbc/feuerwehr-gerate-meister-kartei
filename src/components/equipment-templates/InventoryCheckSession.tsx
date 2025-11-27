@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   useInventoryCheckItems, 
   useCreateInventoryCheckItem, 
@@ -13,8 +14,11 @@ import {
 } from "@/hooks/useTemplateInventory";
 import { useTemplateEquipmentItems, useRemoveEquipmentFromTemplate } from "@/hooks/useEquipmentTemplates";
 import { useEquipment } from "@/hooks/useEquipment";
-import { CheckCircle2, XCircle, RefreshCw, ChevronRight, ChevronLeft, ScanLine, Plus } from "lucide-react";
+import { useEquipmentComments } from "@/hooks/useEquipmentComments";
+import { CheckCircle2, XCircle, RefreshCw, ChevronRight, ChevronLeft, ScanLine, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { de } from "date-fns/locale";
 import { QRScanner } from "@/components/equipment/QRScanner";
 import { ReplacementEquipmentDialog } from "./ReplacementEquipmentDialog";
 import { AddMissingItemsDialog } from "./AddMissingItemsDialog";
@@ -44,6 +48,7 @@ export function InventoryCheckSession({ checkId, open, onOpenChange }: Inventory
   const [missingItemsDialogOpen, setMissingItemsDialogOpen] = useState(false);
 
   const currentItem = templateItems[currentIndex];
+  const { data: comments = [] } = useEquipmentComments(currentItem?.equipment_id || "");
   const progress = (checkedItems.length / templateItems.length) * 100;
   const isLastItem = currentIndex === templateItems.length - 1;
 
@@ -203,14 +208,21 @@ export function InventoryCheckSession({ checkId, open, onOpenChange }: Inventory
 
           {/* Current item */}
           <div className="border rounded-lg p-4 bg-muted/50">
-            <div className="flex justify-between items-start mb-2">
+            <div className="flex justify-between items-start mb-3">
               <div className="flex-1">
                 <h3 className="font-semibold text-lg">{currentItem.equipment?.name}</h3>
-                {currentItem.equipment?.barcode && (
-                  <p className="text-sm text-muted-foreground">
-                    Barcode: {currentItem.equipment.barcode}
-                  </p>
-                )}
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {currentItem.equipment?.inventory_number && (
+                    <Badge variant="secondary" className="font-mono">
+                      Inv.-Nr.: {currentItem.equipment.inventory_number}
+                    </Badge>
+                  )}
+                  {currentItem.equipment?.barcode && (
+                    <Badge variant="secondary" className="font-mono">
+                      Barcode: {currentItem.equipment.barcode}
+                    </Badge>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -241,6 +253,37 @@ export function InventoryCheckSession({ checkId, open, onOpenChange }: Inventory
               </p>
             )}
           </div>
+
+          {/* Comments */}
+          {comments.length > 0 && (
+            <div className="border rounded-lg p-4 bg-muted/30">
+              <div className="flex items-center gap-2 mb-3">
+                <MessageSquare className="h-4 w-4" />
+                <h4 className="font-semibold text-sm">Kommentare ({comments.length})</h4>
+              </div>
+              <ScrollArea className="h-32">
+                <div className="space-y-2">
+                  {comments.map((comment) => (
+                    <div key={comment.id} className="text-sm border-l-2 border-muted pl-3 py-1">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex-1">
+                          <p className="text-muted-foreground">{comment.comment}</p>
+                          {comment.action && (
+                            <Badge variant="outline" className="mt-1 text-xs">
+                              {comment.action.name}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {comment.person.first_name} {comment.person.last_name} • {format(new Date(comment.created_at), "dd.MM.yyyy", { locale: de })}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
 
           {/* Status selection */}
           <div className="space-y-3">
