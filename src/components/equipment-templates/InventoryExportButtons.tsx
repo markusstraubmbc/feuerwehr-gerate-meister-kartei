@@ -67,15 +67,23 @@ export function InventoryExportButtons({
     const present = checkedItems.filter((i) => i.status === "present").length;
     const missing = checkedItems.filter((i) => i.status === "missing").length;
     const replaced = checkedItems.filter((i) => i.status === "replaced").length;
+    
+    // Find equipment that was added during inventory (not in original template)
+    const templateEquipmentIds = templateItems.map(t => t.equipment_id);
+    const addedEquipment = checkedItems.filter(
+      item => !templateEquipmentIds.includes(item.equipment_id)
+    );
+    
     const total = templateItems.length;
     const checked = checkedItems.length;
 
     const statsData = [
-      ["Gesamt Positionen", total.toString()],
+      ["Gesamt Positionen (Vorlage)", total.toString()],
       ["Geprüft", checked.toString()],
       ["Vorhanden", present.toString()],
       ["Fehlt", missing.toString()],
       ["Ersetzt", replaced.toString()],
+      ["Neu hinzugefügt", addedEquipment.length.toString()],
     ];
 
     (doc as any).autoTable({
@@ -86,52 +94,139 @@ export function InventoryExportButtons({
       columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 40 } },
     });
 
-    // Items table
+    // Detailed items overview
     let yPosition = (doc as any).lastAutoTable.finalY + 15;
     doc.setFontSize(14);
-    doc.text("Geprüfte Positionen", 20, yPosition);
+    doc.text("Detaillierte Übersicht", 20, yPosition);
 
-    const itemsData = checkedItems.map((item) => [
-      item.equipment?.name || "Unbekannt",
-      item.equipment?.inventory_number || "-",
-      item.status === "present" ? "Vorhanden" : item.status === "missing" ? "Fehlt" : "Ersetzt",
-      item.replacement_equipment?.name || "-",
-      item.notes || "-",
-    ]);
+    const detailedItemsData = checkedItems.map((item) => {
+      const statusText = item.status === "present" ? "Vorhanden" : 
+                        item.status === "missing" ? "Fehlt" : "Ersetzt";
+      const replacementText = item.status === "replaced" && item.replacement_equipment 
+        ? item.replacement_equipment.name 
+        : "-";
+      const isAdded = !templateEquipmentIds.includes(item.equipment_id);
+      
+      return [
+        item.equipment?.name || "Unbekannt",
+        item.equipment?.inventory_number || "-",
+        item.equipment?.barcode || "-",
+        statusText,
+        replacementText,
+        isAdded ? "Ja" : "-",
+        item.notes || "-",
+      ];
+    });
 
     (doc as any).autoTable({
       startY: yPosition + 5,
-      head: [["Ausrüstung", "Inv.Nr.", "Status", "Ersetzt durch", "Notizen"]],
-      body: itemsData,
+      head: [["Ausrüstung", "Inv.Nr.", "Barcode", "Status", "Ersetzt durch", "Neu", "Notizen"]],
+      body: detailedItemsData,
       margin: { left: 20 },
-      styles: { fontSize: 8 },
+      styles: { fontSize: 7 },
       columnStyles: {
-        0: { cellWidth: 40 },
-        1: { cellWidth: 25 },
+        0: { cellWidth: 35 },
+        1: { cellWidth: 20 },
         2: { cellWidth: 25 },
-        3: { cellWidth: 35 },
-        4: { cellWidth: 45 },
+        3: { cellWidth: 22 },
+        4: { cellWidth: 30 },
+        5: { cellWidth: 12 },
+        6: { cellWidth: 30 },
       },
     });
 
+    // Separate sections for specific statuses
     // Missing items
     if (missing > 0) {
       yPosition = (doc as any).lastAutoTable.finalY + 15;
       doc.setFontSize(14);
-      doc.setTextColor(255, 0, 0);
-      doc.text("Fehlende Positionen", 20, yPosition);
+      doc.setTextColor(220, 38, 38); // red
+      doc.text("Fehlende Ausrüstung", 20, yPosition);
       doc.setTextColor(0, 0, 0);
 
       const missingData = checkedItems
         .filter((i) => i.status === "missing")
-        .map((item) => [item.equipment?.name || "Unbekannt", item.notes || "-"]);
+        .map((item) => [
+          item.equipment?.name || "Unbekannt",
+          item.equipment?.inventory_number || "-",
+          item.notes || "-"
+        ]);
 
       (doc as any).autoTable({
         startY: yPosition + 5,
-        head: [["Ausrüstung", "Notizen"]],
+        head: [["Ausrüstung", "Inv.Nr.", "Notizen"]],
         body: missingData,
         margin: { left: 20 },
         styles: { fontSize: 9 },
+        columnStyles: {
+          0: { cellWidth: 60 },
+          1: { cellWidth: 30 },
+          2: { cellWidth: 80 },
+        },
+      });
+    }
+
+    // Replaced items
+    if (replaced > 0) {
+      yPosition = (doc as any).lastAutoTable.finalY + 15;
+      doc.setFontSize(14);
+      doc.setTextColor(234, 179, 8); // yellow
+      doc.text("Ersetzte Ausrüstung", 20, yPosition);
+      doc.setTextColor(0, 0, 0);
+
+      const replacedData = checkedItems
+        .filter((i) => i.status === "replaced")
+        .map((item) => [
+          item.equipment?.name || "Unbekannt",
+          item.equipment?.inventory_number || "-",
+          item.replacement_equipment?.name || "-",
+          item.replacement_equipment?.inventory_number || "-",
+          item.notes || "-"
+        ]);
+
+      (doc as any).autoTable({
+        startY: yPosition + 5,
+        head: [["Alt", "Alt Inv.Nr.", "Neu", "Neu Inv.Nr.", "Notizen"]],
+        body: replacedData,
+        margin: { left: 20 },
+        styles: { fontSize: 8 },
+        columnStyles: {
+          0: { cellWidth: 40 },
+          1: { cellWidth: 25 },
+          2: { cellWidth: 40 },
+          3: { cellWidth: 25 },
+          4: { cellWidth: 40 },
+        },
+      });
+    }
+
+    // Newly added equipment
+    if (addedEquipment.length > 0) {
+      yPosition = (doc as any).lastAutoTable.finalY + 15;
+      doc.setFontSize(14);
+      doc.setTextColor(34, 197, 94); // green
+      doc.text("Neu hinzugefügte Ausrüstung", 20, yPosition);
+      doc.setTextColor(0, 0, 0);
+
+      const addedData = addedEquipment.map((item) => [
+        item.equipment?.name || "Unbekannt",
+        item.equipment?.inventory_number || "-",
+        item.equipment?.barcode || "-",
+        item.notes || "-"
+      ]);
+
+      (doc as any).autoTable({
+        startY: yPosition + 5,
+        head: [["Ausrüstung", "Inv.Nr.", "Barcode", "Notizen"]],
+        body: addedData,
+        margin: { left: 20 },
+        styles: { fontSize: 9 },
+        columnStyles: {
+          0: { cellWidth: 50 },
+          1: { cellWidth: 30 },
+          2: { cellWidth: 35 },
+          3: { cellWidth: 55 },
+        },
       });
     }
 
