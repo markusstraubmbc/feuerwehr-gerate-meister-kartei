@@ -20,6 +20,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          notification_interval_days: number | null
           responsible_person_id: string | null
         }
         Insert: {
@@ -27,6 +28,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          notification_interval_days?: number | null
           responsible_person_id?: string | null
         }
         Update: {
@@ -34,6 +36,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          notification_interval_days?: number | null
           responsible_person_id?: string | null
         }
         Relationships: [

@@ -24,6 +24,7 @@ const CategoryManagement = () => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [responsiblePersonId, setResponsiblePersonId] = useState("none");
+  const [notificationIntervalDays, setNotificationIntervalDays] = useState("");
   const queryClient = useQueryClient();
 
   const handleSave = async () => {
@@ -39,7 +40,8 @@ const CategoryManagement = () => {
           .update({ 
             name, 
             description,
-            responsible_person_id: responsiblePersonId === "none" ? null : responsiblePersonId || null
+            responsible_person_id: responsiblePersonId === "none" ? null : responsiblePersonId || null,
+            notification_interval_days: notificationIntervalDays ? parseInt(notificationIntervalDays) : null
           })
           .eq("id", editingCategory.id);
         if (error) throw error;
@@ -50,7 +52,8 @@ const CategoryManagement = () => {
           .insert({ 
             name, 
             description,
-            responsible_person_id: responsiblePersonId === "none" ? null : responsiblePersonId || null
+            responsible_person_id: responsiblePersonId === "none" ? null : responsiblePersonId || null,
+            notification_interval_days: notificationIntervalDays ? parseInt(notificationIntervalDays) : null
           });
         if (error) throw error;
         toast.success("Kategorie erstellt");
@@ -88,6 +91,7 @@ const CategoryManagement = () => {
     setDescription(category.description || "");
     const responsibleId = category.responsible_person_id ?? category.responsible_person?.id ?? "none";
     setResponsiblePersonId(responsibleId);
+    setNotificationIntervalDays(category.notification_interval_days?.toString() || "");
     setShowDialog(true);
   };
 
@@ -97,6 +101,7 @@ const CategoryManagement = () => {
     setName("");
     setDescription("");
     setResponsiblePersonId("none");
+    setNotificationIntervalDays("");
   };
 
   return (
@@ -148,10 +153,18 @@ const CategoryManagement = () => {
                   {category.description || "Keine Beschreibung"}
                 </p>
                 {category.responsible_person && (
-                  <div className="text-sm">
+                  <div className="text-sm mb-1">
                     <span className="font-medium">Verantwortlich: </span>
                     <span className="text-muted-foreground">
                       {category.responsible_person.first_name} {category.responsible_person.last_name}
+                    </span>
+                  </div>
+                )}
+                {category.notification_interval_days && (
+                  <div className="text-sm">
+                    <span className="font-medium">Benachrichtigungsintervall: </span>
+                    <span className="text-muted-foreground">
+                      {category.notification_interval_days} Tage
                     </span>
                   </div>
                 )}
@@ -202,6 +215,20 @@ const CategoryManagement = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label htmlFor="notification-interval">Benachrichtigungsintervall (Tage)</Label>
+              <Input
+                id="notification-interval"
+                type="number"
+                min="1"
+                value={notificationIntervalDays}
+                onChange={(e) => setNotificationIntervalDays(e.target.value)}
+                placeholder="Leer = globaler Standard"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Leer lassen für globalen Standard. Kategorie-spezifisches Intervall für Wartungsbenachrichtigungen.
+              </p>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={handleCloseDialog}>

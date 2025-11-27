@@ -165,9 +165,20 @@ serve(async (req) => {
       for (const maintenance of maintenanceData || []) {
         if (!maintenance.performer?.email && !testEmail) continue;
 
+        // Get equipment category to check for category-specific interval
+        const { data: equipmentData } = await supabase
+          .from("equipment")
+          .select("category_id, categories:category_id(notification_interval_days)")
+          .eq("id", maintenance.equipment_id)
+          .single();
+
+        // Use category-specific interval if available, otherwise use global default
+        const categoryInterval = equipmentData?.categories?.notification_interval_days;
+        const effectiveInterval = categoryInterval ?? notificationIntervalDays;
+
         // Check if this equipment was already notified within the interval
         const intervalCheckDate = new Date();
-        intervalCheckDate.setDate(intervalCheckDate.getDate() - notificationIntervalDays);
+        intervalCheckDate.setDate(intervalCheckDate.getDate() - effectiveInterval);
         
         const { data: recentNotifications } = await supabase
           .from("maintenance_notification_history")
@@ -178,7 +189,7 @@ serve(async (req) => {
           .limit(1);
 
         if (recentNotifications && recentNotifications.length > 0) {
-          console.log(`Skipping notification for equipment ${maintenance.equipment.name} - already notified within ${notificationIntervalDays} days`);
+          console.log(`Skipping notification for equipment ${maintenance.equipment.name} - already notified within ${effectiveInterval} days (category-specific: ${categoryInterval !== null && categoryInterval !== undefined})`);
           continue;
         }
         if (!maintenance.performer?.email && !testEmail) continue;
