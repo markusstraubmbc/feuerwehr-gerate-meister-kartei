@@ -34,6 +34,7 @@ import { CompleteMaintenanceDialog } from "@/components/maintenance/CompleteMain
 import { EditMaintenanceDialog } from "@/components/maintenance/EditMaintenanceDialog";
 import { MaintenanceWidgets } from "@/components/dashboard/MaintenanceWidgets";
 import { OverdueMaintenanceWidget } from "@/components/dashboard/OverdueMaintenanceWidget";
+import { RecentActionsWidget } from "@/components/dashboard/RecentActionsWidget";
 import { SELECT_ALL_VALUE } from "@/lib/constants";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
@@ -375,6 +376,14 @@ const Dashboard = () => {
         categoryFilter={selectedCategoryId}
         personFilter={selectedPersonId}
         locationFilter={selectedLocationId}
+      />
+
+      {/* Recent Actions Widget */}
+      <RecentActionsWidget 
+        categoryFilter={selectedCategoryId}
+        personFilter={selectedPersonId}
+        locationFilter={selectedLocationId}
+        yearFilter={selectedYear}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
