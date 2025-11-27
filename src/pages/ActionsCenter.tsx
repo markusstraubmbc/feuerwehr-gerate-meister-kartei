@@ -5,12 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, FileSpreadsheet, FileDown } from "lucide-react";
+import { Search, FileSpreadsheet, FileDown, Info } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
 import { useCategories } from "@/hooks/useCategories";
 import { useLocations } from "@/hooks/useLocations";
 import { usePersons } from "@/hooks/usePersons";
 import { AddCommentForm } from "@/components/equipment/AddCommentForm";
+import { EquipmentOverviewDialog } from "@/components/equipment/EquipmentOverviewDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -19,6 +20,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
+import type { Equipment } from "@/hooks/useEquipment";
 
 const statusOptions = [
   { value: "all", label: "Alle Status" },
@@ -40,6 +42,7 @@ const ActionsCenter = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -425,6 +428,7 @@ const ActionsCenter = () => {
                     <TableHead>Kategorie</TableHead>
                     <TableHead>Standort</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -442,6 +446,16 @@ const ActionsCenter = () => {
                       <TableCell>{item.category?.name || "-"}</TableCell>
                       <TableCell>{item.location?.name || "-"}</TableCell>
                       <TableCell className="capitalize">{item.status}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedEquipment(item)}
+                          aria-label={`Details zu ${item.name} anzeigen`}
+                        >
+                          <Info className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -464,6 +478,14 @@ const ActionsCenter = () => {
           <AddCommentForm onSubmit={handleBulkActionSubmit} isSubmitting={isSubmitting} />
         </CardContent>
       </Card>
+
+      {selectedEquipment && (
+        <EquipmentOverviewDialog
+          equipment={selectedEquipment}
+          open={!!selectedEquipment}
+          onOpenChange={(open) => !open && setSelectedEquipment(null)}
+        />
+      )}
     </div>
   );
 };
