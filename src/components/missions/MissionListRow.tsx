@@ -3,11 +3,12 @@ import { useMissionEquipment } from "@/hooks/useMissionEquipment";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableRow, TableCell } from "@/components/ui/table";
-import { FileDown, Eye, Calendar, PackagePlus } from "lucide-react";
+import { FileDown, Eye, Calendar, PackagePlus, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { Mission } from "@/hooks/useMissions";
 import { useMissionPrintExport } from "@/hooks/useMissionPrintExport";
+import { useSendMissionReport } from "@/hooks/useSendMissionReport";
 import { useState } from "react";
 import { AddEquipmentToMissionDialog } from "./AddEquipmentToMissionDialog";
 
@@ -25,8 +26,10 @@ export const MissionListRow = ({
   setExporting,
 }: MissionListRowProps) => {
   const [showAddEquipment, setShowAddEquipment] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const { data, isLoading } = useMissionEquipment(mission.id);
   const { handlePdfDownload } = useMissionPrintExport();
+  const { sendMissionReport } = useSendMissionReport();
 
   const handleExportPdf = () => {
     setExporting(mission.id);
@@ -35,6 +38,18 @@ export const MissionListRow = ({
       missionEquipment: data || []
     });
     setExporting(null);
+  };
+
+  const handleSendReport = async () => {
+    setIsSendingEmail(true);
+    try {
+      await sendMissionReport({
+        mission,
+        missionEquipment: data || []
+      });
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   const equipmentCount = data ? data.filter(x => !!x.equipment).length : 0;
@@ -83,6 +98,15 @@ export const MissionListRow = ({
             title="Ausrüstung schnell hinzufügen"
           >
             <PackagePlus className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleSendReport}
+            title="Abschlussbericht per E-Mail senden"
+            disabled={isSendingEmail}
+          >
+            <Mail className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
