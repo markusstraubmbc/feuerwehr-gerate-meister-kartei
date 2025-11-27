@@ -23,7 +23,7 @@ const CategoryManagement = () => {
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [responsiblePersonId, setResponsiblePersonId] = useState("");
+  const [responsiblePersonId, setResponsiblePersonId] = useState("none");
   const queryClient = useQueryClient();
 
   const handleSave = async () => {
@@ -39,7 +39,7 @@ const CategoryManagement = () => {
           .update({ 
             name, 
             description,
-            responsible_person_id: responsiblePersonId || null
+            responsible_person_id: responsiblePersonId === "none" ? null : responsiblePersonId || null
           })
           .eq("id", editingCategory.id);
         if (error) throw error;
@@ -50,7 +50,7 @@ const CategoryManagement = () => {
           .insert({ 
             name, 
             description,
-            responsible_person_id: responsiblePersonId || null
+            responsible_person_id: responsiblePersonId === "none" ? null : responsiblePersonId || null
           });
         if (error) throw error;
         toast.success("Kategorie erstellt");
@@ -86,8 +86,7 @@ const CategoryManagement = () => {
     setEditingCategory(category);
     setName(category.name);
     setDescription(category.description || "");
-    // Handle both direct responsible_person_id and nested responsible_person object
-    const responsibleId = category.responsible_person_id || category.responsible_person?.id || "";
+    const responsibleId = category.responsible_person_id ?? category.responsible_person?.id ?? "none";
     setResponsiblePersonId(responsibleId);
     setShowDialog(true);
   };
@@ -97,7 +96,7 @@ const CategoryManagement = () => {
     setEditingCategory(null);
     setName("");
     setDescription("");
-    setResponsiblePersonId("");
+    setResponsiblePersonId("none");
   };
 
   return (
@@ -187,7 +186,7 @@ const CategoryManagement = () => {
                   <SelectValue placeholder="Person auswählen..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Keine</SelectItem>
+                  <SelectItem value="none">Keine</SelectItem>
                   {persons.map((person) => (
                     <SelectItem key={person.id} value={person.id}>
                       {person.first_name} {person.last_name}
