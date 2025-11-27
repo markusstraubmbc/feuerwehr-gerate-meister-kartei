@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { MissionReportEmailSettings } from "@/components/settings/MissionReportEmailSettings";
+import { WeeklyReportEmailSettings } from "@/components/settings/WeeklyReportEmailSettings";
+import { EmailSenderSettings } from "@/components/settings/EmailSenderSettings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCronJobLogs } from "@/hooks/useCronJobLogs";
 import { Mail } from "lucide-react";
@@ -32,7 +34,11 @@ const EmailActionsOverview = () => {
         <h1 className="text-2xl font-bold tracking-tight">E-Mail & Aktionen Übersicht</h1>
       </div>
 
-      <MissionReportEmailSettings />
+      <div className="space-y-6">
+        <EmailSenderSettings />
+        <WeeklyReportEmailSettings />
+        <MissionReportEmailSettings />
+      </div>
 
       <Card>
         <CardHeader>
