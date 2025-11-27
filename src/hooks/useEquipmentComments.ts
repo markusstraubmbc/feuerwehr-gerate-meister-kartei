@@ -8,23 +8,43 @@ export interface EquipmentComment {
   person_id: string;
   comment: string;
   created_at: string;
+  action_id?: string | null;
   person: {
     id: string;
     first_name: string;
     last_name: string;
   };
+  action?: {
+    id: string;
+    name: string;
+    description?: string | null;
+  } | null;
 }
 
 export const useEquipmentComments = (equipmentId: string) => {
   return useQuery({
     queryKey: ["equipment-comments", equipmentId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_equipment_comments', {
-        equipment_id_param: equipmentId
-      });
+      const { data, error } = await supabase
+        .from("equipment_comments")
+        .select(`
+          *,
+          person:person_id (
+            id,
+            first_name,
+            last_name
+          ),
+          action:action_id (
+            id,
+            name,
+            description
+          )
+        `)
+        .eq("equipment_id", equipmentId)
+        .order("created_at", { ascending: false });
       
       if (error) throw error;
-      return (data as unknown) as EquipmentComment[];
+      return data as EquipmentComment[];
     },
     enabled: !!equipmentId,
   });
@@ -37,21 +57,22 @@ export const useAllEquipmentComments = () => {
       const { data, error } = await supabase
         .from("equipment_comments")
         .select(`
-          id,
-          equipment_id,
-          person_id,
-          comment,
-          created_at,
-          person:person_id(
+          *,
+          person:person_id (
             id,
             first_name,
             last_name
+          ),
+          action:action_id (
+            id,
+            name,
+            description
           )
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as EquipmentComment[];
     },
   });
 };
