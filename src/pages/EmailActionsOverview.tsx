@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { MissionReportEmailSettings } from "@/components/settings/MissionReportEmailSettings";
 import { WeeklyReportEmailSettings } from "@/components/settings/WeeklyReportEmailSettings";
+import { MaintenanceReportEmailSettings } from "@/components/settings/MaintenanceReportEmailSettings";
 import { EmailSenderSettings } from "@/components/settings/EmailSenderSettings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCronJobLogs } from "@/hooks/useCronJobLogs";
@@ -38,6 +39,7 @@ const EmailActionsOverview = () => {
         <EmailSenderSettings />
         <WeeklyReportEmailSettings />
         <MissionReportEmailSettings />
+        <MaintenanceReportEmailSettings />
       </div>
 
       <Card>
