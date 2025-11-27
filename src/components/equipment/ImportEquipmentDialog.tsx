@@ -12,11 +12,14 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileUp, AlertCircle, Download, Loader2 } from "lucide-react";
+import { FileUp, AlertCircle, Download, Loader2, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Papa from 'papaparse';
 import { Equipment } from "@/hooks/useEquipment";
 import * as XLSX from 'xlsx';
+import { useCategories } from "@/hooks/useCategories";
+import { useLocations } from "@/hooks/useLocations";
+import { usePersons } from "@/hooks/usePersons";
 
 interface ImportEquipmentDialogProps {
   open: boolean;
@@ -33,56 +36,94 @@ export function ImportEquipmentDialog({
 }: ImportEquipmentDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: categories = [] } = useCategories();
+  const { data: locations = [] } = useLocations();
+  const { data: persons = [] } = usePersons();
   
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importPreview, setImportPreview] = useState<any[]>([]);
   const [progress, setProgress] = useState(0);
+  const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
   
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
     try {
-      // Erstelle ein Beispiel-Excel-Workbook
-      const worksheet = XLSX.utils.json_to_sheet([{
+      // Erstelle Template-Daten
+      const templateData = [{
         name: "Beispiel Ausrüstung",
         inventory_number: "INV001",
         barcode: "BC001",
         serial_number: "SN001",
         manufacturer: "Hersteller",
         model: "Modell",
-        category_id: "",
-        location_id: "",
-        responsible_person_id: "",
+        category_id: categories.length > 0 ? categories[0].id : "",
+        location_id: locations.length > 0 ? locations[0].id : "",
+        responsible_person_id: persons.length > 0 ? persons[0].id : "",
         status: "einsatzbereit",
         last_check_date: "2023-01-01",
         next_check_date: "2024-01-01",
         purchase_date: "2022-01-01",
         replacement_date: "2025-01-01",
         notes: "Notizen"
-      }]);
+      }];
       
+      // Erstelle Workbook
       const workbook = XLSX.utils.book_new();
+      
+      // Hauptsheet mit Vorlage
+      const worksheet = XLSX.utils.json_to_sheet(templateData);
       XLSX.utils.book_append_sheet(workbook, worksheet, "Vorlage");
       
-      // Speichern als XLSX mit expliziter Blob-Methode
-      const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      // Referenz-Sheet mit verfügbaren IDs
+      const referenceData = [
+        { Type: "Kategorien", ID: "", Name: "" },
+        ...categories.map(c => ({ Type: "Kategorie", ID: c.id, Name: c.name })),
+        { Type: "", ID: "", Name: "" },
+        { Type: "Standorte", ID: "", Name: "" },
+        ...locations.map(l => ({ Type: "Standort", ID: l.id, Name: l.name })),
+        { Type: "", ID: "", Name: "" },
+        { Type: "Personen", ID: "", Name: "" },
+        ...persons.map(p => ({ Type: "Person", ID: p.id, Name: `${p.first_name} ${p.last_name}` })),
+      ];
+      const refSheet = XLSX.utils.json_to_sheet(referenceData);
+      XLSX.utils.book_append_sheet(workbook, refSheet, "Referenz-IDs");
       
-      // Download-Link erstellen
-      const url = URL.createObjectURL(blob);
+      // Konvertiere zu Binary String
+      const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'binary' });
+      
+      // Konvertiere Binary String zu Array Buffer
+      const buf = new ArrayBuffer(wbout.length);
+      const view = new Uint8Array(buf);
+      for (let i = 0; i < wbout.length; i++) {
+        view[i] = wbout.charCodeAt(i) & 0xFF;
+      }
+      
+      // Erstelle Blob
+      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      
+      // Erstelle Download-Link
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'equipment_import_template.xlsx';
+      link.download = `equipment_import_template_${new Date().getTime()}.xlsx`;
+      
+      // Trigger Download
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      
+      // Cleanup
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
       
       toast({
         title: "Vorlage heruntergeladen",
-        description: "Die Excel-Vorlage wurde erfolgreich heruntergeladen.",
+        description: "Die Excel-Vorlage mit Referenz-IDs wurde erfolgreich heruntergeladen.",
       });
     } catch (err: any) {
+      console.error("Template download error:", err);
       toast({
         variant: "destructive",
         title: "Download fehlgeschlagen",
@@ -180,6 +221,41 @@ export function ImportEquipmentDialog({
     });
   };
 
+  const validateImportData = (data: EquipmentImportData[]) => {
+    const warnings: string[] = [];
+    const validCategoryIds = new Set(categories.map(c => c.id));
+    const validLocationIds = new Set(locations.map(l => l.id));
+    const validPersonIds = new Set(persons.map(p => p.id));
+    
+    let invalidCategoryCount = 0;
+    let invalidLocationCount = 0;
+    let invalidPersonCount = 0;
+    
+    data.forEach((item, index) => {
+      if (item.category_id && !validCategoryIds.has(item.category_id)) {
+        invalidCategoryCount++;
+      }
+      if (item.location_id && !validLocationIds.has(item.location_id)) {
+        invalidLocationCount++;
+      }
+      if (item.responsible_person_id && !validPersonIds.has(item.responsible_person_id)) {
+        invalidPersonCount++;
+      }
+    });
+    
+    if (invalidCategoryCount > 0) {
+      warnings.push(`${invalidCategoryCount} Einträge haben ungültige category_id Werte. Diese werden ignoriert.`);
+    }
+    if (invalidLocationCount > 0) {
+      warnings.push(`${invalidLocationCount} Einträge haben ungültige location_id Werte. Diese werden ignoriert.`);
+    }
+    if (invalidPersonCount > 0) {
+      warnings.push(`${invalidPersonCount} Einträge haben ungültige responsible_person_id Werte. Diese werden ignoriert.`);
+    }
+    
+    return warnings;
+  };
+
   const handleImport = async () => {
     if (!file) {
       setError("Bitte wählen Sie eine Datei aus.");
@@ -188,6 +264,7 @@ export function ImportEquipmentDialog({
     
     setIsLoading(true);
     setProgress(0);
+    setValidationWarnings([]);
     
     try {
       const data = await parseImportFile(file);
@@ -195,6 +272,17 @@ export function ImportEquipmentDialog({
       if (!Array.isArray(data) || data.length === 0) {
         throw new Error("Keine gültigen Daten in der Datei gefunden.");
       }
+      
+      // Validiere Import-Daten
+      const warnings = validateImportData(data);
+      if (warnings.length > 0) {
+        setValidationWarnings(warnings);
+      }
+      
+      // Erstelle Sets für schnelle Validierung
+      const validCategoryIds = new Set(categories.map(c => c.id));
+      const validLocationIds = new Set(locations.map(l => l.id));
+      const validPersonIds = new Set(persons.map(p => p.id));
       
       // Daten bereinigen und validieren
       const equipmentData = data.filter(item => item.name).map(item => ({
@@ -204,9 +292,10 @@ export function ImportEquipmentDialog({
         serial_number: item.serial_number || null,
         manufacturer: item.manufacturer || null,
         model: item.model || null,
-        category_id: item.category_id || null,
-        location_id: item.location_id || null,
-        responsible_person_id: item.responsible_person_id || null,
+        // Validiere und setze nur gültige IDs
+        category_id: (item.category_id && validCategoryIds.has(item.category_id)) ? item.category_id : null,
+        location_id: (item.location_id && validLocationIds.has(item.location_id)) ? item.location_id : null,
+        responsible_person_id: (item.responsible_person_id && validPersonIds.has(item.responsible_person_id)) ? item.responsible_person_id : null,
         status: item.status || "einsatzbereit",
         last_check_date: item.last_check_date || null,
         next_check_date: item.next_check_date || null,
@@ -236,13 +325,21 @@ export function ImportEquipmentDialog({
         setProgress(Math.round((imported / equipmentData.length) * 100));
       }
       
+      const successMessage = warnings.length > 0 
+        ? `${imported} Ausrüstungsgegenstände wurden importiert. ${warnings.length} Warnung(en) beachten.`
+        : `${imported} Ausrüstungsgegenstände wurden erfolgreich importiert.`;
+      
       toast({
         title: "Import erfolgreich",
-        description: `${imported} Ausrüstungsgegenstände wurden erfolgreich importiert.`,
+        description: successMessage,
       });
       
       queryClient.invalidateQueries({ queryKey: ["equipment"] });
-      onOpenChange(false);
+      
+      // Dialog nur schließen wenn keine Warnungen
+      if (warnings.length === 0) {
+        onOpenChange(false);
+      }
     } catch (err: any) {
       setError(`Fehler beim Import: ${err.message}`);
       toast({
@@ -348,6 +445,20 @@ export function ImportEquipmentDialog({
               </div>
               <p className="text-sm text-center">{progress}% abgeschlossen</p>
             </div>
+          )}
+          
+          {validationWarnings.length > 0 && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="font-semibold mb-1">Validierungswarnungen:</div>
+                <ul className="list-disc list-inside space-y-1">
+                  {validationWarnings.map((warning, i) => (
+                    <li key={i} className="text-sm">{warning}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
           )}
           
           {error && (
