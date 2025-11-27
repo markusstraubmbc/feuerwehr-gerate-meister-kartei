@@ -12,9 +12,12 @@ import {
   useUpdateInventoryCheck,
   useTemplateInventoryChecks 
 } from "@/hooks/useTemplateInventory";
-import { useTemplateEquipmentItems, useRemoveEquipmentFromTemplate } from "@/hooks/useEquipmentTemplates";
-import { CheckCircle2, XCircle, ScanLine, X } from "lucide-react";
+import { useTemplateEquipmentItems, useRemoveEquipmentFromTemplate, useAddEquipmentToTemplate } from "@/hooks/useEquipmentTemplates";
+import { useEquipment } from "@/hooks/useEquipment";
+import { CheckCircle2, XCircle, ScanLine, X, Plus, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { de } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 interface InventoryScanModeProps {
@@ -23,18 +26,79 @@ interface InventoryScanModeProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface RecentScan {
+  equipmentId: string;
+  equipmentName: string;
+  timestamp: Date;
+  wasNew: boolean;
+}
+
 export function InventoryScanMode({ checkId, open, onOpenChange }: InventoryScanModeProps) {
   const { data: checks = [] } = useTemplateInventoryChecks();
   const check = checks.find(c => c.id === checkId);
   const { data: templateItems = [] } = useTemplateEquipmentItems(check?.template_id || "");
   const { data: checkedItems = [] } = useInventoryCheckItems(checkId);
+  const { data: allEquipment = [] } = useEquipment();
   const createItem = useCreateInventoryCheckItem();
   const updateCheck = useUpdateInventoryCheck();
   const removeEquipmentFromTemplate = useRemoveEquipmentFromTemplate();
+  const addEquipmentToTemplate = useAddEquipmentToTemplate();
 
   const [barcodeInput, setBarcodeInput] = useState("");
   const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
+  const [recentScans, setRecentScans] = useState<RecentScan[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  // Initialize audio context
+  useEffect(() => {
+    audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    return () => {
+      audioContextRef.current?.close();
+    };
+  }, []);
+
+  // Play success beep
+  const playSuccessBeep = () => {
+    if (!audioContextRef.current) return;
+    
+    const ctx = audioContextRef.current;
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    oscillator.frequency.value = 800;
+    oscillator.type = "sine";
+    
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+    
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.1);
+  };
+
+  // Play error beep
+  const playErrorBeep = () => {
+    if (!audioContextRef.current) return;
+    
+    const ctx = audioContextRef.current;
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    oscillator.frequency.value = 300;
+    oscillator.type = "sine";
+    
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+    
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.2);
+  };
 
   // Auto-focus input when dialog opens
   useEffect(() => {
@@ -60,39 +124,119 @@ export function InventoryScanMode({ checkId, open, onOpenChange }: InventoryScan
   const handleScan = async (barcode: string) => {
     if (!barcode.trim()) return;
 
-    // Find equipment with this barcode in the template
-    const matchingItem = templateItems.find(
-      item => item.equipment?.barcode === barcode.trim()
+    const trimmedBarcode = barcode.trim();
+
+    // First, check if it's in the template
+    const matchingTemplateItem = templateItems.find(
+      item => item.equipment?.barcode === trimmedBarcode
     );
 
-    if (!matchingItem) {
-      toast.error("Gerät nicht in dieser Vorlage gefunden");
+    if (matchingTemplateItem) {
+      // Check if already scanned
+      if (scannedEquipmentIds.has(matchingTemplateItem.equipment_id)) {
+        toast.info(`${matchingTemplateItem.equipment?.name} bereits erfasst`);
+        playErrorBeep();
+        setBarcodeInput("");
+        inputRef.current?.focus();
+        return;
+      }
+
+      // Mark as present
+      try {
+        await createItem.mutateAsync({
+          inventory_check_id: checkId,
+          equipment_id: matchingTemplateItem.equipment_id,
+          status: "present",
+        });
+        
+        playSuccessBeep();
+        toast.success(`✓ ${matchingTemplateItem.equipment?.name} erfasst`);
+        
+        // Add to recent scans
+        setRecentScans(prev => [
+          {
+            equipmentId: matchingTemplateItem.equipment_id,
+            equipmentName: matchingTemplateItem.equipment?.name || "Unbekannt",
+            timestamp: new Date(),
+            wasNew: false,
+          },
+          ...prev.slice(0, 4)
+        ]);
+        
+        setBarcodeInput("");
+        inputRef.current?.focus();
+      } catch (error) {
+        playErrorBeep();
+        toast.error("Fehler beim Erfassen");
+        setBarcodeInput("");
+        inputRef.current?.focus();
+      }
+      return;
+    }
+
+    // If not in template, check if it exists in all equipment
+    const matchingEquipment = allEquipment.find(
+      eq => eq.barcode === trimmedBarcode
+    );
+
+    if (!matchingEquipment) {
+      playErrorBeep();
+      toast.error("Gerät mit diesem Barcode nicht gefunden");
       setBarcodeInput("");
       inputRef.current?.focus();
       return;
     }
 
-    // Check if already scanned
-    if (scannedEquipmentIds.has(matchingItem.equipment_id)) {
-      toast.info(`${matchingItem.equipment?.name} bereits erfasst`);
+    // Check if already in checked items (might have been added as new equipment)
+    const alreadyChecked = checkedItems.find(
+      item => item.equipment_id === matchingEquipment.id
+    );
+
+    if (alreadyChecked) {
+      toast.info(`${matchingEquipment.name} bereits erfasst`);
+      playErrorBeep();
       setBarcodeInput("");
       inputRef.current?.focus();
       return;
     }
 
-    // Mark as present
+    // Equipment exists but not in template - add it
     try {
+      // Add to template first
+      if (check?.template_id) {
+        await addEquipmentToTemplate.mutateAsync({
+          template_id: check.template_id,
+          equipment_id: matchingEquipment.id,
+        });
+      }
+
+      // Then mark as present in inventory check
       await createItem.mutateAsync({
         inventory_check_id: checkId,
-        equipment_id: matchingItem.equipment_id,
+        equipment_id: matchingEquipment.id,
         status: "present",
+        notes: "Neu hinzugefügt während Inventur",
       });
+
+      playSuccessBeep();
+      toast.success(`✓ ${matchingEquipment.name} hinzugefügt und erfasst`);
       
-      toast.success(`✓ ${matchingItem.equipment?.name} erfasst`);
+      // Add to recent scans
+      setRecentScans(prev => [
+        {
+          equipmentId: matchingEquipment.id,
+          equipmentName: matchingEquipment.name,
+          timestamp: new Date(),
+          wasNew: true,
+        },
+        ...prev.slice(0, 4)
+      ]);
+      
       setBarcodeInput("");
       inputRef.current?.focus();
     } catch (error) {
-      toast.error("Fehler beim Erfassen");
+      playErrorBeep();
+      toast.error("Fehler beim Hinzufügen");
       setBarcodeInput("");
       inputRef.current?.focus();
     }
@@ -203,6 +347,43 @@ export function InventoryScanMode({ checkId, open, onOpenChange }: InventoryScan
                 </p>
               )}
             </div>
+
+            {/* Recent Scans */}
+            {recentScans.length > 0 && (
+              <div className="border rounded-lg p-3 bg-green-50 dark:bg-green-950/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="h-4 w-4 text-green-700 dark:text-green-400" />
+                  <h4 className="font-semibold text-sm text-green-700 dark:text-green-400">
+                    Zuletzt erfasst
+                  </h4>
+                </div>
+                <div className="space-y-1">
+                  {recentScans.map((scan, index) => (
+                    <div
+                      key={`${scan.equipmentId}-${scan.timestamp.getTime()}`}
+                      className={cn(
+                        "flex items-center justify-between p-2 rounded text-sm",
+                        index === 0 ? "bg-green-100 dark:bg-green-900/30" : "bg-green-50 dark:bg-green-950/10"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <CheckCircle2 className="h-3 w-3 text-green-600 dark:text-green-400 flex-shrink-0" />
+                        <span className="truncate font-medium">{scan.equipmentName}</span>
+                        {scan.wasNew && (
+                          <Badge variant="secondary" className="text-xs">
+                            <Plus className="h-2 w-2 mr-1" />
+                            Neu
+                          </Badge>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground ml-2">
+                        {format(scan.timestamp, "HH:mm:ss", { locale: de })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Scanner Input */}
             <div className="border rounded-lg p-4 bg-primary/5">
