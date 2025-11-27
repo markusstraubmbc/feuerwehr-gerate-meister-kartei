@@ -183,6 +183,21 @@ const Settings = () => {
             </p>
           </CardContent>
         </Card>
+
+        <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate("/settings/notification-history")}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Benachrichtigungshistorie
+            </CardTitle>
+            <CardDescription>Wartungsbenachrichtigungen Historie</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">
+              Übersicht wann welche Ausrüstung per E-Mail benachrichtigt wurde.
+            </p>
+          </CardContent>
+        </Card>
         
         <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate("/settings/system")}>
           <CardHeader>

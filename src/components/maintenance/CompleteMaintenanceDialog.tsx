@@ -190,19 +190,67 @@ export function CompleteMaintenanceDialog({
         
       if (signedUrlError) throw signedUrlError;
         
+      const currentDate = new Date().toISOString();
+      
+      // Find all other overdue maintenance records for the same equipment
+      const { data: overdueMaintenance, error: overdueError } = await supabase
+        .from('maintenance_records')
+        .select('id')
+        .eq('equipment_id', record.equipment_id)
+        .eq('status', 'ausstehend')
+        .lt('due_date', currentDate)
+        .neq('id', record.id);
+
+      if (overdueError) {
+        console.error("Error fetching overdue maintenance:", overdueError);
+      }
+
+      // Update current maintenance record
       const { error: updateError } = await supabase
         .from('maintenance_records')
         .update({
           status: 'abgeschlossen',
-          performed_date: new Date().toISOString(),
+          performed_date: currentDate,
           performed_by: performerId,
           notes: notes || null,
           minutes_spent: minutesSpent ? parseInt(minutesSpent) : null,
-          documentation_image_url: fileName // Store just the filename
+          documentation_image_url: fileName
         })
         .eq('id', record.id);
         
       if (updateError) throw updateError;
+
+      // Auto-complete and delete all other overdue maintenance for this equipment
+      if (overdueMaintenance && overdueMaintenance.length > 0) {
+        console.log(`Auto-completing ${overdueMaintenance.length} overdue maintenance records for equipment ${record.equipment_id}`);
+        
+        // First complete them
+        const { error: batchUpdateError } = await supabase
+          .from('maintenance_records')
+          .update({
+            status: 'abgeschlossen',
+            performed_date: currentDate,
+            performed_by: performerId,
+            notes: 'Automatisch abgeschlossen bei Wartungsdurchführung'
+          })
+          .in('id', overdueMaintenance.map(m => m.id));
+
+        if (batchUpdateError) {
+          console.error("Error batch updating overdue maintenance:", batchUpdateError);
+        } else {
+          // Then delete them
+          const { error: deleteError } = await supabase
+            .from('maintenance_records')
+            .delete()
+            .in('id', overdueMaintenance.map(m => m.id));
+
+          if (deleteError) {
+            console.error("Error deleting completed overdue maintenance:", deleteError);
+          } else {
+            toast.success(`${overdueMaintenance.length} überfällige Wartung(en) wurden automatisch abgeschlossen und entfernt`);
+          }
+        }
+      }
       
       if (record.template_id && minutesSpent) {
         const template = templates.find(t => t.id === record.template_id);

@@ -27,6 +27,7 @@ import EquipmentActionsSettings from "./pages/EquipmentActionsSettings";
 import ActionsCenter from "./pages/ActionsCenter";
 import AutomatedMaintenanceSettings from "./pages/AutomatedMaintenanceSettings";
 import EmailActionsOverview from "./pages/EmailActionsOverview";
+import NotificationHistory from "./pages/NotificationHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -68,6 +69,7 @@ function AppContent() {
               <Route path="settings/email" element={<EmailSettings />} />
               <Route path="settings/automated-maintenance" element={<AutomatedMaintenanceSettings />} />
               <Route path="settings/email-actions-overview" element={<EmailActionsOverview />} />
+              <Route path="settings/notification-history" element={<NotificationHistory />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
