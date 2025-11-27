@@ -14,11 +14,24 @@ serve(async (req) => {
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+  let startTime = new Date()
+
   try {
-    const { type, test_email } = await req.json();
+    // Safely parse request body with fallback to empty object
+    let requestBody: any = {};
+    try {
+      const text = await req.text();
+      if (text && text.trim()) {
+        requestBody = JSON.parse(text);
+      }
+    } catch (parseError) {
+      console.log("No valid JSON body provided, using defaults");
+    }
+    
+    const { type = "upcoming", test_email } = requestBody;
     
     const jobName = `email-scheduler-${type}`
-    const startTime = new Date()
+    startTime = new Date()
     
     // Log job start
     const { data: logEntry } = await supabase
