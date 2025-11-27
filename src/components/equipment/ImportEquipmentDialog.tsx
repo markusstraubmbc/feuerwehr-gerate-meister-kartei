@@ -70,57 +70,36 @@ export function ImportEquipmentDialog({
       
       // Erstelle Workbook
       const workbook = XLSX.utils.book_new();
-      
+
       // Hauptsheet mit Vorlage
       const worksheet = XLSX.utils.json_to_sheet(templateData);
       XLSX.utils.book_append_sheet(workbook, worksheet, "Vorlage");
-      
+
       // Referenz-Sheet mit verfügbaren IDs
       const referenceData = [
         { Type: "Kategorien", ID: "", Name: "" },
-        ...categories.map(c => ({ Type: "Kategorie", ID: c.id, Name: c.name })),
+        ...categories.map((c) => ({ Type: "Kategorie", ID: c.id, Name: c.name })),
         { Type: "", ID: "", Name: "" },
         { Type: "Standorte", ID: "", Name: "" },
-        ...locations.map(l => ({ Type: "Standort", ID: l.id, Name: l.name })),
+        ...locations.map((l) => ({ Type: "Standort", ID: l.id, Name: l.name })),
         { Type: "", ID: "", Name: "" },
         { Type: "Personen", ID: "", Name: "" },
-        ...persons.map(p => ({ Type: "Person", ID: p.id, Name: `${p.first_name} ${p.last_name}` })),
+        ...persons.map((p) => ({
+          Type: "Person",
+          ID: p.id,
+          Name: `${p.first_name} ${p.last_name}`,
+        })),
       ];
       const refSheet = XLSX.utils.json_to_sheet(referenceData);
       XLSX.utils.book_append_sheet(workbook, refSheet, "Referenz-IDs");
-      
-      // Konvertiere zu Binary String
-      const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'binary' });
-      
-      // Konvertiere Binary String zu Array Buffer
-      const buf = new ArrayBuffer(wbout.length);
-      const view = new Uint8Array(buf);
-      for (let i = 0; i < wbout.length; i++) {
-        view[i] = wbout.charCodeAt(i) & 0xFF;
-      }
-      
-      // Erstelle Blob
-      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      
-      // Erstelle Download-Link
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `equipment_import_template_${new Date().getTime()}.xlsx`;
-      
-      // Trigger Download
-      document.body.appendChild(link);
-      link.click();
-      
-      // Cleanup
-      setTimeout(() => {
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      }, 100);
-      
+
+      // Direkt als Datei speichern (bewährter Weg wie bei anderen Exporten)
+      XLSX.writeFile(workbook, "equipment_import_template.xlsx");
+
       toast({
         title: "Vorlage heruntergeladen",
-        description: "Die Excel-Vorlage mit Referenz-IDs wurde erfolgreich heruntergeladen.",
+        description:
+          "Die Excel-Vorlage mit Referenz-IDs wurde erfolgreich heruntergeladen.",
       });
     } catch (err: any) {
       console.error("Template download error:", err);
