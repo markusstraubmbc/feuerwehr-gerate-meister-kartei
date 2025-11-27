@@ -18,8 +18,18 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    const requestBody = await req.json();
-    const { type, testEmail, message, subject, senderDomain, fromEmail } = requestBody;
+    // Safely parse request body with fallback to empty object
+    let requestBody: any = {};
+    try {
+      const text = await req.text();
+      if (text && text.trim()) {
+        requestBody = JSON.parse(text);
+      }
+    } catch (parseError) {
+      console.log("No valid JSON body provided, using defaults");
+    }
+    
+    const { type = "upcoming", testEmail, message, subject, senderDomain, fromEmail } = requestBody;
     
     console.log(`Processing ${type} notifications, testEmail: ${testEmail}`);
 
