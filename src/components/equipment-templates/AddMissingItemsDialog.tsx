@@ -105,9 +105,10 @@ export function AddMissingItemsDialog({
             equipment_id: equipment.id,
             notes: notes || undefined,
           });
-          toast.success("Ausrüstung zur Vorlage hinzugefügt");
+          toast.success("Ausrüstung zur Vorlage hinzugefügt und als vorhanden markiert");
         } catch (error) {
           toast.error("Fehler beim Hinzufügen zur Vorlage");
+          return;
         }
       }
       
@@ -115,6 +116,21 @@ export function AddMissingItemsDialog({
       setScannerOpen(false);
     } else {
       toast.error("Ausrüstung nicht gefunden");
+    }
+  };
+
+  const handleManualAdd = () => {
+    // Allow user to search and add equipment manually
+    // This will show all equipment that is not already in the check
+    const uncheckedEquipment = allEquipment.filter(eq => 
+      !checkedEquipmentIds.includes(eq.id) &&
+      !templateItems.some(item => item.equipment_id === eq.id)
+    );
+    
+    // For now just show a simple implementation
+    // You could expand this with a search dialog
+    if (uncheckedEquipment.length === 0) {
+      toast.info("Alle Ausrüstungen wurden bereits erfasst");
     }
   };
 
@@ -200,20 +216,25 @@ export function AddMissingItemsDialog({
                 ))}
 
                 <div className="space-y-2 pt-4 border-t">
+                  <div className="text-sm font-medium mb-2">Weitere Ausrüstung hinzufügen</div>
                   <Button 
                     variant="outline" 
                     className="w-full"
                     onClick={() => setScannerOpen(true)}
                   >
                     <ScanLine className="h-4 w-4 mr-2" />
-                    Nicht erfasste Geräte scannen
+                    Ausrüstung scannen
                   </Button>
                   <Textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Notizen..."
+                    placeholder="Notizen für neu hinzugefügte Ausrüstung..."
                     rows={2}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Scannen Sie zusätzliche Ausrüstung, die gefunden wurde aber nicht in der Vorlage ist. 
+                    Diese wird automatisch zur Vorlage hinzugefügt.
+                  </p>
                 </div>
               </>
             )}

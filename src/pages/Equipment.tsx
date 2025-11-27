@@ -33,28 +33,32 @@ const Equipment = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isNewEquipmentOpen, setIsNewEquipmentOpen] = useState(false);
   const [selectedEquipmentForPdf, setSelectedEquipmentForPdf] = useState<string>("");
+  const [isPdfDialogOpen, setIsPdfDialogOpen] = useState(false);
 
-  const handlePdfExportForEquipment = async (equipmentId: string) => {
-    if (!equipment) return;
+  // Fetch comments and missions for selected equipment
+  const { data: selectedComments = [] } = useEquipmentComments(selectedEquipmentForPdf || "");
+  const { data: selectedMissions = [] } = useEquipmentMissions(selectedEquipmentForPdf || "");
+
+  const handlePdfExportForEquipment = () => {
+    if (!equipment || !selectedEquipmentForPdf) return;
     
-    const selectedEquipment = equipment.find(item => item.id === equipmentId);
+    const selectedEquipment = equipment.find(item => item.id === selectedEquipmentForPdf);
     if (!selectedEquipment) return;
-
-    // Fetch comments and missions for the selected equipment
-    const { data: comments = [] } = await useEquipmentComments(equipmentId);
-    const { data: missions = [] } = await useEquipmentMissions(equipmentId);
     
     // Filter maintenance records for this equipment
     const equipmentMaintenance = maintenanceRecords.filter(
-      record => record.equipment_id === equipmentId
+      record => record.equipment_id === selectedEquipmentForPdf
     );
 
     generateEquipmentDetailsPdf({
       equipment: selectedEquipment,
-      comments,
-      missions,
+      comments: selectedComments,
+      missions: selectedMissions,
       maintenanceRecords: equipmentMaintenance
     });
+    
+    setIsPdfDialogOpen(false);
+    setSelectedEquipmentForPdf("");
   };
 
   const filteredEquipment = equipment?.filter(item =>
@@ -84,7 +88,7 @@ const Equipment = () => {
           <h1 className="text-2xl font-bold tracking-tight">Ausrüstung</h1>
         </div>
         <div className="flex gap-2">
-          <Dialog>
+          <Dialog open={isPdfDialogOpen} onOpenChange={setIsPdfDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
                 <FileDown className="h-4 w-4 mr-2" />
@@ -112,7 +116,7 @@ const Equipment = () => {
                   </SelectContent>
                 </Select>
                 <Button 
-                  onClick={() => handlePdfExportForEquipment(selectedEquipmentForPdf)}
+                  onClick={handlePdfExportForEquipment}
                   disabled={!selectedEquipmentForPdf}
                   className="w-full"
                 >
