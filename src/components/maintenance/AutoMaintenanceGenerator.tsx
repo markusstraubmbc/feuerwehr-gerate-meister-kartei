@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, Clock, Play, AlertTriangle, CalendarRange, Copy, Check } from "lucide-react";
+import { Calendar, Clock, Play, AlertTriangle, CalendarRange, Copy, Check, TestTube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEquipment } from "@/hooks/useEquipment";
@@ -9,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { addMonths, format, addDays } from "date-fns";
 import { de } from "date-fns/locale";
+import { useCronJobLogs } from "@/hooks/useCronJobLogs";
 
 export function AutoMaintenanceGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -21,9 +22,11 @@ export function AutoMaintenanceGenerator() {
   } | null>(null);
   const [isResetting, setIsResetting] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const [testingFunction, setTestingFunction] = useState<string | null>(null);
 
   const { data: equipment = [] } = useEquipment();
   const { data: templates = [] } = useMaintenanceTemplates();
+  const { data: cronLogs = [] } = useCronJobLogs(undefined, 20);
   const queryClient = useQueryClient();
 
   const generateMaintenanceRecords = async (generateForYear = false) => {
@@ -228,6 +231,44 @@ export function AutoMaintenanceGenerator() {
     }
   };
 
+  const testCronFunction = async (functionName: string) => {
+    setTestingFunction(functionName);
+    try {
+      const { data, error } = await supabase.functions.invoke(functionName);
+      
+      if (error) {
+        console.error(`Edge function error for ${functionName}:`, error);
+        toast.error(`Fehler beim Testen von ${functionName}`);
+        return;
+      }
+
+      toast.success(`${functionName} erfolgreich getestet`);
+      queryClient.invalidateQueries({ queryKey: ["cron-job-logs"] });
+      
+      if (functionName === 'maintenance-auto-generator') {
+        queryClient.invalidateQueries({ queryKey: ["maintenance-records"] });
+      }
+    } catch (error) {
+      console.error(`Error testing function ${functionName}:`, error);
+      toast.error(`Fehler beim Testen der Funktion`);
+    } finally {
+      setTestingFunction(null);
+    }
+  };
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'success':
+        return 'bg-green-100 text-green-800';
+      case 'error':
+        return 'bg-red-100 text-red-800';
+      case 'running':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   // --- NEU: Reset-Funktion für alle offenen Wartungen ---
   const resetAndRegenerateMaintenance = async () => {
     setIsResetting(true);
@@ -412,6 +453,7 @@ export function AutoMaintenanceGenerator() {
             {cronJobUrls.map((job) => {
               const url = `${SUPABASE_URL}/functions/v1/${job.function}`;
               const isCopied = copiedUrl === job.function;
+              const isTesting = testingFunction === job.function;
               
               return (
                 <div key={job.function} className="p-3 bg-muted/50 rounded-lg space-y-2">
@@ -420,18 +462,33 @@ export function AutoMaintenanceGenerator() {
                       <p className="font-medium text-sm">{job.name}</p>
                       <p className="text-xs text-muted-foreground mt-1">{job.description}</p>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyToClipboard(url, job.function)}
-                      className="shrink-0"
-                    >
-                      {isCopied ? (
-                        <Check className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </Button>
+                    <div className="flex gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => testCronFunction(job.function)}
+                        disabled={isTesting || testingFunction !== null}
+                        className="shrink-0"
+                      >
+                        {isTesting ? (
+                          <Clock className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <TestTube className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(url, job.function)}
+                        className="shrink-0"
+                      >
+                        {isCopied ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                   <div className="bg-background p-2 rounded border text-xs font-mono break-all">
                     {url}
@@ -449,6 +506,53 @@ export function AutoMaintenanceGenerator() {
             <div className="mt-2 bg-white p-2 rounded border border-blue-200 text-xs font-mono break-all">
               Authorization: Bearer {SUPABASE_ANON_KEY}
             </div>
+          </div>
+        </div>
+
+        <div className="border-t pt-4 mt-4">
+          <h4 className="font-medium mb-3">Letzte Cron-Job Ausführungen</h4>
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {cronLogs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Keine Ausführungen gefunden</p>
+            ) : (
+              cronLogs.map((log) => (
+                <div 
+                  key={log.id} 
+                  className="p-3 bg-muted/30 rounded-lg"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{log.job_name}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {format(new Date(log.started_at), "PPpp", { locale: de })}
+                        {log.duration_seconds && (
+                          <span className="ml-2">
+                            • Dauer: {log.duration_seconds}s
+                          </span>
+                        )}
+                      </p>
+                      {log.error_message && (
+                        <p className="text-xs text-red-600 mt-1">{log.error_message}</p>
+                      )}
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded shrink-0 ${getStatusBadgeColor(log.status)}`}>
+                      {log.status === 'success' ? 'Erfolgreich' :
+                       log.status === 'error' ? 'Fehler' : 
+                       log.status === 'running' ? 'Läuft' : log.status}
+                    </span>
+                  </div>
+                  {log.details && (
+                    <div className="mt-2 text-xs bg-background p-2 rounded border">
+                      <pre className="whitespace-pre-wrap break-all">
+                        {typeof log.details === 'string' 
+                          ? log.details 
+                          : JSON.stringify(log.details, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
       </CardContent>

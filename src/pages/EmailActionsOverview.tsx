@@ -4,15 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { MissionReportEmailSettings } from "@/components/settings/MissionReportEmailSettings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCronJobLogs } from "@/hooks/useCronJobLogs";
-import { useEquipmentCommentRecords } from "@/hooks/useEquipmentCommentRecords";
-import { Mail, Activity } from "lucide-react";
+import { Mail } from "lucide-react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 
 const EmailActionsOverview = () => {
   const navigate = useNavigate();
   const { data: cronLogs = [] } = useCronJobLogs(undefined, 100);
-  const { data: commentRecords = [] } = useEquipmentCommentRecords();
 
   // Filter email-related cron jobs
   const emailLogs = cronLogs.filter(log => 
@@ -72,60 +70,6 @@ const EmailActionsOverview = () => {
                         {log.status === 'success' ? 'Erfolgreich' :
                          log.status === 'error' ? 'Fehler' : 'Läuft'}
                       </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Letzte Ausrüstungs-Aktionen
-          </CardTitle>
-          <CardDescription>
-            Übersicht über durchgeführte Aktionen an Ausrüstungen
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {commentRecords.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Keine Aktionen gefunden</p>
-            ) : (
-              <div className="space-y-2">
-                {commentRecords.slice(0, 20).map((record) => (
-                  <div 
-                    key={record.id} 
-                    className="flex items-start justify-between p-3 bg-muted/30 rounded-lg"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">
-                        {record.equipment?.name || 'Unbekannte Ausrüstung'}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {record.comment}
-                      </p>
-                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                        <span>
-                          {record.person ? 
-                            `${record.person.first_name} ${record.person.last_name}` : 
-                            'Unbekannte Person'}
-                        </span>
-                        <span>•</span>
-                        <span>
-                          {format(new Date(record.created_at), "PPp", { locale: de })}
-                        </span>
-                        {record.action && (
-                          <>
-                            <span>•</span>
-                            <span className="font-medium">{record.action.name}</span>
-                          </>
-                        )}
-                      </div>
                     </div>
                   </div>
                 ))}
