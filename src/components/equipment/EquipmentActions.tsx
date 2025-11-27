@@ -62,6 +62,7 @@ export function EquipmentActions({
         variant="ghost"
         size="icon"
         onClick={() => onComments(equipment)}
+        title="Aktionen anzeigen"
       >
         <MessageCircle className="h-4 w-4" />
       </Button>
