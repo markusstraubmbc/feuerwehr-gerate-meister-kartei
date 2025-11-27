@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -14,7 +15,6 @@ import {
 import { useTemplateEquipmentItems, useRemoveEquipmentFromTemplate } from "@/hooks/useEquipmentTemplates";
 import { CheckCircle2, XCircle, ScanLine, X } from "lucide-react";
 import { toast } from "sonner";
-import { QRScanner } from "@/components/equipment/QRScanner";
 import { cn } from "@/lib/utils";
 
 interface InventoryScanModeProps {
@@ -32,8 +32,18 @@ export function InventoryScanMode({ checkId, open, onOpenChange }: InventoryScan
   const updateCheck = useUpdateInventoryCheck();
   const removeEquipmentFromTemplate = useRemoveEquipmentFromTemplate();
 
-  const [scannerOpen, setScannerOpen] = useState(true);
+  const [barcodeInput, setBarcodeInput] = useState("");
   const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus input when dialog opens
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [open]);
 
   // Get IDs of items already marked as present
   const scannedEquipmentIds = new Set(
@@ -48,19 +58,25 @@ export function InventoryScanMode({ checkId, open, onOpenChange }: InventoryScan
   const unscannedCount = totalCount - scannedCount;
 
   const handleScan = async (barcode: string) => {
+    if (!barcode.trim()) return;
+
     // Find equipment with this barcode in the template
     const matchingItem = templateItems.find(
-      item => item.equipment?.barcode === barcode
+      item => item.equipment?.barcode === barcode.trim()
     );
 
     if (!matchingItem) {
       toast.error("Gerät nicht in dieser Vorlage gefunden");
+      setBarcodeInput("");
+      inputRef.current?.focus();
       return;
     }
 
     // Check if already scanned
     if (scannedEquipmentIds.has(matchingItem.equipment_id)) {
       toast.info(`${matchingItem.equipment?.name} bereits erfasst`);
+      setBarcodeInput("");
+      inputRef.current?.focus();
       return;
     }
 
@@ -73,8 +89,19 @@ export function InventoryScanMode({ checkId, open, onOpenChange }: InventoryScan
       });
       
       toast.success(`✓ ${matchingItem.equipment?.name} erfasst`);
+      setBarcodeInput("");
+      inputRef.current?.focus();
     } catch (error) {
       toast.error("Fehler beim Erfassen");
+      setBarcodeInput("");
+      inputRef.current?.focus();
+    }
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleScan(barcodeInput);
     }
   };
 
@@ -177,24 +204,27 @@ export function InventoryScanMode({ checkId, open, onOpenChange }: InventoryScan
               )}
             </div>
 
-            {/* Scanner */}
-            <div className="border rounded-lg p-4 bg-muted/50">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <ScanLine className="h-4 w-4" />
-                  Scanner
-                </h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setScannerOpen(true)}
-                >
-                  Scanner öffnen
-                </Button>
+            {/* Scanner Input */}
+            <div className="border rounded-lg p-4 bg-primary/5">
+              <div className="flex items-center gap-2 mb-3">
+                <ScanLine className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold">Barcode scannen</h3>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Scannen Sie die Barcodes der vorhandenen Geräte
-              </p>
+              <div className="space-y-2">
+                <Input
+                  ref={inputRef}
+                  type="text"
+                  value={barcodeInput}
+                  onChange={(e) => setBarcodeInput(e.target.value)}
+                  onKeyDown={handleInputKeyDown}
+                  placeholder="Barcode hier scannen oder eingeben..."
+                  className="text-lg font-mono"
+                  autoFocus
+                />
+                <p className="text-xs text-muted-foreground">
+                  Scanner fügt Barcode automatisch ein. Drücken Sie Enter oder scannen Sie erneut.
+                </p>
+              </div>
             </div>
 
             {/* Equipment Lists */}
@@ -301,12 +331,6 @@ export function InventoryScanMode({ checkId, open, onOpenChange }: InventoryScan
             </div>
           </div>
 
-          {/* Scanner Dialog */}
-          <QRScanner
-            open={scannerOpen}
-            onOpenChange={setScannerOpen}
-            onScan={handleScan}
-          />
         </DialogContent>
       </Dialog>
 
