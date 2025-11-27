@@ -86,7 +86,9 @@ const CategoryManagement = () => {
     setEditingCategory(category);
     setName(category.name);
     setDescription(category.description || "");
-    setResponsiblePersonId(category.responsible_person_id || "");
+    // Handle both direct responsible_person_id and nested responsible_person object
+    const responsibleId = category.responsible_person_id || category.responsible_person?.id || "";
+    setResponsiblePersonId(responsibleId);
     setShowDialog(true);
   };
 

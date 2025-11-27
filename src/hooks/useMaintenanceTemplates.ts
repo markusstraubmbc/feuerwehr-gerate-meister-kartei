@@ -48,13 +48,19 @@ export const useMaintenanceTemplates = () => {
             average_minutes_spent = Math.round(total / records.length);
           }
 
-          // Parse the checks JSON field if it exists
+          // Parse the checks field - handle both JSON arrays and plain text
           let checks: string[] = [];
           if (template.checks) {
             try {
+              // Try to parse as JSON first
               checks = JSON.parse(template.checks);
             } catch (e) {
-              console.error("Error parsing checks:", e);
+              // If it's not valid JSON, treat it as plain text
+              // Split by common delimiters like newlines or commas
+              checks = template.checks
+                .split(/[\n,]+/)
+                .map(s => s.trim())
+                .filter(s => s.length > 0);
             }
           }
 
