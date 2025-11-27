@@ -260,7 +260,7 @@ function InventoryCheckCard({
     <div className="border p-4 rounded-lg hover:bg-muted/50 transition-colors">
       <div className="flex justify-between items-start">
         <div className="flex-1">
-          <h3 className="font-semibold">{check.template.name}</h3>
+          <h3 className="font-semibold">{check.template?.name || "Unbekannte Vorlage"}</h3>
           <p className="text-sm text-muted-foreground">
             {check.checked_by_person?.first_name} {check.checked_by_person?.last_name}
           </p>
