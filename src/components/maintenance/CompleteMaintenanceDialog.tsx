@@ -161,11 +161,6 @@ export function CompleteMaintenanceDialog({
 
   const handleSubmit = async () => {
     try {
-      if (!image) {
-        setError("Bitte laden Sie ein Dokumentationsbild hoch.");
-        return;
-      }
-      
       if (!performerId) {
         setError("Bitte wählen Sie eine verantwortliche Person aus.");
         return;
@@ -173,22 +168,27 @@ export function CompleteMaintenanceDialog({
       
       setIsLoading(true);
       
-      const timestamp = Date.now();
-      const fileExt = image.name.split('.').pop();
-      const fileName = `maintenance-${record.id}-${timestamp}.${fileExt}`;
+      let fileName = null;
       
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('maintenance_docs')
-        .upload(fileName, image);
+      // Upload image only if provided
+      if (image) {
+        const timestamp = Date.now();
+        const fileExt = image.name.split('.').pop();
+        fileName = `maintenance-${record.id}-${timestamp}.${fileExt}`;
         
-      if (uploadError) throw uploadError;
-      
-      // Create a signed URL with 1 hour expiry
-      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-        .from('maintenance_docs')
-        .createSignedUrl(fileName, 60 * 60); // 1 hour in seconds
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('maintenance_docs')
+          .upload(fileName, image);
+          
+        if (uploadError) throw uploadError;
         
-      if (signedUrlError) throw signedUrlError;
+        // Create a signed URL with 1 hour expiry
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+          .from('maintenance_docs')
+          .createSignedUrl(fileName, 60 * 60); // 1 hour in seconds
+          
+        if (signedUrlError) throw signedUrlError;
+      }
         
       const currentDate = new Date().toISOString();
       
@@ -369,7 +369,7 @@ export function CompleteMaintenanceDialog({
           </div>
           
           <div className="space-y-2">
-            <Label className="block">Dokumentationsbild</Label>
+            <Label className="block">Dokumentationsbild (optional)</Label>
             <div className="flex items-center gap-2">
               <Button 
                 type="button" 
