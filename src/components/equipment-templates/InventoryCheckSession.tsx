@@ -24,6 +24,7 @@ import { QRScanner } from "@/components/equipment/QRScanner";
 import { ReplacementEquipmentDialog } from "./ReplacementEquipmentDialog";
 import { AddMissingItemsDialog } from "./AddMissingItemsDialog";
 import { InventoryScanMode } from "./InventoryScanMode";
+import { InventoryCompletionReport } from "./InventoryCompletionReport";
 
 interface InventoryCheckSessionProps {
   checkId: string;
@@ -49,6 +50,7 @@ export function InventoryCheckSession({ checkId, open, onOpenChange }: Inventory
   const [replacementDialogOpen, setReplacementDialogOpen] = useState(false);
   const [missingItemsDialogOpen, setMissingItemsDialogOpen] = useState(false);
   const [mode, setMode] = useState<"normal" | "scan">("normal");
+  const [completionReportOpen, setCompletionReportOpen] = useState(false);
 
   const currentItem = templateItems[currentIndex];
   const { data: comments = [] } = useEquipmentComments(currentItem?.equipment_id || "");
@@ -128,7 +130,7 @@ export function InventoryCheckSession({ checkId, open, onOpenChange }: Inventory
         completed_at: new Date().toISOString(),
       });
       toast.success("Inventur abgeschlossen!");
-      onOpenChange(false);
+      setCompletionReportOpen(true);
     } catch (error) {
       toast.error("Fehler beim Abschließen");
     }
@@ -192,11 +194,26 @@ export function InventoryCheckSession({ checkId, open, onOpenChange }: Inventory
   // If scan mode is active, render the scan mode component
   if (mode === "scan") {
     return (
-      <InventoryScanMode
-        checkId={checkId}
-        open={open}
-        onOpenChange={onOpenChange}
-      />
+      <>
+        <InventoryScanMode
+          checkId={checkId}
+          open={open}
+          onOpenChange={onOpenChange}
+          onComplete={() => setCompletionReportOpen(true)}
+        />
+        <InventoryCompletionReport
+          open={completionReportOpen}
+          onOpenChange={(open) => {
+            setCompletionReportOpen(open);
+            if (!open) {
+              onOpenChange(false);
+            }
+          }}
+          check={check}
+          checkedItems={checkedItems}
+          templateItems={templateItems}
+        />
+      </>
     );
   }
 
@@ -447,6 +464,19 @@ export function InventoryCheckSession({ checkId, open, onOpenChange }: Inventory
           onComplete={handleCompleteInventory}
         />
       </DialogContent>
+
+      <InventoryCompletionReport
+        open={completionReportOpen}
+        onOpenChange={(open) => {
+          setCompletionReportOpen(open);
+          if (!open) {
+            onOpenChange(false);
+          }
+        }}
+        check={check}
+        checkedItems={checkedItems}
+        templateItems={templateItems}
+      />
     </Dialog>
   );
 }

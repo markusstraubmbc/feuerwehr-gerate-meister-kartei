@@ -24,6 +24,7 @@ interface InventoryScanModeProps {
   checkId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onComplete?: () => void;
 }
 
 interface RecentScan {
@@ -33,7 +34,7 @@ interface RecentScan {
   wasNew: boolean;
 }
 
-export function InventoryScanMode({ checkId, open, onOpenChange }: InventoryScanModeProps) {
+export function InventoryScanMode({ checkId, open, onOpenChange, onComplete }: InventoryScanModeProps) {
   const { data: checks = [] } = useTemplateInventoryChecks();
   const check = checks.find(c => c.id === checkId);
   const { data: templateItems = [] } = useTemplateEquipmentItems(check?.template_id || "");
@@ -313,6 +314,11 @@ export function InventoryScanMode({ checkId, open, onOpenChange }: InventoryScan
 
       toast.success("Inventur abgeschlossen!");
       onOpenChange(false);
+      
+      // Call onComplete callback if provided
+      if (onComplete) {
+        onComplete();
+      }
     } catch (error) {
       toast.error("Fehler beim Abschließen");
     }
