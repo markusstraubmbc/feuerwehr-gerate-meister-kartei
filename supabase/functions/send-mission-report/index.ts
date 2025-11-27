@@ -42,11 +42,11 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get mission report email from settings
+    // Get mission report recipients from settings
     const { data: settingsData, error: settingsError } = await supabase
       .from("settings")
       .select("value")
-      .eq("key", "mission_report_email")
+      .eq("key", "mission_report_recipients")
       .maybeSingle();
 
     if (settingsError) {
@@ -54,12 +54,12 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Fehler beim Laden der E-Mail-Einstellungen");
     }
 
-    if (!settingsData?.value) {
-      console.log("No mission report email configured, skipping email send");
+    if (!settingsData?.value || (settingsData.value as string[]).length === 0) {
+      console.log("No mission report recipients configured, skipping email send");
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: "Keine E-Mail-Adresse für Einsatzberichte konfiguriert" 
+          message: "Keine E-Mail-Adressen für Einsatzberichte konfiguriert" 
         }),
         {
           status: 200,
@@ -68,8 +68,8 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const reportEmail = settingsData.value as string;
-    console.log(`Sending report to: ${reportEmail}`);
+    const reportRecipients = settingsData.value as string[];
+    console.log(`Sending report to: ${reportRecipients.join(", ")}`);
 
     // Get sender configuration
     const { data: senderEmailData } = await supabase
@@ -87,10 +87,13 @@ const handler = async (req: Request): Promise<Response> => {
     const senderEmail = senderEmailData?.value as string || "onboarding@resend.dev";
     const senderName = senderNameData?.value as string || "Einsatzberichte";
 
-    // Prepare email recipients
-    const ccEmails = responsiblePersonsEmails.filter(
-      (email) => email && email !== reportEmail
-    );
+    // Prepare email recipients - CC includes all responsible persons
+    const allCcEmails = [...responsiblePersonsEmails];
+    
+    // Remove duplicates and filter out empty emails
+    const ccEmails = [...new Set(allCcEmails)]
+      .filter(email => email && email.trim().length > 0)
+      .filter(email => !reportRecipients.includes(email));
 
     // Convert base64 to buffer for attachment
     const pdfBuffer = Uint8Array.from(atob(pdfBase64), (c) => c.charCodeAt(0));
@@ -101,7 +104,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send email with PDF attachment
     const emailResponse = await resend.emails.send({
       from: `${senderName} <${senderEmail}>`,
-      to: [reportEmail],
+      to: reportRecipients,
       cc: ccEmails.length > 0 ? ccEmails : undefined,
       subject: `${reportType}bericht: ${missionTitle} - ${missionDate}`,
       html: `
@@ -131,7 +134,7 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         success: true, 
         emailId: emailResponse.data?.id,
-        sentTo: reportEmail,
+        sentTo: reportRecipients,
         ccSentTo: ccEmails 
       }),
       {

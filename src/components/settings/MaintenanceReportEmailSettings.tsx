@@ -5,9 +5,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail } from "lucide-react";
+import { Wrench } from "lucide-react";
 
-export const MissionReportEmailSettings = () => {
+export const MaintenanceReportEmailSettings = () => {
   const [recipients, setRecipients] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -20,11 +20,11 @@ export const MissionReportEmailSettings = () => {
     const { data, error } = await supabase
       .from("settings")
       .select("value")
-      .eq("key", "mission_report_recipients")
+      .eq("key", "maintenance_report_recipients")
       .maybeSingle();
 
     if (error) {
-      console.error("Error fetching mission report recipients:", error);
+      console.error("Error fetching maintenance report recipients:", error);
       return;
     }
 
@@ -63,7 +63,7 @@ export const MissionReportEmailSettings = () => {
     const { error } = await supabase
       .from("settings")
       .upsert({
-        key: "mission_report_recipients",
+        key: "maintenance_report_recipients",
         value: emailList,
       });
 
@@ -80,7 +80,7 @@ export const MissionReportEmailSettings = () => {
 
     toast({
       title: "Einstellungen gespeichert",
-      description: "Die Einsatzberichtempfänger wurden erfolgreich aktualisiert.",
+      description: "Die Wartungsberichtempfänger wurden erfolgreich aktualisiert.",
     });
   };
 
@@ -88,28 +88,28 @@ export const MissionReportEmailSettings = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Mail className="h-5 w-5" />
-          Einsatzberichtempfänger
+          <Wrench className="h-5 w-5" />
+          Wartungsberichtempfänger
         </CardTitle>
         <CardDescription>
-          E-Mail-Adressen für automatische Einsatzberichte. Der Ersteller des Einsatzes erhält automatisch eine Kopie.
+          E-Mail-Adressen für monatliche Wartungsberichte. Zusätzlich werden die verantwortlichen Personen der Wartungsvorlagen benachrichtigt.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="mission-recipients">
+          <Label htmlFor="maintenance-recipients">
             E-Mail-Adressen (eine pro Zeile)
           </Label>
           <Textarea
-            id="mission-recipients"
+            id="maintenance-recipients"
             value={recipients}
             onChange={(e) => setRecipients(e.target.value)}
-            placeholder="kommandant@feuerwehr.de&#10;stellvertreter@feuerwehr.de"
+            placeholder="wartung@feuerwehr.de&#10;kommandant@feuerwehr.de"
             rows={4}
             className="font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">
-            Tragen Sie hier die E-Mail-Adressen ein, die automatisch Einsatzberichte erhalten sollen.
+            Diese Adressen erhalten monatlich einen Wartungsbericht mit allen fälligen und überfälligen Wartungen.
           </p>
         </div>
         <Button onClick={handleSave} disabled={loading}>
