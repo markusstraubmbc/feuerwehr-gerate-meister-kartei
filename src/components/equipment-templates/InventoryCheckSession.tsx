@@ -11,7 +11,7 @@ import {
   useUpdateInventoryCheck,
   useTemplateInventoryChecks 
 } from "@/hooks/useTemplateInventory";
-import { useTemplateEquipmentItems } from "@/hooks/useEquipmentTemplates";
+import { useTemplateEquipmentItems, useRemoveEquipmentFromTemplate } from "@/hooks/useEquipmentTemplates";
 import { useEquipment } from "@/hooks/useEquipment";
 import { CheckCircle2, XCircle, RefreshCw, ChevronRight, ChevronLeft, ScanLine, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -33,6 +33,7 @@ export function InventoryCheckSession({ checkId, open, onOpenChange }: Inventory
   const { data: allEquipment = [] } = useEquipment();
   const createItem = useCreateInventoryCheckItem();
   const updateCheck = useUpdateInventoryCheck();
+  const removeEquipmentFromTemplate = useRemoveEquipmentFromTemplate();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [status, setStatus] = useState<"present" | "missing" | "replaced">("present");
@@ -73,7 +74,31 @@ export function InventoryCheckSession({ checkId, open, onOpenChange }: Inventory
         notes: notes || undefined,
       });
 
-      toast.success("Position geprüft");
+      // If item is marked as missing, remove it from the template
+      if (status === "missing" && check?.template_id) {
+        const itemToRemove = templateItems.find(item => item.equipment_id === currentItem.equipment_id);
+        if (itemToRemove) {
+          await removeEquipmentFromTemplate.mutateAsync({ 
+            itemId: itemToRemove.id, 
+            templateId: check.template_id 
+          });
+          toast.success("Position geprüft und aus Vorlage entfernt");
+        } else {
+          toast.success("Position geprüft");
+        }
+      } else if (status === "replaced" && check?.template_id && replacementId) {
+        // Remove old equipment from template
+        const itemToRemove = templateItems.find(item => item.equipment_id === currentItem.equipment_id);
+        if (itemToRemove) {
+          await removeEquipmentFromTemplate.mutateAsync({ 
+            itemId: itemToRemove.id, 
+            templateId: check.template_id 
+          });
+        }
+        toast.success("Position geprüft");
+      } else {
+        toast.success("Position geprüft");
+      }
 
       // Move to next item or complete
       if (isLastItem) {
@@ -349,6 +374,7 @@ export function InventoryCheckSession({ checkId, open, onOpenChange }: Inventory
           open={missingItemsDialogOpen}
           onOpenChange={setMissingItemsDialogOpen}
           checkId={checkId}
+          templateId={check?.template_id || ""}
           templateItems={templateItems}
           checkedItems={checkedItems}
           onComplete={handleCompleteInventory}

@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, CheckCircle2, ScanLine } from "lucide-react";
 import { useCreateInventoryCheckItem, useUpdateInventoryCheck } from "@/hooks/useTemplateInventory";
 import { useEquipment } from "@/hooks/useEquipment";
+import { useAddEquipmentToTemplate } from "@/hooks/useEquipmentTemplates";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { QRScanner } from "@/components/equipment/QRScanner";
@@ -20,6 +21,7 @@ interface AddMissingItemsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   checkId: string;
+  templateId: string;
   templateItems: TemplateEquipmentItem[];
   checkedItems: any[];
   onComplete: () => void;
@@ -29,6 +31,7 @@ export function AddMissingItemsDialog({
   open,
   onOpenChange,
   checkId,
+  templateId,
   templateItems,
   checkedItems,
   onComplete,
@@ -38,6 +41,7 @@ export function AddMissingItemsDialog({
   const { data: allEquipment = [] } = useEquipment();
   const [notes, setNotes] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
+  const { mutateAsync: addEquipmentToTemplate } = useAddEquipmentToTemplate();
 
   // Get items that haven't been checked yet
   const checkedEquipmentIds = checkedItems.map(item => item.equipment_id);
@@ -87,10 +91,27 @@ export function AddMissingItemsDialog({
     }
   };
 
-  const handleScanNewItem = (barcode: string) => {
+  const handleScanNewItem = async (barcode: string) => {
     const equipment = allEquipment.find(eq => eq.barcode === barcode);
     if (equipment) {
-      handleAddMissing(equipment.id, "present");
+      // Check if equipment is already in template
+      const isInTemplate = templateItems.some(item => item.equipment_id === equipment.id);
+      
+      if (!isInTemplate && templateId) {
+        // Add to template
+        try {
+          await addEquipmentToTemplate({
+            template_id: templateId,
+            equipment_id: equipment.id,
+            notes: notes || undefined,
+          });
+          toast.success("Ausrüstung zur Vorlage hinzugefügt");
+        } catch (error) {
+          toast.error("Fehler beim Hinzufügen zur Vorlage");
+        }
+      }
+      
+      await handleAddMissing(equipment.id, "present");
       setScannerOpen(false);
     } else {
       toast.error("Ausrüstung nicht gefunden");

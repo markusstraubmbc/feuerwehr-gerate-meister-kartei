@@ -10,11 +10,17 @@ export interface Comment {
   person_id: string;
   comment: string;
   created_at: string;
+  action_id?: string | null;
   person?: {
     id: string;
     first_name: string;
     last_name: string;
   };
+  action?: {
+    id: string;
+    name: string;
+    description?: string | null;
+  } | null;
 }
 
 export const useCommentOperations = (equipmentId: string) => {
@@ -51,7 +57,7 @@ export const useCommentOperations = (equipmentId: string) => {
     }
   };
 
-  const addComment = async (commentText: string, personId: string) => {
+  const addComment = async (commentText: string, personId: string, actionId?: string) => {
     if (!commentText.trim() || !personId || !equipmentId) {
       toast.error("Bitte geben Sie einen Kommentar ein und wählen Sie eine Person aus");
       return false;
@@ -62,7 +68,8 @@ export const useCommentOperations = (equipmentId: string) => {
       const { error } = await supabase.rpc('add_equipment_comment', {
         equipment_id_param: equipmentId,
         person_id_param: personId,
-        comment_param: commentText.trim()
+        comment_param: commentText.trim(),
+        action_id_param: actionId || null
       });
 
       if (error) {

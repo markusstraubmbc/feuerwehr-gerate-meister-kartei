@@ -50,15 +50,15 @@ export function InventoryExportButtons({
 
     // Info
     doc.setFontSize(12);
-    const pdfTemplateName = check.template?.name || "Unbekannte Vorlage";
+    const pdfTemplateName = check?.template?.name || "Unbekannte Vorlage";
     doc.text(`Vorlage: ${pdfTemplateName}`, 20, 35);
-    doc.text(
-      `Geprüft von: ${check.checked_by_person?.first_name || "Unbekannt"} ${check.checked_by_person?.last_name || ""}`,
-      20,
-      42
-    );
-    doc.text(`Datum: ${format(new Date(check.started_at || new Date()), "dd.MM.yyyy", { locale: de })}`, 20, 49);
-    doc.text(`Status: ${check.status === "completed" ? "Abgeschlossen" : "In Bearbeitung"}`, 20, 56);
+    const firstName = check?.checked_by_person?.first_name || "Unbekannt";
+    const lastName = check?.checked_by_person?.last_name || "";
+    doc.text(`Geprüft von: ${firstName} ${lastName}`, 20, 42);
+    const startDate = check?.started_at ? new Date(check.started_at) : new Date();
+    doc.text(`Datum: ${format(startDate, "dd.MM.yyyy", { locale: de })}`, 20, 49);
+    const statusText = check?.status === "completed" ? "Abgeschlossen" : "In Bearbeitung";
+    doc.text(`Status: ${statusText}`, 20, 56);
 
     // Statistics
     doc.setFontSize(14);

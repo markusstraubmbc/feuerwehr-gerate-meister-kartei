@@ -167,8 +167,33 @@ export type Database = {
           },
         ]
       }
+      equipment_actions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       equipment_comments: {
         Row: {
+          action_id: string | null
           comment: string
           created_at: string
           equipment_id: string
@@ -177,6 +202,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          action_id?: string | null
           comment: string
           created_at?: string
           equipment_id: string
@@ -185,6 +211,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          action_id?: string | null
           comment?: string
           created_at?: string
           equipment_id?: string
@@ -193,6 +220,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "equipment_comments_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_actions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "equipment_comments_equipment_id_fkey"
             columns: ["equipment_id"]
@@ -670,14 +704,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      add_equipment_comment: {
-        Args: {
-          comment_param: string
-          equipment_id_param: string
-          person_id_param: string
-        }
-        Returns: undefined
-      }
+      add_equipment_comment:
+        | {
+            Args: {
+              action_id_param?: string
+              comment_param: string
+              equipment_id_param: string
+              person_id_param: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              comment_param: string
+              equipment_id_param: string
+              person_id_param: string
+            }
+            Returns: undefined
+          }
       get_equipment_comments: {
         Args: { equipment_id_param: string }
         Returns: Json[]

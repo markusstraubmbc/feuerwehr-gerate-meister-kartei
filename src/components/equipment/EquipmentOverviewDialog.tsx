@@ -15,6 +15,7 @@ import { Equipment } from "@/hooks/useEquipment";
 import { useEquipmentComments } from "@/hooks/useEquipmentComments";
 import { useEquipmentMissions } from "@/hooks/useEquipmentMissions";
 import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
+import { useEquipmentTemplateItems } from "@/hooks/useEquipmentTemplateItems";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { Calendar, MessageSquare, Wrench, MapPin, Target, FileDown } from "lucide-react";
@@ -37,6 +38,7 @@ export function EquipmentOverviewDialog({
   const { data: comments = [] } = useEquipmentComments(equipment.id);
   const { data: maintenanceRecords = [] } = useMaintenanceRecords();
   const { data: equipmentMissions = [] } = useEquipmentMissions(equipment.id);
+  const { data: templateItems = [] } = useEquipmentTemplateItems(equipment.id);
   
   // Filter maintenance records for this equipment
   const equipmentMaintenance = maintenanceRecords.filter(
@@ -121,7 +123,7 @@ export function EquipmentOverviewDialog({
           </Card>
 
           <Tabs defaultValue="comments" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="comments">
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Kommentare ({comments.length})
@@ -134,9 +136,29 @@ export function EquipmentOverviewDialog({
                 <Target className="h-4 w-4 mr-2" />
                 Einsätze/Übungen ({equipmentMissions.length})
               </TabsTrigger>
+              <TabsTrigger value="templates">
+                <MapPin className="h-4 w-4 mr-2" />
+                Vorlagen ({templateItems.length})
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="comments" className="space-y-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Kommentare</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const commentsDialog = document.querySelector('[data-comments-dialog]');
+                    if (commentsDialog) {
+                      (commentsDialog as HTMLElement).click();
+                    }
+                  }}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Kommentar hinzufügen
+                </Button>
+              </div>
               {comments.length === 0 ? (
                 <Card>
                   <CardContent className="pt-6">
@@ -150,9 +172,16 @@ export function EquipmentOverviewDialog({
                   <Card key={comment.id}>
                     <CardContent className="pt-4">
                       <div className="flex justify-between items-start mb-2">
-                        <span className="font-medium">
-                          {comment.person.first_name} {comment.person.last_name}
-                        </span>
+                        <div className="flex-1">
+                          <span className="font-medium">
+                            {comment.person.first_name} {comment.person.last_name}
+                          </span>
+                          {comment.action && (
+                            <Badge variant="outline" className="ml-2">
+                              {comment.action.name}
+                            </Badge>
+                          )}
+                        </div>
                         <span className="text-sm text-muted-foreground">
                           {format(new Date(comment.created_at), "dd.MM.yyyy HH:mm", { locale: de })}
                         </span>
@@ -251,6 +280,34 @@ export function EquipmentOverviewDialog({
 
             <TabsContent value="missions" className="space-y-4">
               <EquipmentMissionsTab equipmentId={equipment.id} />
+            </TabsContent>
+
+            <TabsContent value="templates" className="space-y-4">
+              {templateItems.length === 0 ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-muted-foreground text-center">
+                      Diese Ausrüstung ist in keinen Vorlagen enthalten
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                templateItems.map((item) => (
+                  <Card key={item.id}>
+                    <CardHeader>
+                      <CardTitle className="text-base">{item.template.name}</CardTitle>
+                      {item.template.description && (
+                        <p className="text-sm text-muted-foreground">{item.template.description}</p>
+                      )}
+                    </CardHeader>
+                    {item.notes && (
+                      <CardContent>
+                        <p className="text-sm"><strong>Notizen:</strong> {item.notes}</p>
+                      </CardContent>
+                    )}
+                  </Card>
+                ))
+              )}
             </TabsContent>
           </Tabs>
         </div>
