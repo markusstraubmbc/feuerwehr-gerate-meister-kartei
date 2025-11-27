@@ -149,7 +149,6 @@ export function EquipmentList({
                 <TableHead className="hidden md:table-cell">Standort</TableHead>
                 <TableHead className="hidden md:table-cell">Kategorie</TableHead>
                 <TableHead className="hidden md:table-cell">Status</TableHead>
-                <TableHead className="hidden lg:table-cell">Anzahl Kommentare</TableHead>
                 <TableHead className="hidden md:table-cell">Ersetzt am</TableHead>
                 <TableHead className="hidden md:table-cell">Letzte Wartung</TableHead>
                 <TableHead className="hidden md:table-cell">Nächste Wartung</TableHead>
@@ -159,7 +158,7 @@ export function EquipmentList({
             <TableBody>
               {filteredEquipment.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="h-24 text-center">
+                  <TableCell colSpan={9} className="h-24 text-center">
                     Keine Ausrüstung gefunden
                   </TableCell>
                 </TableRow>

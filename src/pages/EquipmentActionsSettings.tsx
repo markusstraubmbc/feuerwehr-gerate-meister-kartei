@@ -94,9 +94,9 @@ export default function EquipmentActionsSettings() {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Ausrüstungs-Aktionen</h1>
+          <h1 className="text-3xl font-bold">Aktionen</h1>
           <p className="text-muted-foreground">
-            Verwalten Sie Aktionen für Kommentare bei Ausrüstungen
+            Verwalten Sie Aktionen für Ausrüstungen
           </p>
         </div>
         <Button onClick={() => handleOpenDialog()}>
@@ -162,8 +162,8 @@ export default function EquipmentActionsSettings() {
               </DialogTitle>
               <DialogDescription>
                 {editingAction 
-                  ? "Bearbeiten Sie die Aktion für Kommentare" 
-                  : "Erstellen Sie eine neue Aktion für Kommentare"
+                  ? "Bearbeiten Sie die Aktion für Ausrüstungen" 
+                  : "Erstellen Sie eine neue Aktion für Ausrüstungen"
                 }
               </DialogDescription>
             </DialogHeader>
@@ -203,7 +203,7 @@ export default function EquipmentActionsSettings() {
             <AlertDialogHeader>
               <AlertDialogTitle>Aktion löschen?</AlertDialogTitle>
               <AlertDialogDescription>
-                Diese Aktion wird dauerhaft gelöscht. Bestehende Kommentare behalten ihre Aktion.
+                Diese Aktion wird dauerhaft gelöscht. Bestehende Aktionen behalten ihre Zuordnung.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

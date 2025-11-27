@@ -43,12 +43,6 @@ export function EquipmentTableRow({
       <TableCell className="hidden md:table-cell">
         <EquipmentStatusBadge status={item.status} />
       </TableCell>
-      <TableCell className="hidden lg:table-cell">
-        <EquipmentCommentCount 
-          count={commentCount}
-          onViewComments={() => onComments(item)}
-        />
-      </TableCell>
       <TableCell className="hidden md:table-cell">
         {item.replacement_date ? format(new Date(item.replacement_date), "dd.MM.yyyy") : "-"}
       </TableCell>
