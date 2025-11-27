@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft, FileUp, Pencil, Trash2, Clock } from "lucide-react";
+import { Plus, ArrowLeft, FileUp, Pencil, Trash2, Clock, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useMaintenanceTemplates } from "@/hooks/useMaintenanceTemplates";
 import { usePersons } from "@/hooks/usePersons";
@@ -25,6 +25,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { ImportMaintenanceTemplatesDialog } from "@/components/maintenance/ImportMaintenanceTemplatesDialog";
 
 const MaintenanceTemplateSettings = () => {
   const navigate = useNavigate();
@@ -37,6 +38,7 @@ const MaintenanceTemplateSettings = () => {
   const [deleteTemplate, setDeleteTemplate] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   const filteredTemplates = templates.filter(
     (template) => template.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -90,10 +92,16 @@ const MaintenanceTemplateSettings = () => {
           </Button>
           <h1 className="text-2xl font-bold tracking-tight">Wartungsvorlagen verwalten</h1>
         </div>
-        <Button size="sm" onClick={() => setIsNewTemplateOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Neue Wartungsvorlage
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setIsImportOpen(true)}>
+            <Download className="h-4 w-4 mr-2" />
+            Importieren
+          </Button>
+          <Button size="sm" onClick={() => setIsNewTemplateOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Neue Wartungsvorlage
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -243,6 +251,11 @@ const MaintenanceTemplateSettings = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ImportMaintenanceTemplatesDialog 
+        open={isImportOpen} 
+        onOpenChange={setIsImportOpen} 
+      />
     </div>
   );
 };

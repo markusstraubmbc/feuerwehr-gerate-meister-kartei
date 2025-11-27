@@ -61,13 +61,24 @@ const handler = async (req: Request): Promise<Response> => {
     const senderName = senderNameData?.value as string || "Wartungsberichte";
 
     // Get maintenance report recipients
-    const { data: recipientsData } = await supabase
+    const { data: maintenanceRecipientsData } = await supabase
       .from("settings")
       .select("value")
       .eq("key", "maintenance_report_recipients")
       .maybeSingle();
 
-    const additionalRecipients = (recipientsData?.value as string[]) || [];
+    // Get weekly report recipients (Wochenberichts-Empfänger)
+    const { data: weeklyRecipientsData } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "email_recipients")
+      .maybeSingle();
+
+    const maintenanceRecipients = (maintenanceRecipientsData?.value as string[]) || [];
+    const weeklyRecipients = (weeklyRecipientsData?.value as string[]) || [];
+    
+    // Kombiniere beide Listen und entferne Duplikate
+    const additionalRecipients = [...new Set([...maintenanceRecipients, ...weeklyRecipients])];
 
     // Fetch all maintenance records that are due or overdue
     const { data: maintenanceRecords, error: maintenanceError } = await supabase
