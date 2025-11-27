@@ -10,7 +10,8 @@ import {
   Target,
   Calendar,
   Bell,
-  Cog
+  Cog,
+  HelpCircle
 } from "lucide-react";
 import {
   Sidebar as SidebarBase,
@@ -22,9 +23,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useGlobalSettings } from "./GlobalSettingsProvider";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState } from "react";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -41,10 +45,12 @@ const navigation = [
 export function Sidebar() {
   const { settings, isLoading } = useGlobalSettings();
   const { isMobile, setOpenMobile } = useSidebar();
+  const [showHelp, setShowHelp] = useState(false);
   
   const systemName = settings?.companyName || "Feuerwehr Inventar";
   const logo = settings?.companyLogo;
   const logoSize = settings?.logoSize || "48";
+  const logoWidth = settings?.logoWidth || "48";
 
   const handleNavClick = () => {
     if (isMobile) {
@@ -77,7 +83,7 @@ export function Sidebar() {
               src={logo} 
               alt="Logo" 
               style={{ 
-                width: `${logoSize}px`, 
+                width: `${logoWidth}px`, 
                 height: `${logoSize}px`,
                 objectFit: 'contain'
               }}
@@ -141,6 +147,74 @@ export function Sidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter 
+        style={{ 
+          backgroundColor: menuBackgroundColor,
+          borderColor: menuBackgroundColor,
+        }}
+      >
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={() => setShowHelp(true)}>
+              <HelpCircle className="h-4 w-4" style={{ color: menuTextColor }} />
+              <span style={{ color: menuTextColor }}>Hilfe & Kontakt</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+      
+      <Dialog open={showHelp} onOpenChange={setShowHelp}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Hilfe & Kontakt</DialogTitle>
+            <DialogDescription>
+              Bei Fragen oder Problemen kontaktieren Sie uns gerne
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-semibold mb-2">Ansprechpartner</h3>
+              <p>{settings?.contactPerson || 'IT-Support Team'}</p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h3 className="font-semibold mb-2">Telefon</h3>
+                <p>{settings?.contactPhone || '+49 123 456789'}</p>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-2">E-Mail</h3>
+                <p>{settings?.contactEmail || 'support@feuerwehr-inventar.de'}</p>
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold mb-2">Servicezeiten</h3>
+              <p className="whitespace-pre-line">
+                {settings?.serviceHours || 'Mo-Fr: 8:00-17:00 Uhr\nSa: 9:00-13:00 Uhr'}
+              </p>
+            </div>
+            
+            {settings?.otherInfo && (
+              <div>
+                <h3 className="font-semibold mb-2">Weitere Informationen</h3>
+                <p className="whitespace-pre-line text-sm text-muted-foreground">
+                  {settings.otherInfo}
+                </p>
+              </div>
+            )}
+            
+            {settings?.legalInfo && (
+              <div className="pt-4 border-t">
+                <h3 className="font-semibold mb-2">Rechtliche Informationen</h3>
+                <p className="whitespace-pre-line text-xs text-muted-foreground">
+                  {settings.legalInfo}
+                </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </SidebarBase>
   );
 }

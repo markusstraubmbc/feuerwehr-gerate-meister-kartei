@@ -70,6 +70,13 @@ const Dashboard = () => {
       return false;
     }
     
+    if (selectedYear && selectedYear !== "all") {
+      const itemYear = item.purchase_date ? new Date(item.purchase_date).getFullYear().toString() : null;
+      if (itemYear !== selectedYear) {
+        return false;
+      }
+    }
+    
     return true;
   });
   
@@ -88,7 +95,7 @@ const Dashboard = () => {
       return false;
     }
     
-    if (selectedYear && record.due_date) {
+    if (selectedYear && selectedYear !== "all") {
       const recordYear = new Date(record.due_date).getFullYear().toString();
       if (recordYear !== selectedYear) {
         return false;
@@ -289,6 +296,7 @@ const Dashboard = () => {
                 <SelectValue placeholder="Jahr" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">Alle Jahre</SelectItem>
                 {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((year) => (
                   <SelectItem key={year} value={year.toString()}>
                     {year}

@@ -1,5 +1,6 @@
 
 import { NotificationSettings } from "@/components/notifications/NotificationSettings";
+import { CategoryNotificationSettings } from "@/components/notifications/CategoryNotificationSettings";
 
 const NotificationsPage = () => {
   return (
@@ -12,6 +13,8 @@ const NotificationsPage = () => {
       </div>
       
       <NotificationSettings />
+      
+      <CategoryNotificationSettings />
     </div>
   );
 };
