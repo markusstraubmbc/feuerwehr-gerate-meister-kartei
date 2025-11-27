@@ -10,7 +10,8 @@ import {
   Cog,
   Tag,
   PackageSearch,
-  ClipboardCheck
+  ClipboardCheck,
+  MessageSquare
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -117,6 +118,21 @@ const Settings = () => {
           <CardContent>
             <p className="text-sm">
               Führen Sie Inventuren für Ausrüstungsvorlagen durch und verwalten Sie die Historie.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate("/settings/equipment-actions")}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Kommentar-Aktionen
+            </CardTitle>
+            <CardDescription>Aktionen für Ausrüstungs-Kommentare</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">
+              Verwalten Sie Aktionen, die bei Kommentaren zur Ausrüstung erfasst werden können.
             </p>
           </CardContent>
         </Card>
