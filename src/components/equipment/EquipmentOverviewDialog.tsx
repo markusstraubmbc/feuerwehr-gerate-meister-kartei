@@ -16,6 +16,7 @@ import { useEquipmentComments } from "@/hooks/useEquipmentComments";
 import { useEquipmentMissions } from "@/hooks/useEquipmentMissions";
 import { useMaintenanceRecords } from "@/hooks/useMaintenanceRecords";
 import { useEquipmentTemplateItems } from "@/hooks/useEquipmentTemplateItems";
+import { CommentsDialog } from "./CommentsDialog";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { Calendar, MessageSquare, Wrench, MapPin, Target, FileDown } from "lucide-react";
@@ -35,6 +36,7 @@ export function EquipmentOverviewDialog({
   open,
   onOpenChange,
 }: EquipmentOverviewDialogProps) {
+  const [isCommentsDialogOpen, setIsCommentsDialogOpen] = useState(false);
   const { data: comments = [] } = useEquipmentComments(equipment.id);
   const { data: maintenanceRecords = [] } = useMaintenanceRecords();
   const { data: equipmentMissions = [] } = useEquipmentMissions(equipment.id);
@@ -148,12 +150,7 @@ export function EquipmentOverviewDialog({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    const commentsDialog = document.querySelector('[data-comments-dialog]');
-                    if (commentsDialog) {
-                      (commentsDialog as HTMLElement).click();
-                    }
-                  }}
+                  onClick={() => setIsCommentsDialogOpen(true)}
                 >
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Kommentar hinzufügen
@@ -312,6 +309,12 @@ export function EquipmentOverviewDialog({
           </Tabs>
         </div>
       </DialogContent>
+
+      <CommentsDialog
+        equipment={equipment}
+        open={isCommentsDialogOpen}
+        onOpenChange={setIsCommentsDialogOpen}
+      />
     </Dialog>
   );
 }

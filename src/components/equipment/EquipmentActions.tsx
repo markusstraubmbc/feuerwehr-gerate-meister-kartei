@@ -34,7 +34,7 @@ export function EquipmentActions({
   onDelete
 }: EquipmentActionsProps) {
   return (
-    <div className="flex justify-end gap-2">
+    <div className="flex justify-end gap-1">
       <Button
         variant="ghost"
         size="icon"
