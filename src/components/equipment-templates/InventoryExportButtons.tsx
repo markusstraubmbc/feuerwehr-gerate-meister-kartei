@@ -4,8 +4,8 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface InventoryExportButtonsProps {
   checkId: string;
@@ -86,7 +86,7 @@ export function InventoryExportButtons({
       ["Neu hinzugefügt", addedEquipment.length.toString()],
     ];
 
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: 75,
       head: [["Kategorie", "Anzahl"]],
       body: statsData,
@@ -118,7 +118,7 @@ export function InventoryExportButtons({
       ];
     });
 
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: yPosition + 5,
       head: [["Ausrüstung", "Inv.Nr.", "Barcode", "Status", "Ersetzt durch", "Neu", "Notizen"]],
       body: detailedItemsData,
@@ -152,7 +152,7 @@ export function InventoryExportButtons({
           item.notes || "-"
         ]);
 
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: yPosition + 5,
         head: [["Ausrüstung", "Inv.Nr.", "Notizen"]],
         body: missingData,
@@ -184,7 +184,7 @@ export function InventoryExportButtons({
           item.notes || "-"
         ]);
 
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: yPosition + 5,
         head: [["Alt", "Alt Inv.Nr.", "Neu", "Neu Inv.Nr.", "Notizen"]],
         body: replacedData,
@@ -215,7 +215,7 @@ export function InventoryExportButtons({
         item.notes || "-"
       ]);
 
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: yPosition + 5,
         head: [["Ausrüstung", "Inv.Nr.", "Barcode", "Notizen"]],
         body: addedData,
@@ -276,7 +276,7 @@ export function InventoryExportButtons({
       ['Abgeschlossen am', check?.completed_at ? format(new Date(check.completed_at), "dd.MM.yyyy HH:mm", { locale: de }) : format(new Date(), "dd.MM.yyyy HH:mm", { locale: de })],
     ];
 
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: yPosition,
       head: [],
       body: infoData,
@@ -284,9 +284,9 @@ export function InventoryExportButtons({
       styles: { fontSize: 10, cellPadding: 3 },
       columnStyles: {
         0: { fontStyle: 'bold', cellWidth: 40 },
-        1: { cellWidth: 'auto' }
+        1: { cellWidth: 'auto' },
       },
-      margin: { left: 20, right: 20 }
+      margin: { left: 20, right: 20 },
     });
 
     yPosition = (doc as any).lastAutoTable.finalY + 15;
@@ -305,17 +305,17 @@ export function InventoryExportButtons({
       ["Neu hinzugefügt", addedEquipment.length.toString()],
     ];
 
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: yPosition,
       head: [["Kategorie", "Anzahl"]],
       body: statsData,
       theme: 'striped',
       styles: { fontSize: 10, cellPadding: 3 },
-      columnStyles: { 
-        0: { cellWidth: 80, fontStyle: 'bold' }, 
-        1: { cellWidth: 40, halign: 'right' } 
+      columnStyles: {
+        0: { cellWidth: 80, fontStyle: 'bold' },
+        1: { cellWidth: 40, halign: 'right' },
       },
-      margin: { left: 20, right: 20 }
+      margin: { left: 20, right: 20 },
     });
 
     yPosition = (doc as any).lastAutoTable.finalY + 15;
@@ -345,7 +345,7 @@ export function InventoryExportButtons({
       ];
     });
 
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: yPosition,
       head: [["Ausrüstung", "Inv.Nr.", "Status", "Neu", "Notizen"]],
       body: detailedData,
@@ -356,9 +356,9 @@ export function InventoryExportButtons({
         1: { cellWidth: 25 },
         2: { cellWidth: 25 },
         3: { cellWidth: 15 },
-        4: { cellWidth: 55 }
+        4: { cellWidth: 55 },
       },
-      margin: { left: 20, right: 20 }
+      margin: { left: 20, right: 20 },
     });
 
     // Signature Section

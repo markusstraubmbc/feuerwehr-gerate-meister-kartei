@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { FileDown, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import { toast } from "sonner";
 
 interface InventoryCompletionReportProps {
@@ -60,7 +60,7 @@ export function InventoryCompletionReport({
       ['Abgeschlossen am', check?.completed_at ? format(new Date(check.completed_at), "dd.MM.yyyy HH:mm", { locale: de }) : format(new Date(), "dd.MM.yyyy HH:mm", { locale: de })],
     ];
 
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: yPosition,
       head: [],
       body: infoData,
@@ -68,9 +68,9 @@ export function InventoryCompletionReport({
       styles: { fontSize: 10, cellPadding: 3 },
       columnStyles: {
         0: { fontStyle: 'bold', cellWidth: 40 },
-        1: { cellWidth: 'auto' }
+        1: { cellWidth: 'auto' },
       },
-      margin: { left: 20, right: 20 }
+      margin: { left: 20, right: 20 },
     });
 
     yPosition = (doc as any).lastAutoTable.finalY + 15;
@@ -100,17 +100,17 @@ export function InventoryCompletionReport({
       ["Neu hinzugefügt", addedEquipment.length.toString()],
     ];
 
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: yPosition,
       head: [["Kategorie", "Anzahl"]],
       body: statsData,
       theme: 'striped',
       styles: { fontSize: 10, cellPadding: 3 },
-      columnStyles: { 
-        0: { cellWidth: 80, fontStyle: 'bold' }, 
-        1: { cellWidth: 40, halign: 'right' } 
+      columnStyles: {
+        0: { cellWidth: 80, fontStyle: 'bold' },
+        1: { cellWidth: 40, halign: 'right' },
       },
-      margin: { left: 20, right: 20 }
+      margin: { left: 20, right: 20 },
     });
 
     yPosition = (doc as any).lastAutoTable.finalY + 15;
@@ -140,7 +140,7 @@ export function InventoryCompletionReport({
       ];
     });
 
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: yPosition,
       head: [["Ausrüstung", "Inv.Nr.", "Status", "Neu", "Notizen"]],
       body: detailedData,
@@ -151,9 +151,9 @@ export function InventoryCompletionReport({
         1: { cellWidth: 25 },
         2: { cellWidth: 25 },
         3: { cellWidth: 15 },
-        4: { cellWidth: 55 }
+        4: { cellWidth: 55 },
       },
-      margin: { left: 20, right: 20 }
+      margin: { left: 20, right: 20 },
     });
 
     // Missing Items Section (if any)
@@ -180,7 +180,7 @@ export function InventoryCompletionReport({
           item.notes || "-"
         ]);
 
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: yPosition,
         head: [["Ausrüstung", "Inv.Nr.", "Notizen"]],
         body: missingData,
@@ -189,9 +189,9 @@ export function InventoryCompletionReport({
         columnStyles: {
           0: { cellWidth: 60 },
           1: { cellWidth: 30 },
-          2: { cellWidth: 80 }
+          2: { cellWidth: 80 },
         },
-        margin: { left: 20, right: 20 }
+        margin: { left: 20, right: 20 },
       });
     }
 
@@ -221,7 +221,7 @@ export function InventoryCompletionReport({
           item.notes || "-"
         ]);
 
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: yPosition,
         head: [["Alt", "Alt Inv.Nr.", "Neu", "Neu Inv.Nr.", "Notizen"]],
         body: replacedData,
@@ -232,9 +232,9 @@ export function InventoryCompletionReport({
           1: { cellWidth: 25 },
           2: { cellWidth: 40 },
           3: { cellWidth: 25 },
-          4: { cellWidth: 40 }
+          4: { cellWidth: 40 },
         },
-        margin: { left: 20, right: 20 }
+        margin: { left: 20, right: 20 },
       });
     }
 
@@ -261,7 +261,7 @@ export function InventoryCompletionReport({
         item.notes || "-"
       ]);
 
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: yPosition,
         head: [["Ausrüstung", "Inv.Nr.", "Barcode", "Notizen"]],
         body: addedData,
@@ -271,9 +271,9 @@ export function InventoryCompletionReport({
           0: { cellWidth: 50 },
           1: { cellWidth: 30 },
           2: { cellWidth: 35 },
-          3: { cellWidth: 55 }
+          3: { cellWidth: 55 },
         },
-        margin: { left: 20, right: 20 }
+        margin: { left: 20, right: 20 },
       });
     }
 
