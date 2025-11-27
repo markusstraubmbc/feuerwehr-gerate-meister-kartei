@@ -165,6 +165,12 @@ export function CompleteMaintenanceDialog({
         setError("Bitte wählen Sie eine verantwortliche Person aus.");
         return;
       }
+
+      // Validate: Either image OR notes must be provided
+      if (!image && !notes?.trim()) {
+        setError("Bitte laden Sie ein Dokumentationsbild hoch ODER geben Sie Anmerkungen ein.");
+        return;
+      }
       
       setIsLoading(true);
       
@@ -267,10 +273,33 @@ export function CompleteMaintenanceDialog({
           }
         }
       }
+
+      // Add notes as equipment comment/action if provided
+      if (notes?.trim()) {
+        try {
+          const { error: commentError } = await supabase
+            .from('equipment_comments')
+            .insert({
+              equipment_id: record.equipment_id,
+              person_id: performerId,
+              comment: `Wartung durchgeführt: ${notes.trim()}`,
+              action_id: null // Could be linked to a specific action if needed
+            });
+
+          if (commentError) {
+            console.error("Error adding equipment comment:", commentError);
+            // Don't throw - the maintenance was completed successfully
+          }
+        } catch (commentErr) {
+          console.error("Failed to add equipment comment:", commentErr);
+          // Continue - maintenance completion is more important
+        }
+      }
       
       toast.success("Die Wartung wurde erfolgreich als abgeschlossen markiert.");
       
       queryClient.invalidateQueries({ queryKey: ["maintenance-records"] });
+      queryClient.invalidateQueries({ queryKey: ["equipment-comments"] });
       onOpenChange(false);
       resetState();
     } catch (err: any) {
@@ -359,17 +388,21 @@ export function CompleteMaintenanceDialog({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="notes">Anmerkungen</Label>
+            <Label htmlFor="notes">Anmerkungen (erforderlich wenn kein Bild)</Label>
             <Textarea 
               id="notes" 
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Details zur durchgeführten Wartung..."
+              className={!image && !notes?.trim() ? "border-amber-500" : ""}
             />
+            <p className="text-xs text-muted-foreground">
+              Diese Anmerkung wird automatisch als Aktion in der Ausrüstungshistorie dokumentiert.
+            </p>
           </div>
           
           <div className="space-y-2">
-            <Label className="block">Dokumentationsbild (optional)</Label>
+            <Label className="block">Dokumentationsbild (optional wenn Anmerkung vorhanden)</Label>
             <div className="flex items-center gap-2">
               <Button 
                 type="button" 
