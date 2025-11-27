@@ -230,7 +230,7 @@ export function InventoryExportButtons({
       });
     }
 
-    const pdfFileName = `Inventurbericht_${check.template?.name || "Unbekannte_Vorlage"}_${format(new Date(), "yyyy-MM-dd")}.pdf`;
+    const pdfFileName = `Inventurbericht_${check?.template?.name?.replace(/[^a-zA-Z0-9]/g, '_') || "Unbekannte_Vorlage"}_${format(new Date(), "yyyy-MM-dd")}.pdf`;
     doc.save(pdfFileName);
     toast.success("PDF-Bericht erstellt");
   };
