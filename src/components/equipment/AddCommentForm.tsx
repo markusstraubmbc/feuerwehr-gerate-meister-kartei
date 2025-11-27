@@ -36,7 +36,7 @@ export function AddCommentForm({ onSubmit, isSubmitting }: AddCommentFormProps) 
 
   return (
     <div className="space-y-4 pt-4 border-t">
-      <h3 className="font-medium">Neuen Kommentar hinzufügen</h3>
+      <h3 className="font-medium">Neue Aktion hinzufügen</h3>
       
       <div>
         <Label htmlFor="person">Person *</Label>
@@ -79,12 +79,12 @@ export function AddCommentForm({ onSubmit, isSubmitting }: AddCommentFormProps) 
       </div>
       
       <div>
-        <Label htmlFor="comment">Kommentar *</Label>
+        <Label htmlFor="comment">Beschreibung *</Label>
         <Textarea
           id="comment"
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Kommentar eingeben..."
+          placeholder="Beschreibung eingeben..."
           className="min-h-[100px]"
         />
       </div>
@@ -94,7 +94,7 @@ export function AddCommentForm({ onSubmit, isSubmitting }: AddCommentFormProps) 
           onClick={handleSubmit} 
           disabled={isSubmitting || !newComment.trim() || !selectedPersonId || selectedPersonId === "no_person"}
         >
-          {isSubmitting ? "Speichert..." : "Kommentar hinzufügen"}
+          {isSubmitting ? "Speichert..." : "Aktion hinzufügen"}
         </Button>
       </div>
     </div>

@@ -21,7 +21,7 @@ export function EquipmentCommentsInfo({ equipmentId, onOpenComments }: Equipment
   if (commentsCount === 0) {
     return (
       <div className="flex items-center gap-2">
-        <span className="text-muted-foreground text-sm">Keine Kommentare</span>
+        <span className="text-muted-foreground text-sm">Keine Aktionen</span>
         {onOpenComments && (
           <Button 
             variant="ghost" 
@@ -41,7 +41,7 @@ export function EquipmentCommentsInfo({ equipmentId, onOpenComments }: Equipment
     <div className="flex items-center gap-2">
       <div className="text-sm">
         <div className="flex items-center gap-2">
-          <span className="font-medium">{commentsCount} Kommentar{commentsCount !== 1 ? 'e' : ''}</span>
+          <span className="font-medium">{commentsCount} Aktion{commentsCount !== 1 ? 'en' : ''}</span>
           {onOpenComments && (
             <Button 
               variant="ghost" 

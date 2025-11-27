@@ -60,7 +60,7 @@ export function CommentsDialog({ equipment, open, onOpenChange }: CommentsDialog
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Kommentare für {equipment?.name}</DialogTitle>
+            <DialogTitle>Aktionen für {equipment?.name}</DialogTitle>
             <DialogDescription>
               Inventarnummer: {equipment?.inventory_number || "Nicht angegeben"}
             </DialogDescription>
@@ -70,7 +70,7 @@ export function CommentsDialog({ equipment, open, onOpenChange }: CommentsDialog
             <div className="space-y-4 max-h-[40vh] overflow-y-auto p-2 border rounded-md">
               {comments.length === 0 ? (
                 <p className="text-center text-muted-foreground py-4">
-                  Keine Kommentare vorhanden
+                  Keine Aktionen vorhanden
                 </p>
               ) : (
                 comments.map((comment) => (

@@ -30,9 +30,9 @@ export function DeleteCommentDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Kommentar löschen</AlertDialogTitle>
+          <AlertDialogTitle>Aktion löschen</AlertDialogTitle>
           <AlertDialogDescription>
-            Sind Sie sicher, dass Sie diesen Kommentar löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.
+            Sind Sie sicher, dass Sie diese Aktion löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
