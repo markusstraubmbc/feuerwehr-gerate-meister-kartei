@@ -144,9 +144,17 @@ const CategoryManagement = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground mb-2">
                   {category.description || "Keine Beschreibung"}
                 </p>
+                {category.responsible_person && (
+                  <div className="text-sm">
+                    <span className="font-medium">Verantwortlich: </span>
+                    <span className="text-muted-foreground">
+                      {category.responsible_person.first_name} {category.responsible_person.last_name}
+                    </span>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}

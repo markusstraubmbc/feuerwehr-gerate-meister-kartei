@@ -36,8 +36,8 @@ export function InventoryExportButtons({
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Inventur");
 
-    const fileName = `Inventur_${check.template.name}_${format(new Date(), "yyyy-MM-dd")}.xlsx`;
-    XLSX.writeFile(wb, fileName);
+    const excelFileName = `Inventur_${check.template?.name || "Unbekannte_Vorlage"}_${format(new Date(), "yyyy-MM-dd")}.xlsx`;
+    XLSX.writeFile(wb, excelFileName);
     toast.success("Excel-Datei erstellt");
   };
 
@@ -50,13 +50,14 @@ export function InventoryExportButtons({
 
     // Info
     doc.setFontSize(12);
-    doc.text(`Vorlage: ${check.template.name}`, 20, 35);
+    const pdfTemplateName = check.template?.name || "Unbekannte Vorlage";
+    doc.text(`Vorlage: ${pdfTemplateName}`, 20, 35);
     doc.text(
-      `Geprüft von: ${check.checked_by_person?.first_name} ${check.checked_by_person?.last_name}`,
+      `Geprüft von: ${check.checked_by_person?.first_name || "Unbekannt"} ${check.checked_by_person?.last_name || ""}`,
       20,
       42
     );
-    doc.text(`Datum: ${format(new Date(check.started_at), "dd.MM.yyyy", { locale: de })}`, 20, 49);
+    doc.text(`Datum: ${format(new Date(check.started_at || new Date()), "dd.MM.yyyy", { locale: de })}`, 20, 49);
     doc.text(`Status: ${check.status === "completed" ? "Abgeschlossen" : "In Bearbeitung"}`, 20, 56);
 
     // Statistics
@@ -134,8 +135,8 @@ export function InventoryExportButtons({
       });
     }
 
-    const fileName = `Inventurbericht_${check.template.name}_${format(new Date(), "yyyy-MM-dd")}.pdf`;
-    doc.save(fileName);
+    const pdfFileName = `Inventurbericht_${check.template?.name || "Unbekannte_Vorlage"}_${format(new Date(), "yyyy-MM-dd")}.pdf`;
+    doc.save(pdfFileName);
     toast.success("PDF-Bericht erstellt");
   };
 
