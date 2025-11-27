@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, History } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { MissionReportEmailSettings } from "@/components/settings/MissionReportEmailSettings";
 import { WeeklyReportEmailSettings } from "@/components/settings/WeeklyReportEmailSettings";
@@ -24,15 +24,25 @@ const EmailActionsOverview = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => navigate("/settings")}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate("/settings")}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-2xl font-bold tracking-tight">E-Mail & Aktionen Übersicht</h1>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => navigate("/settings/notification-history")}
+          className="flex items-center gap-2"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <History className="h-4 w-4" />
+          Versandhistorie
         </Button>
-        <h1 className="text-2xl font-bold tracking-tight">E-Mail & Aktionen Übersicht</h1>
       </div>
 
       <div className="space-y-6">

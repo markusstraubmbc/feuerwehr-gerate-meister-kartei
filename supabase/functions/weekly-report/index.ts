@@ -11,6 +11,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+  
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -18,6 +20,19 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     console.log("Starting weekly report generation...");
+    
+    // Log cron job start
+    const { data: logData } = await supabase
+      .from("cron_job_logs")
+      .insert({
+        job_name: "weekly-report",
+        status: "running",
+        started_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    const logId = logData?.id;
 
     // Get email settings
     const { data: settings } = await supabase
@@ -60,17 +75,45 @@ serve(async (req) => {
     
     console.log(`Using sender: ${fromField}`);
 
-    // Get recipients from settings (stored as JSON array)
+    // Get weekly report recipients from settings (stored as JSON array)
     const { data: recipientsData } = await supabase
       .from("settings")
       .select("value")
       .eq("key", "email_recipients")
       .maybeSingle();
 
-    const recipients = Array.isArray(recipientsData?.value) ? recipientsData.value : [];
+    const weeklyRecipients = Array.isArray(recipientsData?.value) ? recipientsData.value : [];
+    
+    // Fetch all maintenance template responsible persons
+    const { data: templatesData } = await supabase
+      .from("maintenance_templates")
+      .select(`
+        responsible_person:responsible_person_id (
+          email
+        )
+      `);
+    
+    const templateResponsibleEmails = templatesData
+      ?.map((t: any) => t.responsible_person?.email)
+      .filter((email: string | undefined) => email) || [];
+    
+    // Combine both recipient lists and remove duplicates
+    const allRecipients = [...new Set([...weeklyRecipients, ...templateResponsibleEmails])];
 
-    if (recipients.length === 0) {
+    if (allRecipients.length === 0) {
       console.log("No recipients configured");
+      
+      const duration = (Date.now() - startTime) / 1000;
+      await supabase
+        .from("cron_job_logs")
+        .update({
+          status: "success",
+          completed_at: new Date().toISOString(),
+          duration_seconds: duration,
+          details: { message: "Keine Empfänger konfiguriert" },
+        })
+        .eq("id", logId);
+      
       return new Response(
         JSON.stringify({ message: "No recipients configured" }),
         {
@@ -80,12 +123,12 @@ serve(async (req) => {
       );
     }
 
-    // Get date ranges
+    // Get date ranges - 4 weeks ahead instead of 7 days
     const now = new Date();
     const lastWeek = new Date(now);
     lastWeek.setDate(lastWeek.getDate() - 7);
-    const nextWeek = new Date(now);
-    nextWeek.setDate(nextWeek.getDate() + 7);
+    const nextFourWeeks = new Date(now);
+    nextFourWeeks.setDate(nextFourWeeks.getDate() + 28); // 4 weeks
 
     // Get overdue maintenance
     const { data: overdueMaintenance } = await supabase
@@ -99,7 +142,7 @@ serve(async (req) => {
       .eq("status", "ausstehend")
       .lt("due_date", now.toISOString());
 
-    // Get upcoming maintenance (next 7 days)
+    // Get upcoming maintenance (next 4 weeks)
     const { data: upcomingMaintenance } = await supabase
       .from("maintenance_records")
       .select(`
@@ -108,9 +151,9 @@ serve(async (req) => {
         template:template_id (name),
         performer:performed_by (first_name, last_name)
       `)
-      .eq("status", "ausstehend")
+      .in("status", ["ausstehend", "geplant"])
       .gte("due_date", now.toISOString())
-      .lte("due_date", nextWeek.toISOString());
+      .lte("due_date", nextFourWeeks.toISOString());
 
     // Get completed maintenance (last 7 days)
     const { data: completedMaintenance } = await supabase
@@ -170,7 +213,7 @@ serve(async (req) => {
             </div>
             <div class="stat-card">
               <div class="stat-number warning">${upcomingMaintenance?.length || 0}</div>
-              <div class="stat-label">Anstehend (7 Tage)</div>
+              <div class="stat-label">Anstehend (4 Wochen)</div>
             </div>
             <div class="stat-card">
               <div class="stat-number success">${completedMaintenance?.length || 0}</div>
@@ -210,7 +253,7 @@ serve(async (req) => {
         ` : ''}
 
         ${(upcomingMaintenance?.length || 0) > 0 ? `
-          <h2 class="warning">📅 Anstehende Wartungen (Nächste 7 Tage)</h2>
+          <h2 class="warning">📅 Anstehende Wartungen (Nächste 4 Wochen)</h2>
           <table>
             <thead>
               <tr>
@@ -295,7 +338,7 @@ serve(async (req) => {
     `;
 
     // Send emails
-    const emailPromises = recipients.map((email: string) =>
+    const emailPromises = allRecipients.map((email: string) =>
       resend.emails.send({
         from: fromField,
         to: [email],
@@ -307,12 +350,33 @@ serve(async (req) => {
     const results = await Promise.allSettled(emailPromises);
     const successCount = results.filter(r => r.status === 'fulfilled').length;
 
-    console.log(`Weekly report sent to ${successCount}/${recipients.length} recipients`);
+    console.log(`Weekly report sent to ${successCount}/${allRecipients.length} recipients`);
+
+    // Update cron job log with success
+    const duration = (Date.now() - startTime) / 1000;
+    await supabase
+      .from("cron_job_logs")
+      .update({
+        status: "success",
+        completed_at: new Date().toISOString(),
+        duration_seconds: duration,
+        details: {
+          message: `Wochenbericht an ${successCount} Empfänger versendet`,
+          recipients: allRecipients,
+          stats: {
+            overdue: overdueMaintenance?.length || 0,
+            upcoming: upcomingMaintenance?.length || 0,
+            completed: completedMaintenance?.length || 0,
+            equipmentIssues: equipmentIssues?.length || 0
+          }
+        },
+      })
+      .eq("id", logId);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Weekly report sent to ${successCount}/${recipients.length} recipients`,
+        message: `Weekly report sent to ${successCount}/${allRecipients.length} recipients`,
         stats: {
           overdue: overdueMaintenance?.length || 0,
           upcoming: upcomingMaintenance?.length || 0,
@@ -328,6 +392,19 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Error in weekly-report function:", error);
+    
+    // Update cron job log with error
+    const duration = (Date.now() - startTime) / 1000;
+    await supabase
+      .from("cron_job_logs")
+      .update({
+        status: "error",
+        completed_at: new Date().toISOString(),
+        duration_seconds: duration,
+        error_message: error.message,
+      })
+      .eq("id", logId);
+    
     return new Response(
       JSON.stringify({ 
         error: error.message,
