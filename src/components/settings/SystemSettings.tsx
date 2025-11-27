@@ -10,6 +10,7 @@ import { MenuColorSettings } from "./MenuColorSettings";
 import { CronJobMonitoring } from "./CronJobMonitoring";
 import { SystemBackupSettings } from "./SystemBackupSettings";
 import { HelpContactSettings } from "./HelpContactSettings";
+import { MissionReportEmailSettings } from "./MissionReportEmailSettings";
 
 const DEFAULT_COLORS = {
   menuBackground: "#1e293b",
@@ -201,6 +202,8 @@ const SystemSettings = () => {
       <AutoMaintenanceGenerator />
 
       <CronJobMonitoring />
+
+      <MissionReportEmailSettings />
 
       {/* --- Backup/Restore Section --- */}
       <SystemBackupSettings />
