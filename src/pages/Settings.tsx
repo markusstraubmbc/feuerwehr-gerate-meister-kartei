@@ -126,13 +126,13 @@ const Settings = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5" />
-              Kommentar-Aktionen
+              Aktionen
             </CardTitle>
-            <CardDescription>Aktionen für Ausrüstungs-Kommentare</CardDescription>
+            <CardDescription>Aktionen für Ausrüstungen</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm">
-              Verwalten Sie Aktionen, die bei Kommentaren zur Ausrüstung erfasst werden können.
+              Verwalten Sie Aktionen, die bei Ausrüstungen erfasst werden können.
             </p>
           </CardContent>
         </Card>
