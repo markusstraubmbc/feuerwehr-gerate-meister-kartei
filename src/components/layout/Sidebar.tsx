@@ -11,7 +11,8 @@ import {
   Calendar,
   Bell,
   Cog,
-  HelpCircle
+  HelpCircle,
+  ListChecks
 } from "lucide-react";
 import {
   Sidebar as SidebarBase,
@@ -34,6 +35,7 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Ausrüstung", href: "/equipment", icon: Package },
   { name: "Ausrüstung verwalten", href: "/equipment-management", icon: Cog },
+  { name: "Aktionsbereich", href: "/actions", icon: ListChecks },
   { name: "Wartung", href: "/maintenance", icon: Wrench },
   { name: "Wartungszeiten", href: "/maintenance-time", icon: Clock },
   { name: "Einsätze & Übungen", href: "/missions", icon: Target },

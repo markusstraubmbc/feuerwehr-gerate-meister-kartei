@@ -24,6 +24,7 @@ import CategoryManagement from "./pages/CategoryManagement";
 import EquipmentTemplateSettings from "./pages/EquipmentTemplateSettings";
 import TemplateInventory from "./pages/TemplateInventory";
 import EquipmentActionsSettings from "./pages/EquipmentActionsSettings";
+import ActionsCenter from "./pages/ActionsCenter";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -47,6 +48,7 @@ function AppContent() {
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="equipment" element={<Equipment />} />
               <Route path="equipment-management" element={<EquipmentManagement />} />
+              <Route path="actions" element={<ActionsCenter />} />
               <Route path="maintenance" element={<Maintenance />} />
               <Route path="maintenance-time" element={<MaintenanceTime />} />
               <Route path="missions" element={<Missions />} />
