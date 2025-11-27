@@ -316,6 +316,45 @@ export type Database = {
         }
         Relationships: []
       }
+      maintenance_notification_history: {
+        Row: {
+          created_at: string
+          equipment_id: string
+          id: string
+          maintenance_record_id: string | null
+          notified_at: string
+        }
+        Insert: {
+          created_at?: string
+          equipment_id: string
+          id?: string
+          maintenance_record_id?: string | null
+          notified_at?: string
+        }
+        Update: {
+          created_at?: string
+          equipment_id?: string
+          id?: string
+          maintenance_record_id?: string | null
+          notified_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_notification_history_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_notification_history_maintenance_record_id_fkey"
+            columns: ["maintenance_record_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maintenance_records: {
         Row: {
           created_at: string

@@ -116,6 +116,15 @@ serve(async (req) => {
         .eq("key", "email_settings")
         .single();
 
+      // Get notification interval setting
+      const { data: intervalSetting } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "maintenance_notification_interval_days")
+        .single();
+
+      const notificationIntervalDays = parseInt(intervalSetting?.value) || 7;
+
       // Try to get sender domain and from email from settings
       if (settings?.value?.sender_domain) {
         emailSenderDomain = settings.value.sender_domain;
@@ -155,6 +164,24 @@ serve(async (req) => {
 
       for (const maintenance of maintenanceData || []) {
         if (!maintenance.performer?.email && !testEmail) continue;
+
+        // Check if this equipment was already notified within the interval
+        const intervalCheckDate = new Date();
+        intervalCheckDate.setDate(intervalCheckDate.getDate() - notificationIntervalDays);
+        
+        const { data: recentNotifications } = await supabase
+          .from("maintenance_notification_history")
+          .select("notified_at")
+          .eq("equipment_id", maintenance.equipment_id)
+          .gte("notified_at", intervalCheckDate.toISOString())
+          .order("notified_at", { ascending: false })
+          .limit(1);
+
+        if (recentNotifications && recentNotifications.length > 0) {
+          console.log(`Skipping notification for equipment ${maintenance.equipment.name} - already notified within ${notificationIntervalDays} days`);
+          continue;
+        }
+        if (!maintenance.performer?.email && !testEmail) continue;
         
         const recipient = testEmail || maintenance.performer.email;
         const recipientName = testEmail ? "Test User" : `${maintenance.performer.first_name} ${maintenance.performer.last_name}`;
@@ -180,7 +207,17 @@ serve(async (req) => {
           `,
         });
 
-        emailPromises.push(emailPromise);
+        emailPromises.push(emailPromise.then(async (result) => {
+          // Record notification in history after successful send
+          await supabase
+            .from("maintenance_notification_history")
+            .insert({
+              equipment_id: maintenance.equipment_id,
+              maintenance_record_id: maintenance.id
+            });
+          return result;
+        }));
+        
         emailDetails.push({
           email: recipient,
           name: recipientName,
