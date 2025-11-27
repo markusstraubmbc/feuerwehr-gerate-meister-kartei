@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   useInventoryCheckItems, 
   useCreateInventoryCheckItem, 
@@ -15,13 +16,14 @@ import {
 import { useTemplateEquipmentItems, useRemoveEquipmentFromTemplate } from "@/hooks/useEquipmentTemplates";
 import { useEquipment } from "@/hooks/useEquipment";
 import { useEquipmentComments } from "@/hooks/useEquipmentComments";
-import { CheckCircle2, XCircle, RefreshCw, ChevronRight, ChevronLeft, ScanLine, MessageSquare } from "lucide-react";
+import { CheckCircle2, XCircle, RefreshCw, ChevronRight, ChevronLeft, ScanLine, MessageSquare, Scan } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { QRScanner } from "@/components/equipment/QRScanner";
 import { ReplacementEquipmentDialog } from "./ReplacementEquipmentDialog";
 import { AddMissingItemsDialog } from "./AddMissingItemsDialog";
+import { InventoryScanMode } from "./InventoryScanMode";
 
 interface InventoryCheckSessionProps {
   checkId: string;
@@ -46,6 +48,7 @@ export function InventoryCheckSession({ checkId, open, onOpenChange }: Inventory
   const [scannerOpen, setScannerOpen] = useState(false);
   const [replacementDialogOpen, setReplacementDialogOpen] = useState(false);
   const [missingItemsDialogOpen, setMissingItemsDialogOpen] = useState(false);
+  const [mode, setMode] = useState<"normal" | "scan">("normal");
 
   const currentItem = templateItems[currentIndex];
   const { data: comments = [] } = useEquipmentComments(currentItem?.equipment_id || "");
@@ -186,11 +189,32 @@ export function InventoryCheckSession({ checkId, open, onOpenChange }: Inventory
     eq.status === "einsatzbereit"
   );
 
+  // If scan mode is active, render the scan mode component
+  if (mode === "scan") {
+    return (
+      <InventoryScanMode
+        checkId={checkId}
+        open={open}
+        onOpenChange={onOpenChange}
+      />
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Inventur: {check.template.name}</DialogTitle>
+          <DialogTitle className="flex items-center justify-between">
+            <span>Inventur: {check.template.name}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setMode("scan")}
+            >
+              <Scan className="h-4 w-4 mr-2" />
+              Scan-Modus
+            </Button>
+          </DialogTitle>
           <p className="text-sm text-muted-foreground">
             Prüfung von {check.checked_by_person?.first_name} {check.checked_by_person?.last_name}
           </p>
