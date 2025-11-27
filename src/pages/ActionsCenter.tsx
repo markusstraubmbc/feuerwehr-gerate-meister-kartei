@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import { useLocations } from "@/hooks/useLocations";
 import { usePersons } from "@/hooks/usePersons";
 import { AddCommentForm } from "@/components/equipment/AddCommentForm";
 import { EquipmentOverviewDialog } from "@/components/equipment/EquipmentOverviewDialog";
+import { ActionAnalytics } from "@/components/dashboard/ActionAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -305,179 +307,193 @@ const ActionsCenter = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Aktionsbereich</h1>
-          <p className="text-muted-foreground text-sm">
-            Führen Sie Aktionen schnell für mehrere Ausrüstungen gleichzeitig durch.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="text-sm text-muted-foreground">
-            {selectedEquipmentIds.length} Ausrüstung(en) ausgewählt
-          </div>
-          {selectedEquipmentIds.length > 0 && (
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportSelectedToExcel}
-              >
-                <FileSpreadsheet className="h-4 w-4 mr-2" />
-                Excel
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportSelectedToPDF}
-              >
-                <FileDown className="h-4 w-4 mr-2" />
-                PDF
-              </Button>
-            </div>
-          )}
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Aktionsbereich</h1>
+        <p className="text-muted-foreground text-sm">
+          Führen Sie Aktionen für mehrere Ausrüstungen durch und analysieren Sie durchgeführte Aktionen.
+        </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Ausrüstung auswählen</CardTitle>
-          <div className="mt-4 grid gap-3 md:grid-cols-4">
-            <div className="md:col-span-2 relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Ausrüstung, Inventarnummer oder Barcode suchen..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            <Select
-              value={categoryFilter}
-              onValueChange={(value) => setCategoryFilter(value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Kategorie" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Alle Kategorien</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={locationFilter}
-              onValueChange={(value) => setLocationFilter(value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Standort" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Alle Standorte</SelectItem>
-                {locations.map((location) => (
-                  <SelectItem key={location.id} value={location.id}>
-                    {location.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => setStatusFilter(value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                {statusOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {filteredEquipment.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">
-              Keine Ausrüstung gefunden
-            </div>
-          ) : (
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40px]">
-                      <Checkbox
-                        checked={
-                          filteredEquipment.length > 0 &&
-                          filteredEquipment.every((item) =>
-                            selectedEquipmentIds.includes(item.id)
-                          )
-                        }
-                        onCheckedChange={toggleSelectAll}
-                        aria-label="Alle auswählen"
-                      />
-                    </TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Inventarnummer</TableHead>
-                    <TableHead>Kategorie</TableHead>
-                    <TableHead>Standort</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredEquipment.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedEquipmentIds.includes(item.id)}
-                          onCheckedChange={() => toggleSelectEquipment(item.id)}
-                          aria-label={`Ausrüstung ${item.name} auswählen`}
-                        />
-                      </TableCell>
-                      <TableCell>{item.name}</TableCell>
-                      <TableCell>{item.inventory_number || "-"}</TableCell>
-                      <TableCell>{item.category?.name || "-"}</TableCell>
-                      <TableCell>{item.location?.name || "-"}</TableCell>
-                      <TableCell className="capitalize">{item.status}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSelectedEquipment(item)}
-                          aria-label={`Details zu ${item.name} anzeigen`}
-                        >
-                          <Info className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="actions" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="actions">Sammelaktionen</TabsTrigger>
+          <TabsTrigger value="analytics">Analyse</TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Aktion auf ausgewählte Ausrüstungen anwenden</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            Wählen Sie oben die gewünschten Ausrüstungen und legen Sie hier die
-            Aktion, Person und Beschreibung fest. Die Aktion wird für alle
-            ausgewählten Ausrüstungen erstellt.
-          </p>
-          <AddCommentForm onSubmit={handleBulkActionSubmit} isSubmitting={isSubmitting} />
-        </CardContent>
-      </Card>
+        <TabsContent value="actions" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-muted-foreground">
+                {selectedEquipmentIds.length} Ausrüstung(en) ausgewählt
+              </div>
+              {selectedEquipmentIds.length > 0 && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportSelectedToExcel}
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    Excel
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportSelectedToPDF}
+                  >
+                    <FileDown className="h-4 w-4 mr-2" />
+                    PDF
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Ausrüstung auswählen</CardTitle>
+              <div className="mt-4 grid gap-3 md:grid-cols-4">
+                <div className="md:col-span-2 relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Ausrüstung, Inventarnummer oder Barcode suchen..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+                <Select
+                  value={categoryFilter}
+                  onValueChange={(value) => setCategoryFilter(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Kategorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle Kategorien</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={locationFilter}
+                  onValueChange={(value) => setLocationFilter(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Standort" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle Standorte</SelectItem>
+                    {locations.map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) => setStatusFilter(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {filteredEquipment.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  Keine Ausrüstung gefunden
+                </div>
+              ) : (
+                <div className="rounded-md border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[40px]">
+                          <Checkbox
+                            checked={
+                              filteredEquipment.length > 0 &&
+                              filteredEquipment.every((item) =>
+                                selectedEquipmentIds.includes(item.id)
+                              )
+                            }
+                            onCheckedChange={toggleSelectAll}
+                            aria-label="Alle auswählen"
+                          />
+                        </TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Inventarnummer</TableHead>
+                        <TableHead>Kategorie</TableHead>
+                        <TableHead>Standort</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="w-[50px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredEquipment.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedEquipmentIds.includes(item.id)}
+                              onCheckedChange={() => toggleSelectEquipment(item.id)}
+                              aria-label={`Ausrüstung ${item.name} auswählen`}
+                            />
+                          </TableCell>
+                          <TableCell>{item.name}</TableCell>
+                          <TableCell>{item.inventory_number || "-"}</TableCell>
+                          <TableCell>{item.category?.name || "-"}</TableCell>
+                          <TableCell>{item.location?.name || "-"}</TableCell>
+                          <TableCell className="capitalize">{item.status}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedEquipment(item)}
+                              aria-label={`Details zu ${item.name} anzeigen`}
+                            >
+                              <Info className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Aktion auf ausgewählte Ausrüstungen anwenden</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Wählen Sie oben die gewünschten Ausrüstungen und legen Sie hier die
+                Aktion, Person und Beschreibung fest. Die Aktion wird für alle
+                ausgewählten Ausrüstungen erstellt.
+              </p>
+              <AddCommentForm onSubmit={handleBulkActionSubmit} isSubmitting={isSubmitting} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="analytics">
+          <ActionAnalytics />
+        </TabsContent>
+      </Tabs>
 
       {selectedEquipment && (
         <EquipmentOverviewDialog
