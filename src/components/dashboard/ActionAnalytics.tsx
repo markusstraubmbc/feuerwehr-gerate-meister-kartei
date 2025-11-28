@@ -217,21 +217,23 @@ export const ActionAnalytics = () => {
     const recentActions = filteredActions.slice(0, 20).map((action) => [
       format(parseISO(action.created_at), "dd.MM.yyyy", { locale: de }),
       action.equipment?.name || "-",
+      action.equipment?.inventory_number || "-",
       action.action?.name || "-",
       action.person ? `${action.person.first_name} ${action.person.last_name}` : "-",
     ]);
 
     autoTable(doc, {
       startY: yPosition,
-      head: [["Datum", "Ausrüstung", "Aktion", "Person"]],
+      head: [["Datum", "Ausrüstung", "Inv.Nr.", "Aktion", "Person"]],
       body: recentActions,
       theme: "striped",
       styles: { fontSize: 8, cellPadding: 2 },
       columnStyles: {
-        0: { cellWidth: 25 },
-        1: { cellWidth: 50 },
-        2: { cellWidth: 40 },
-        3: { cellWidth: 45 },
+        0: { cellWidth: 22 },
+        1: { cellWidth: 40 },
+        2: { cellWidth: 22 },
+        3: { cellWidth: 35 },
+        4: { cellWidth: 35 },
       },
       margin: { left: 20, right: 20 },
     });
@@ -422,6 +424,7 @@ export const ActionAnalytics = () => {
                   <TableRow>
                     <TableHead>Datum</TableHead>
                     <TableHead>Ausrüstung</TableHead>
+                    <TableHead>Inventarnummer</TableHead>
                     <TableHead>Aktion</TableHead>
                     <TableHead>Person</TableHead>
                     <TableHead>Kommentar</TableHead>
@@ -436,6 +439,7 @@ export const ActionAnalytics = () => {
                         })}
                       </TableCell>
                       <TableCell>{action.equipment?.name || "-"}</TableCell>
+                      <TableCell>{action.equipment?.inventory_number || "-"}</TableCell>
                       <TableCell>{action.action?.name || "-"}</TableCell>
                       <TableCell>
                         {action.person
