@@ -15,3 +15,6 @@ verify_jwt = false
 
 [functions.run-all-cron-jobs]
 verify_jwt = false
+
+[functions.database-backup]
+verify_jwt = false
