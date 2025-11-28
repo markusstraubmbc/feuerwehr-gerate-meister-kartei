@@ -12,6 +12,7 @@ serve(async (req) => {
   }
 
   const startTime = Date.now();
+  let logId: string | undefined;
   
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -20,6 +21,54 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     console.log("Starting weekly report generation...");
+
+    // Get notification interval from settings
+    const { data: intervalData } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "maintenance_notification_interval_days")
+      .maybeSingle();
+
+    const intervalDays = (intervalData?.value as number) || 7;
+    console.log(`Notification interval: ${intervalDays} days`);
+
+    // Check last successful send
+    const { data: lastSentLog } = await supabase
+      .from("cron_job_logs")
+      .select("completed_at")
+      .eq("job_name", "weekly-report")
+      .eq("status", "success")
+      .order("completed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const now = new Date();
+    
+    if (lastSentLog?.completed_at) {
+      const lastSentDate = new Date(lastSentLog.completed_at);
+      const daysSinceLast = (now.getTime() - lastSentDate.getTime()) / (1000 * 60 * 60 * 24);
+      
+      console.log(`Last sent: ${lastSentDate.toISOString()}, ${daysSinceLast.toFixed(1)} days ago`);
+      
+      if (daysSinceLast < intervalDays) {
+        console.log(`Skipping weekly report - interval not reached (${daysSinceLast.toFixed(1)}/${intervalDays} days)`);
+        return new Response(
+          JSON.stringify({ 
+            skipped: true,
+            message: "Intervall noch nicht erreicht",
+            daysSinceLast: daysSinceLast.toFixed(1),
+            intervalDays,
+            nextSendDate: new Date(lastSentDate.getTime() + intervalDays * 24 * 60 * 60 * 1000).toISOString()
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+    } else {
+      console.log("No previous successful send found - proceeding with first send");
+    }
     
     // Log cron job start
     const { data: logData } = await supabase
@@ -443,15 +492,17 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    await supabase
-      .from("cron_job_logs")
-      .update({
-        status: "error",
-        completed_at: new Date().toISOString(),
-        duration_seconds: duration,
-        error_message: error.message,
-      })
-      .eq("id", logId);
+    if (logId) {
+      await supabase
+        .from("cron_job_logs")
+        .update({
+          status: "error",
+          completed_at: new Date().toISOString(),
+          duration_seconds: duration,
+          error_message: error.message,
+        })
+        .eq("id", logId);
+    }
     
     return new Response(
       JSON.stringify({ 
