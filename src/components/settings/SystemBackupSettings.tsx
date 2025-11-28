@@ -71,8 +71,7 @@ export const SystemBackupSettings: React.FC = () => {
       console.log('Getting service role auth for backup operation...');
       
       // Für Backup-Operationen verwenden wir das Service Role Token direkt
-      // Dies ist sicher, da es nur für interne Admin-Funktionen verwendet wird
-      const serviceRoleKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBraGtzd3ppeGF2dmlsZHRveHh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDc0NjIzOCwiZXhwIjoyMDYwMzIyMjM4fQ.1rBuKvAG8GfGRZb9c5Z4cUm2F7v8yLqJ5h2c8N9xP0m";
+      const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || "";
       
       return { 
         Authorization: `Bearer ${serviceRoleKey}`,
@@ -94,8 +93,9 @@ export const SystemBackupSettings: React.FC = () => {
       console.log('Service role auth header obtained successfully');
 
       console.log('Making request to backup function...');
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const response = await fetch(
-        "https://pkhkswzixavvildtoxxt.supabase.co/functions/v1/database-backup",
+        `${supabaseUrl}/functions/v1/database-backup`,
         {
           method: "GET",
           headers: {
@@ -173,8 +173,9 @@ export const SystemBackupSettings: React.FC = () => {
       console.log('Service role auth header obtained successfully for restore');
 
       console.log('Making restore request...');
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const response = await fetch(
-        "https://pkhkswzixavvildtoxxt.supabase.co/functions/v1/database-backup",
+        `${supabaseUrl}/functions/v1/database-backup`,
         {
           method: "POST",
           headers: {
