@@ -18,6 +18,8 @@ import { usePersons } from "@/hooks/usePersons";
 import { useCategories } from "@/hooks/useCategories";
 import { useLocations } from "@/hooks/useLocations";
 import { useMissionEquipment } from "@/hooks/useMissionEquipment";
+import { useMissions } from "@/hooks/useMissions";
+import { useSendMissionReport } from "@/hooks/useSendMissionReport";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -58,6 +60,8 @@ export function AddEquipmentToMissionDialog({
   const { data: categories = [] } = useCategories();
   const { data: locations = [] } = useLocations();
   const { data: existingEquipment = [] } = useMissionEquipment(missionId);
+  const { data: missions = [] } = useMissions();
+  const { sendMissionReport } = useSendMissionReport();
 
   // Filter equipment based on search term and exclude already added equipment
   const existingEquipmentIds = existingEquipment.map(item => item.equipment_id);
@@ -107,6 +111,34 @@ export function AddEquipmentToMissionDialog({
       
       toast.success("Ausrüstung hinzugefügt");
       
+      // Send mission report automatically
+      setTimeout(async () => {
+        const mission = missions.find(m => m.id === missionId);
+        if (mission) {
+          const { data: updatedEquipment } = await supabase
+            .from("mission_equipment")
+            .select(`
+              *,
+              equipment:equipment_id (
+                id,
+                name,
+                inventory_number,
+                category:category_id (name),
+                location:location_id (name)
+              ),
+              added_by_person:added_by (
+                first_name,
+                last_name
+              )
+            `)
+            .eq('mission_id', missionId);
+          
+          if (updatedEquipment) {
+            await sendMissionReport({ mission, missionEquipment: updatedEquipment as any });
+          }
+        }
+      }, 800);
+      
       // Clear search to show next items
       setSearchTerm("");
       setCategoryFilter("");
@@ -155,6 +187,34 @@ export function AddEquipmentToMissionDialog({
       queryClient.invalidateQueries({ queryKey: ["missions"] });
       
       toast.success(`${selectedEquipment.length} Ausrüstungsgegenstände wurden hinzugefügt`);
+      
+      // Send mission report automatically
+      setTimeout(async () => {
+        const mission = missions.find(m => m.id === missionId);
+        if (mission) {
+          const { data: updatedEquipment } = await supabase
+            .from("mission_equipment")
+            .select(`
+              *,
+              equipment:equipment_id (
+                id,
+                name,
+                inventory_number,
+                category:category_id (name),
+                location:location_id (name)
+              ),
+              added_by_person:added_by (
+                first_name,
+                last_name
+              )
+            `)
+            .eq('mission_id', missionId);
+          
+          if (updatedEquipment) {
+            await sendMissionReport({ mission, missionEquipment: updatedEquipment as any });
+          }
+        }
+      }, 800);
       
       // Reset form
       setSelectedEquipment([]);
