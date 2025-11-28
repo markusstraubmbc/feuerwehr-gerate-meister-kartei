@@ -128,7 +128,7 @@ export function EquipmentOverviewDialog({
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="comments">
                 <MessageSquare className="h-4 w-4 mr-2" />
-                Kommentare ({comments.length})
+                Aktionen ({comments.length})
               </TabsTrigger>
               <TabsTrigger value="maintenance">
                 <Wrench className="h-4 w-4 mr-2" />
@@ -146,21 +146,21 @@ export function EquipmentOverviewDialog({
 
             <TabsContent value="comments" className="space-y-4">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Kommentare</h3>
+                <h3 className="text-lg font-semibold">Aktionen</h3>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setIsCommentsDialogOpen(true)}
                 >
                   <MessageSquare className="h-4 w-4 mr-2" />
-                  Kommentar hinzufügen
+                  Aktion hinzufügen
                 </Button>
               </div>
               {comments.length === 0 ? (
                 <Card>
                   <CardContent className="pt-6">
                     <p className="text-muted-foreground text-center">
-                      Keine Kommentare vorhanden
+                      Keine Aktionen vorhanden
                     </p>
                   </CardContent>
                 </Card>
